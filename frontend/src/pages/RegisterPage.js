@@ -1,63 +1,62 @@
 import React, { useState } from "react";
-import "./Auth.css";  // ✅ import CSS
+import "./Auth.css"; // for styling
 
 function RegisterPage() {
-  const [formData, setFormData] = useState({ username: "", email: "", password: "" });
-
-  const handleChange = (e) =>
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     try {
       const response = await fetch("http://127.0.0.1:8000/api/register/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ username, password, email }),
       });
 
       if (response.ok) {
-  const data = await response.json();
-  alert(data.message);   // ✅ shows "User registered successfully!"
-} else {
-  const errData = await response.json();
-  alert("❌ Registration failed: " + JSON.stringify(errData));
-}
+        alert("✅ Registered successfully! You can login now.");
+        setUsername("");
+        setPassword("");
+        setEmail("");
+      } else {
+        const data = await response.json();
+        alert("❌ Registration failed: " + JSON.stringify(data));
+      }
     } catch (error) {
-      alert("⚠️ Network error: " + error.message);
+      alert("⚠️ Something went wrong: " + error.message);
     }
   };
 
   return (
     <div className="auth-container">
-      <div className="auth-box">
-        <h3>Register</h3>
-        <form onSubmit={handleSubmit}>
-          <input
-            type="text"
-            name="username"
-            placeholder="Username"
-            onChange={handleChange}
-            required
-          />
-          <input
-            type="email"
-            name="email"
-            placeholder="Email"
-            onChange={handleChange}
-            required
-          />
-          <input
-            type="password"
-            name="password"
-            placeholder="Password"
-            onChange={handleChange}
-            required
-          />
-          <button type="submit">Register</button>
-        </form>
-        <p>Already have an account? <a href="/login">Login</a></p>
-      </div>
+      <h2>Register</h2>
+      <form onSubmit={handleSubmit}>
+        <input
+          type="text"
+          placeholder="Username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          required
+        />
+        <input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
+        <button type="submit">Register</button>
+      </form>
     </div>
   );
 }
