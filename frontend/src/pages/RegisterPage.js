@@ -1,60 +1,93 @@
 import React, { useState } from "react";
-import "./Auth.css"; // for styling
+import { useNavigate } from "react-router-dom";
+import "./Auth.css";
 
 function RegisterPage() {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [email, setEmail] = useState("");
+  const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
+  const [formData, setFormData] = useState({
+    username: "",
+    email: "",
+    password: "",
+    role: "freelancer", // Default role
+  });
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const handleSubmit = (e) => {
     e.preventDefault();
 
-    try {
-      const response = await fetch("http://127.0.0.1:8000/api/register/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password, email }),
-      });
+    // Simulated user registration (later you’ll connect Django API here)
+    console.log("Registered user:", formData);
 
-      if (response.ok) {
-        alert("✅ Registered successfully! You can login now.");
-        setUsername("");
-        setPassword("");
-        setEmail("");
-      } else {
-        const data = await response.json();
-        alert("❌ Registration failed: " + JSON.stringify(data));
-      }
-    } catch (error) {
-      alert("⚠️ Something went wrong: " + error.message);
+    // Save user data (optional)
+    localStorage.setItem("user", JSON.stringify(formData));
+
+    // Redirect user after registration
+    if (formData.role === "client") {
+      navigate("/client-dashboard");
+    } else {
+      navigate("/freelancer-dashboard");
     }
   };
 
   return (
     <div className="auth-container">
-      <h2>Register</h2>
-      <form onSubmit={handleSubmit}>
+      <h2>📝 Register</h2>
+      <form onSubmit={handleSubmit} className="auth-form">
         <input
           type="text"
+          name="username"
           placeholder="Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
+          value={formData.username}
+          onChange={handleChange}
           required
         />
         <input
           type="email"
+          name="email"
           placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          value={formData.email}
+          onChange={handleChange}
           required
         />
         <input
           type="password"
+          name="password"
           placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          value={formData.password}
+          onChange={handleChange}
           required
         />
+
+        <div className="role-select">
+          <label>
+            <input
+              type="radio"
+              name="role"
+              value="client"
+              checked={formData.role === "client"}
+              onChange={handleChange}
+            />
+            Client
+          </label>
+          <label>
+            <input
+              type="radio"
+              name="role"
+              value="freelancer"
+              checked={formData.role === "freelancer"}
+              onChange={handleChange}
+            />
+            Freelancer
+          </label>
+        </div>
+
         <button type="submit">Register</button>
       </form>
     </div>
