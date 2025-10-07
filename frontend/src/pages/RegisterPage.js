@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom"; // <-- Link import kiya
 import "./Auth.css";
 
 function RegisterPage() {
@@ -9,7 +9,7 @@ function RegisterPage() {
     username: "",
     email: "",
     password: "",
-    role: "freelancer", // Default role
+    role: "freelancer",
   });
 
   const handleChange = (e) => {
@@ -21,14 +21,10 @@ function RegisterPage() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-
-    // Simulated user registration (later you’ll connect Django API here)
     console.log("Registered user:", formData);
 
-    // Save user data (optional)
     localStorage.setItem("user", JSON.stringify(formData));
 
-    // Redirect user after registration
     if (formData.role === "client") {
       navigate("/client-dashboard");
     } else {
@@ -89,6 +85,14 @@ function RegisterPage() {
         </div>
 
         <button type="submit">Register</button>
+
+        {/* 👇 Add this link below the button */}
+        <p style={{ marginTop: "10px" }}>
+          Already have an account?{" "}
+          <Link to="/login" style={{ color: "#007bff", textDecoration: "none" }}>
+            Login here
+          </Link>
+        </p>
       </form>
     </div>
   );
