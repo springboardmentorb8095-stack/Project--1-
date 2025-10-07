@@ -9,6 +9,8 @@ import ViewProposals from "./pages/ViewProposals";
 import EarningsPage from "./pages/EarningsPage";
 import ProjectsPage from "./pages/ProjectsPage";
 import ApplyPage from "./pages/ApplyPage";
+import ProfilesPage from "./pages/ProfilesPage";
+import ProjectsSearchPage from "./pages/ProjectsSearchPage";
 
 
 function App() {
@@ -32,6 +34,9 @@ function App() {
   <Route path="/earnings" element={<EarningsPage />} />
   <Route path="/projects" element={<ProjectsPage />} />
   <Route path="/projects/:id/apply" element={<ApplyPage />} />
+  <Route path="/profiles" element={<ProfilesPage />} />
+  <Route path="/projects-search" element={<ProjectsSearchPage />} />
+
 </Routes>
 
       </div>
