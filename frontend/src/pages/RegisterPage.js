@@ -12,7 +12,7 @@ function RegisterPage() {
     role: "freelancer",
   });
 
-  const [loading, setLoading] = useState(false); // ✅ loading state
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
@@ -23,7 +23,7 @@ function RegisterPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true); // ✅ start loading
+    setLoading(true);
 
     try {
       const response = await fetch("http://localhost:8000/api/register/", {
@@ -31,25 +31,21 @@ function RegisterPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          username: formData.username,
-          email: formData.email,
-          password: formData.password,
-        }),
+        body: JSON.stringify(formData),
       });
 
       const data = await response.json();
 
       if (response.ok) {
         console.log("✅ User registered successfully:", data);
-        localStorage.setItem("user", JSON.stringify(data));
+        localStorage.setItem("user", JSON.stringify({ ...data, role: formData.role }));
         alert("Registration successful ✅");
 
-        // Redirect based on role
+        // ✅ Redirect based on role
         if (formData.role === "client") {
-          navigate("/client-dashboard");
+          navigate("/client-profile");
         } else {
-          navigate("/freelancer-dashboard");
+          navigate("/freelancer-profile");
         }
       } else {
         console.error("❌ Registration failed:", data);
@@ -59,7 +55,7 @@ function RegisterPage() {
       console.error("🚨 Error:", error);
       alert("Something went wrong while registering ❌");
     } finally {
-      setLoading(false); // ✅ stop loading
+      setLoading(false);
     }
   };
 

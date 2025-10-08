@@ -2,6 +2,8 @@ import React from "react";
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import RegisterPage from "./pages/RegisterPage";
 import LoginPage from "./pages/LoginPage";
+import Profile_Client from "./pages/Profile_Client";
+import Profile_Freelancer from "./pages/Profile_Freelancer";
 import "./pages/Auth.css";
 import FreelancerDashboard from "./pages/FreelancerDashboard";
 import ClientDashboard from "./pages/ClientDashboard";
@@ -24,6 +26,7 @@ function App() {
           <Link to="/login">Login</Link>
         </nav>
         <hr />
+
         <Routes>
   <Route path="/" element={<h3>🏠 Welcome to Home Page</h3>} />
   <Route path="/register" element={<RegisterPage />} />
@@ -39,6 +42,10 @@ function App() {
 
 </Routes>
 
+          {/* ✅ Profile Routes */}
+          <Route path="/client-profile" element={<Profile_Client />} />
+          <Route path="/freelancer-profile" element={<Profile_Freelancer />} />
+        </Routes>
       </div>
     </Router>
   );
