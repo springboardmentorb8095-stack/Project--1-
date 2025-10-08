@@ -1,4 +1,3 @@
-# users/views.py
 from django.contrib.auth.models import User
 from rest_framework import generics, permissions, filters
 from rest_framework.response import Response
@@ -11,11 +10,14 @@ from .models import Profile
 
 # ---------------- Existing Views ---------------- #
 
+
+# ✅ Home route (for testing)
 def home(request):
     return JsonResponse({"message": "Backend running 🚀"})
 
 # 👤 Register a new user
 class RegisterView(generics.CreateAPIView):
+    queryset = User.objects.all()
     permission_classes = [permissions.AllowAny]
     serializer_class = RegisterSerializer
 
