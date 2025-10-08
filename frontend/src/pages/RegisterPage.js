@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import "./Auth.css";
 
 function RegisterPage() {
@@ -9,8 +9,10 @@ function RegisterPage() {
     username: "",
     email: "",
     password: "",
-    role: "freelancer", // Default role
+    role: "freelancer",
   });
+
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
@@ -19,20 +21,41 @@ function RegisterPage() {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
 
-    // Simulated user registration (later you’ll connect Django API here)
-    console.log("Registered user:", formData);
+    try {
+      const response = await fetch("http://localhost:8000/api/register/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
 
-    // Save user data (optional)
-    localStorage.setItem("user", JSON.stringify(formData));
+      const data = await response.json();
 
-    // Redirect user after registration
-    if (formData.role === "client") {
-      navigate("/client-dashboard");
-    } else {
-      navigate("/freelancer-dashboard");
+      if (response.ok) {
+        console.log("✅ User registered successfully:", data);
+        localStorage.setItem("user", JSON.stringify({ ...data, role: formData.role }));
+        alert("Registration successful ✅");
+
+        // ✅ Redirect based on role
+        if (formData.role === "client") {
+          navigate("/client-profile");
+        } else {
+          navigate("/freelancer-profile");
+        }
+      } else {
+        console.error("❌ Registration failed:", data);
+        alert("Registration failed: " + JSON.stringify(data));
+      }
+    } catch (error) {
+      console.error("🚨 Error:", error);
+      alert("Something went wrong while registering ❌");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -88,7 +111,16 @@ function RegisterPage() {
           </label>
         </div>
 
-        <button type="submit">Register</button>
+        <button type="submit" disabled={loading}>
+          {loading ? "Registering..." : "Register"}
+        </button>
+
+        <p style={{ marginTop: "10px" }}>
+          Already have an account?{" "}
+          <Link to="/login" style={{ color: "#007bff", textDecoration: "none" }}>
+            Login here
+          </Link>
+        </p>
       </form>
     </div>
   );

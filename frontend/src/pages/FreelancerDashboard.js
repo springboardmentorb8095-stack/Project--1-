@@ -121,38 +121,11 @@ export default function FreelancerDashboard() {
                 <span>Ended: {fmt(p.endDate)}</span>
               </div>
 
-              {role === "freelancer" && (
-                <>
-                  {p.status === STATUS.OPEN && <button onClick={() => acquireProject(p)}>Acquire</button>}
-                  {p.freelancerId === userName && (
-                    <div className="progress-inline">
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        value={p.progress || 0}
-                        onChange={(e) => updateProgress(p.id, e.target.value)}
-                      />
-                      <button onClick={() => updateProgress(p.id, 100)}>Finish</button>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          ))
-      )}
-
-      <div className="dashboard-footer">
-        <button
-          onClick={() => {
-            if (window.confirm("Clear all local projects?")) {
-              localStorage.removeItem(STORAGE_KEY);
-              setProjects([]);
-            }
-          }}
-        >
-          Clear All Local Projects
-        </button>
+        <div className="dashboard-card">
+          <h3>📁 Projects</h3>
+          <p>Explore available projects and apply.</p>
+          <button onClick={() => navigate("/projects")}>Find Projects</button>
+        </div>
       </div>
     </div>
   );

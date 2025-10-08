@@ -1,23 +1,19 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import "./Auth.css"; // use your existing CSS for styling
+import { useNavigate, Link } from "react-router-dom"; // <-- Link import kiya
+import "./Auth.css";
 
 function LoginPage() {
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("freelancer"); // Default role
+  const [role, setRole] = useState("freelancer");
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // Simulated login logic (you can later replace this with Django API)
     const user = { username, role };
-
-    // Save user info to localStorage (optional)
     localStorage.setItem("user", JSON.stringify(user));
 
-    // Redirect based on role
     if (user.role === "client") {
       navigate("/client-dashboard");
     } else {
@@ -66,6 +62,14 @@ function LoginPage() {
         </div>
 
         <button type="submit">Login</button>
+
+        {/* 👇 Add this link below the button */}
+        <p style={{ marginTop: "10px" }}>
+          Don’t have an account?{" "}
+          <Link to="/register" style={{ color: "#007bff", textDecoration: "none" }}>
+            Register here
+          </Link>
+        </p>
       </form>
     </div>
   );
