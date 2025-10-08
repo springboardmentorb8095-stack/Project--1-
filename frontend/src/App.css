@@ -36,3 +36,58 @@
     transform: rotate(360deg);
   }
 }
+
+/* ===== Global Theme ===== */
+body {
+  transition: all 0.3s ease-in-out;
+}
+
+/* ===== Light Mode ===== */
+body.light {
+  background-color: #ffffff;
+  color: #000000;
+}
+
+body.light .card {
+  background-color: #f8f9ff;
+  color: #000000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* ===== Dark Mode ===== */
+body.dark {
+  background-color: #121212;
+  color: #eaeaea;
+}
+
+body.dark .card {
+  background-color: #1e1e1e;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(255, 255, 255, 0.05);
+}
+
+body.dark button,
+body.dark a {
+  color: #eaeaea;
+}
+
+/* ===== Hover effect for summary cards ===== */
+.card:hover {
+  transform: translateY(-4px);
+  transition: 0.3s ease;
+}
+
+/* ===== Summary section styling ===== */
+.dashboard-summary {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.dashboard-summary .card {
+  flex: 1;
+  min-width: 200px;
+  padding: 16px;
+  border-radius: 12px;
+  text-align: center;
+}

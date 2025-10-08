@@ -30,8 +30,7 @@ function ProjectsPage() {
   ];
 
   function handleApply(projectId) {
-    // navigate to apply form route for this project
-    navigate(`/projects/${projectId}/apply`);
+    alert(`Applied for project ID: ${projectId}`);
   }
 
   return (

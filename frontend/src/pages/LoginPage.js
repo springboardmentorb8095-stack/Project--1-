@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom"; // <-- Link import kiya
+import { useNavigate, Link } from "react-router-dom";
 import "./Auth.css";
 
 function LoginPage() {
@@ -14,7 +14,7 @@ function LoginPage() {
     const user = { username, role };
     localStorage.setItem("user", JSON.stringify(user));
 
-    if (user.role === "client") {
+    if (role === "client") {
       navigate("/client-dashboard");
     } else {
       navigate("/freelancer-dashboard");
@@ -63,7 +63,6 @@ function LoginPage() {
 
         <button type="submit">Login</button>
 
-        {/* 👇 Add this link below the button */}
         <p style={{ marginTop: "10px" }}>
           Don’t have an account?{" "}
           <Link to="/register" style={{ color: "#007bff", textDecoration: "none" }}>
