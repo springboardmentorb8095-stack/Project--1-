@@ -36,3 +36,47 @@
     transform: rotate(360deg);
   }
 }
+
+/* 🌍 Global Styles */
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: #f9fafb;
+  margin: 0;
+  padding: 0;
+  color: #1f2937;
+}
+
+/* Navigation Bar */
+nav {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background-color: #1e293b;
+  padding: 12px 20px;
+  border-radius: 8px;
+}
+
+nav a {
+  color: #e2e8f0;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease-in-out;
+}
+
+nav a:hover {
+  color: #38bdf8;
+}
+
+/* Page Container */
+.page-container {
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  margin-top: 20px;
+}
+
+/* Headings */
+h2, h3 {
+  color: #0f172a;
+}
