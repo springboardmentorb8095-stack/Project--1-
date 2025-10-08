@@ -32,6 +32,18 @@ function FreelancerDashboard() {
           <p>Explore available projects and apply.</p>
           <button onClick={() => navigate("/projects")}>Find Projects</button>
         </div>
+        <div className="dashboard-card">
+  <h3>🔍 Find Freelancers</h3>
+  <p>Search for freelancers by skills, role, or availability.</p>
+  <button onClick={() => navigate("/profiles")}>Go to Search</button>
+</div>
+<div className="dashboard-card">
+  <h3>🔍 Find Projects</h3>
+  <p>Search for projects by skill, budget, and deadline.</p>
+  <button onClick={() => navigate("/projects-search")}>Go</button>
+</div>
+
+
       </div>
     </div>
   );

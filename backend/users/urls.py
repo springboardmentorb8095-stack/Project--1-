@@ -1,12 +1,12 @@
 # users/urls.py
 from django.urls import path
-from .views import RegisterView, MeProfileView, home
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from .views import RegisterView, MeProfileView, ProfileSearchFilterView, home
 
 urlpatterns = [
-    path('', home, name='home'),  # ✅ root test
+    path('', home, name='home'),
     path('register/', RegisterView.as_view(), name='register'),
-    path('login/', TokenObtainPairView.as_view(), name='login'),
-    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    path('profile/', MeProfileView.as_view(), name='profile'),
+    path('me/', MeProfileView.as_view(), name='me-profile'),
+
+    # ✅ New Search & Filter API
+    path('profiles/search/', ProfileSearchFilterView.as_view(), name='profile-search'),
 ]
