@@ -2,6 +2,7 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
 from .models import Profile
+from .models import ProfileClient, ProfileFreelancer
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=6)
@@ -34,3 +35,13 @@ class ProfileSerializer(serializers.ModelSerializer):
         model = Profile
         fields = ("id", "user", "bio", "location", "skills", "created_at")
         read_only_fields = ("id", "user", "created_at")
+
+class ProfileClientSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProfileClient
+        fields = ['id', 'user', 'contact', 'business_name', 'bio']
+
+class ProfileFreelancerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProfileFreelancer
+        fields = ['id', 'user', 'contact', 'skills', 'hourly_rate', 'available']

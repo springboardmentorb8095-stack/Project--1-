@@ -1,7 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
 
-
 class Profile(models.Model):
     ROLE_CHOICES = (
         ('client', 'Client'),
@@ -10,18 +9,29 @@ class Profile(models.Model):
 
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='freelancer')
-
-    # Common fields
-    contact_no = models.CharField(max_length=15, blank=True, null=True)
-
-    # Client fields
-    business_name = models.CharField(max_length=100, blank=True, null=True)
-    bio = models.TextField(blank=True, null=True)
-
-    # Freelancer fields
+    portfolio = models.URLField(blank=True, null=True)
     skills = models.TextField(blank=True, null=True)
     hourly_rate = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    availability = models.CharField(max_length=50, blank=True, null=True)
+    availability = models.CharField(max_length=100, blank=True, null=True)
 
     def __str__(self):
         return f"{self.user.username} ({self.role})"
+
+class ProfileClient(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    contact = models.CharField(max_length=20)
+    business_name = models.CharField(max_length=100)
+    bio = models.TextField(blank=True)
+
+    def __str__(self):
+        return f"Client: {self.user.username}"
+    
+class ProfileFreelancer(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    contact = models.CharField(max_length=20)
+    skills = models.CharField(max_length=200)
+    hourly_rate = models.DecimalField(max_digits=10, decimal_places=2)
+    available = models.CharField(max_length=50)
+
+    def __str__(self):
+        return f"Freelancer: {self.user.username}"

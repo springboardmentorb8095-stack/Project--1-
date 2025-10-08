@@ -23,22 +23,43 @@ function Profile_Client() {
     setProfile({ ...profile, [e.target.name]: e.target.value });
   };
 
-  // ✅ Save profile (future backend ready)
-  const handleSubmit = (e) => {
+  // ✅ Save profile to Django backend
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    console.log("💾 Client Profile Saved:", profile);
-    localStorage.setItem("user", JSON.stringify(profile));
-    alert("✅ Client Profile Saved Successfully!");
+    const token = localStorage.getItem("access");
+    if (!token) {
+      alert("❌ Please login first!");
+      return;
+    }
 
-    // Example future backend call:
-    /*
-    fetch("http://localhost:8000/api/client/profile/", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(profile),
-    });
-    */
+    try {
+      const response = await fetch("http://127.0.0.1:8000/api/client/profile/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          contact: profile.contact,
+          business_name: profile.businessName, // match Django field
+          bio: profile.bio,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("✅ Saved to backend:", data);
+        alert("✅ Client Profile Saved Successfully in Backend!");
+      } else {
+        const errorData = await response.json();
+        console.error("❌ Error saving profile:", errorData);
+        alert("❌ Failed to save profile: " + JSON.stringify(errorData));
+      }
+    } catch (error) {
+      console.error("❌ Error:", error);
+      alert("❌ Something went wrong while saving profile!");
+    }
   };
 
   return (

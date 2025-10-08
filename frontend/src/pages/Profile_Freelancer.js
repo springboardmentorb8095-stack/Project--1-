@@ -3,13 +3,13 @@ import "./Auth.css";
 
 function Profile_Freelancer() {
   const [profile, setProfile] = useState({
-    name: "",
-    email: "",
-    contact: "",
-    skills: "",
-    hourlyRate: "",
-    available: "",
-  });
+  name: "",
+  email: "",
+  contact: "",
+  skills: "",
+  hourly_rate: "",
+  available: "",
+});
 
   // ✅ Auto-fill email from localStorage after register
   useEffect(() => {
@@ -24,22 +24,44 @@ function Profile_Freelancer() {
     setProfile({ ...profile, [e.target.name]: e.target.value });
   };
 
-  // ✅ Save profile (future: can send to backend)
-  const handleSubmit = (e) => {
+  // ✅ Save profile to Django backend
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    console.log("💾 Freelancer Profile Saved:", profile);
-    localStorage.setItem("user", JSON.stringify(profile));
-    alert("✅ Freelancer Profile Saved Successfully!");
+    const token = localStorage.getItem("access"); // JWT token from login
+    if (!token) {
+      alert("❌ Please login first!");
+      return;
+    }
 
-    // Example future backend call:
-    /*
-    fetch("http://localhost:8000/api/freelancer/profile/", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(profile),
-    });
-    */
+    try {
+      const response = await fetch("http://127.0.0.1:8000/api/freelancer/profile/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          contact: profile.contact,
+          skills: profile.skills,
+          hourly_rate: profile.hourly_rate, // match Django field
+          available: profile.available,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("✅ Saved to backend:", data);
+        alert("✅ Freelancer Profile Saved Successfully in Backend!");
+      } else {
+        const errorData = await response.json();
+        console.error("❌ Error saving profile:", errorData);
+        alert("❌ Failed to save profile: " + JSON.stringify(errorData));
+      }
+    } catch (error) {
+      console.error("❌ Error:", error);
+      alert("❌ Something went wrong while saving profile!");
+    }
   };
 
   return (
@@ -83,9 +105,9 @@ function Profile_Freelancer() {
 
         <input
           type="number"
-          name="hourlyRate"
+          name="hourly_rate"
           placeholder="Hourly Rate ($)"
-          value={profile.hourlyRate}
+          value={profile.hourly_rate}
           onChange={handleChange}
           required
         />

@@ -5,6 +5,8 @@ from rest_framework.views import APIView
 from .serializers import RegisterSerializer, ProfileSerializer
 from .models import Profile
 from django.http import JsonResponse
+from .models import ProfileClient, ProfileFreelancer
+from .serializers import ProfileClientSerializer, ProfileFreelancerSerializer
 
 
 # ✅ Home route (for testing)
@@ -38,3 +40,50 @@ class MeProfileView(APIView):
         profile = Profile.objects.get(user=request.user)
         profile.delete()
         return Response({"detail": "Profile deleted"})
+
+
+# ✅ For Client Profile (Create + Update)
+class ProfileClientView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        try:
+            profile = ProfileClient.objects.get(user=request.user)
+            serializer = ProfileClientSerializer(profile)
+            return Response(serializer.data)
+        except ProfileClient.DoesNotExist:
+            return Response({"detail": "Profile not found"}, status=404)
+
+    def post(self, request):
+        print("📩 POST data received (Client):", request.data)  # Debug log
+
+        serializer = ProfileClientSerializer(data=request.data)
+        if serializer.is_valid():
+            try:
+                serializer.save(user=request.user)
+                print("✅ Client Profile created for:", request.user)
+                return Response({"message": "✅ Client profile created successfully!"})
+            except Exception as e:
+                print("🔥 ERROR while saving client profile:", str(e))
+                return Response({"error": str(e)}, status=500)
+        else:
+            print("❌ Serializer Errors (Client):", serializer.errors)
+            return Response(serializer.errors, status=400)
+
+    def put(self, request):
+        print("📩 PUT data received (Client):", request.data)  # Debug log
+
+        profile, created = ProfileClient.objects.get_or_create(user=request.user)
+        serializer = ProfileClientSerializer(profile, data=request.data, partial=True)
+        if serializer.is_valid():
+            try:
+                serializer.save()
+                msg = "✅ Client profile created successfully!" if created else "✅ Client profile updated successfully!"
+                print(msg)
+                return Response({"message": msg})
+            except Exception as e:
+                print("🔥 ERROR while updating client profile:", str(e))
+                return Response({"error": str(e)}, status=500)
+        else:
+            print("❌ Serializer Errors (Client):", serializer.errors)
+            return Response(serializer.errors, status=400)
