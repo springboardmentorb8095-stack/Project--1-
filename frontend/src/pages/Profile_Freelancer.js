@@ -29,6 +29,7 @@ function Profile_Freelancer() {
     e.preventDefault();
 
     console.log("💾 Freelancer Profile Saved:", profile);
+    localStorage.setItem("user", JSON.stringify(profile));
     alert("✅ Freelancer Profile Saved Successfully!");
 
     // Example future backend call:

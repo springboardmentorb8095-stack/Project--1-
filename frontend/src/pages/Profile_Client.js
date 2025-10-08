@@ -28,6 +28,7 @@ function Profile_Client() {
     e.preventDefault();
 
     console.log("💾 Client Profile Saved:", profile);
+    localStorage.setItem("user", JSON.stringify(profile));
     alert("✅ Client Profile Saved Successfully!");
 
     // Example future backend call:
