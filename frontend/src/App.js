@@ -3,7 +3,6 @@ import {
   BrowserRouter as Router,
   Routes,
   Route,
-  Link,
   useLocation,
   useNavigate,
 } from "react-router-dom";
@@ -21,10 +20,17 @@ import PostProject from "./pages/PostProject";
 import HomePage from "./pages/HomePage";
 import "./pages/Auth.css";
 
-// ✅ Header Component (Back + Greeting + Theme Toggle)
+// ✅ Header Component (Back + Greeting + Search + Theme Toggle + Profile)
 function HeaderBar({ theme, toggleTheme }) {
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem("user"));
+  const user =
+    JSON.parse(localStorage.getItem("user")) || {
+      username: "Guest",
+      name: "Unknown",
+      email: "example@mail.com",
+      role: "User",
+      profilePhoto: null,
+    };
 
   const hour = new Date().getHours();
   let greeting = "Hello";
@@ -32,7 +38,7 @@ function HeaderBar({ theme, toggleTheme }) {
   else if (hour < 18) greeting = "Good Afternoon";
   else greeting = "Good Evening";
 
-  if (!user) return null;
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   return (
     <div
@@ -50,8 +56,9 @@ function HeaderBar({ theme, toggleTheme }) {
         transition: "0.3s ease-in-out",
       }}
     >
+      {/* ✅ Back Button */}
       <button
-        onClick={() => navigate("/homepage")} // ✅ Back always goes to HomePage
+        onClick={() => navigate(-1)} // one step back
         style={{
           background: "none",
           border: "none",
@@ -64,51 +71,138 @@ function HeaderBar({ theme, toggleTheme }) {
         ⬅ Back
       </button>
 
+      {/* ✅ Greeting */}
       <div style={{ fontSize: "18px", fontWeight: "600" }}>
-        {greeting}, {user?.username || "User"} 👋
+        {greeting}, {user.username} 👋
       </div>
 
-      {/* ✅ Light/Dark Mode Toggle */}
-      <button
-        onClick={toggleTheme}
-        style={{
-          background: theme === "dark" ? "#333" : "#fff",
-          color: theme === "dark" ? "#fff" : "#333",
-          border: "1px solid #ccc",
-          borderRadius: "8px",
-          padding: "6px 12px",
-          cursor: "pointer",
-          fontWeight: "bold",
-        }}
-      >
-        {theme === "dark" ? "🌙 Dark" : "☀️ Light"}
-      </button>
+      {/* ✅ Right Section: Search + Theme + Profile */}
+      <div style={{ display: "flex", alignItems: "center", gap: "15px", position: "relative" }}>
+        {/* Search */}
+        <input
+          type="text"
+          placeholder="Search..."
+          style={{
+            padding: "6px 10px",
+            borderRadius: "8px",
+            border: theme === "dark" ? "1px solid #555" : "1px solid #ccc",
+            background: theme === "dark" ? "#222" : "#fff",
+            color: theme === "dark" ? "#fff" : "#000",
+            outline: "none",
+          }}
+        />
+
+        {/* Theme toggle */}
+        <button
+          onClick={toggleTheme}
+          style={{
+            background: theme === "dark" ? "#333" : "#fff",
+            color: theme === "dark" ? "#fff" : "#333",
+            border: "1px solid #ccc",
+            borderRadius: "8px",
+            padding: "6px 12px",
+            cursor: "pointer",
+            fontWeight: "bold",
+          }}
+        >
+          {theme === "dark" ? "🌙 Dark" : "☀️ Light"}
+        </button>
+
+        {/* Profile dropdown */}
+        <div style={{ position: "relative" }}>
+          <img
+            src={
+              user.profilePhoto ||
+              "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
+            }
+            alt="Profile"
+            onClick={() => setDropdownOpen(!dropdownOpen)}
+            style={{
+              width: "40px",
+              height: "40px",
+              borderRadius: "50%",
+              cursor: "pointer",
+              border: "2px solid #007bff",
+            }}
+          />
+
+          {dropdownOpen && (
+            <div
+              style={{
+                position: "absolute",
+                right: 0,
+                top: "50px",
+                background: theme === "dark" ? "#222" : "#fff",
+                color: theme === "dark" ? "#fff" : "#000",
+                borderRadius: "10px",
+                boxShadow: "0px 4px 10px rgba(0,0,0,0.2)",
+                width: "250px",
+                padding: "15px",
+                zIndex: 1000,
+              }}
+            >
+              <div style={{ textAlign: "center" }}>
+                <img
+                  src={
+                    user.profilePhoto ||
+                    "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
+                  }
+                  alt="Profile"
+                  style={{
+                    width: "60px",
+                    height: "60px",
+                    borderRadius: "50%",
+                    marginBottom: "10px",
+                  }}
+                />
+                <h3 style={{ margin: 0 }}>{user.username}</h3>
+                <p style={{ margin: "5px 0", fontSize: "14px", opacity: 0.8 }}>
+                  {user.email}
+                </p>
+                <p
+                  style={{
+                    margin: "5px 0",
+                    fontSize: "13px",
+                    background: "#007bff",
+                    color: "white",
+                    display: "inline-block",
+                    padding: "3px 10px",
+                    borderRadius: "8px",
+                  }}
+                >
+                  {user.role}
+                </p>
+
+                <button
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    navigate("/my-profile");
+                  }}
+                  style={{
+                    marginTop: "10px",
+                    background: "#2563eb",
+                    color: "white",
+                    border: "none",
+                    padding: "6px 12px",
+                    borderRadius: "8px",
+                    cursor: "pointer",
+                    fontWeight: "bold",
+                  }}
+                >
+                  ✏️ Edit Profile
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
 
-// ✅ Layout Wrapper
+// ✅ Layout Wrapper (Header removed from Home/Login/Register)
 function Layout({ children, theme, toggleTheme }) {
   const location = useLocation();
-  const [hideHeader, setHideHeader] = useState(false);
-
-  useEffect(() => {
-    // ✅ Hide header on home, homepage, login, register, and dashboard related pages
-    if (
-      location.pathname === "/" ||
-      location.pathname === "/homepage" ||
-      location.pathname.includes("login") ||
-      location.pathname.includes("register") ||
-      location.pathname.includes("dashboard") ||
-      location.pathname.includes("projects") ||
-      location.pathname.includes("my-projects") ||
-      location.pathname.includes("post-project")
-    ) {
-      setHideHeader(true);
-    } else {
-      setHideHeader(false);
-    }
-  }, [location]);
 
   const showTopBar =
     location.pathname.includes("dashboard") ||
@@ -127,62 +221,7 @@ function Layout({ children, theme, toggleTheme }) {
         transition: "all 0.3s ease-in-out",
       }}
     >
-      {/* ✅ Show Top Bar (Back + Greeting + Theme) */}
       {showTopBar && <HeaderBar theme={theme} toggleTheme={toggleTheme} />}
-
-      {/* ✅ Hide My Profile + Nav Header on pages like login/register/dashboard */}
-      {!hideHeader && (
-        <>
-          <Link
-            to="/my-profile"
-            style={{
-              position: "absolute",
-              top: "15px",
-              right: "15px",
-              backgroundColor: theme === "dark" ? "#2563eb" : "#007bff",
-              color: "white",
-              padding: "8px 12px",
-              borderRadius: "8px",
-              textDecoration: "none",
-              fontWeight: "bold",
-            }}
-          >
-            👤 My Profile
-          </Link>
-
-          <h2 style={{ textAlign: "center" }}>🔑 My App</h2>
-          <nav style={{ textAlign: "center" }}>
-            <Link
-              to="/"
-              style={{
-                marginRight: "10px",
-                color: theme === "dark" ? "#90caf9" : "#007bff",
-              }}
-            >
-              Home
-            </Link>
-            <Link
-              to="/register"
-              style={{
-                marginRight: "10px",
-                color: theme === "dark" ? "#90caf9" : "#007bff",
-              }}
-            >
-              Register
-            </Link>
-            <Link
-              to="/login"
-              style={{
-                color: theme === "dark" ? "#90caf9" : "#007bff",
-              }}
-            >
-              Login
-            </Link>
-          </nav>
-          <hr style={{ borderColor: theme === "dark" ? "#333" : "#ccc" }} />
-        </>
-      )}
-
       {children}
     </div>
   );
