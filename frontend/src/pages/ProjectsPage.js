@@ -1,9 +1,16 @@
-import React from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState } from "react";
 import "./Dashboard.css";
 
 function ProjectsPage() {
-  const navigate = useNavigate();
+  const [showForm, setShowForm] = useState(false);
+  const [selectedProject, setSelectedProject] = useState(null);
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    budget: "",
+    deadline: "",
+    reason: "",
+  });
 
   const projects = [
     {
@@ -29,9 +36,25 @@ function ProjectsPage() {
     },
   ];
 
-  function handleApply(projectId) {
-    alert(`Applied for project ID: ${projectId}`);
-  }
+  const handleApply = (project) => {
+    setSelectedProject(project);
+    setShowForm(true);
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    alert(`
+✅ Application Submitted!
+Project: ${selectedProject.title}
+Name: ${formData.name}
+Email: ${formData.email}
+Budget: ${formData.budget}
+Deadline: ${formData.deadline}
+Why Fit: ${formData.reason}
+    `);
+    setShowForm(false);
+    setFormData({ name: "", email: "", budget: "", deadline: "", reason: "" });
+  };
 
   return (
     <div className="dashboard-container">
@@ -49,13 +72,77 @@ function ProjectsPage() {
             <p><strong>Deadline:</strong> {project.deadline}</p>
             <button
               className="dashboard-btn"
-              onClick={() => handleApply(project.id)}
+              onClick={() => handleApply(project)}
             >
               Apply Now
             </button>
           </div>
         ))}
       </div>
+
+      {/* ✅ Popup Form (Modal) */}
+      {showForm && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <h3>Apply for {selectedProject?.title}</h3>
+            <form onSubmit={handleSubmit} className="apply-form">
+              <label>Enter Your Name</label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                required
+              />
+
+              <label>Email ID</label>
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                required
+              />
+
+              <label>Project Budget</label>
+              <input
+                type="text"
+                value={formData.budget}
+                onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
+                required
+              />
+
+              <label>Deadline</label>
+              <input
+                type="date"
+                value={formData.deadline}
+                onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
+                required
+              />
+
+              <label>Why are you fit for this project?</label>
+              <textarea
+                value={formData.reason}
+                onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
+                placeholder="Explain why you're the right fit for this project..."
+                rows="4"
+                required
+              ></textarea>
+
+              <div className="modal-buttons">
+                <button type="submit" className="dashboard-btn">
+                  ✅ Submit
+                </button>
+                <button
+                  type="button"
+                  className="dashboard-btn cancel"
+                  onClick={() => setShowForm(false)}
+                >
+                  ❌ Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -39,6 +39,15 @@ function HeaderBar({ theme, toggleTheme }) {
   else greeting = "Good Evening";
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // ✅ Search function
+  const handleSearch = () => {
+    if (searchTerm.trim() !== "") {
+      navigate(`/projects?search=${encodeURIComponent(searchTerm)}`);
+      setSearchTerm("");
+    }
+  };
 
   return (
     <div
@@ -78,19 +87,43 @@ function HeaderBar({ theme, toggleTheme }) {
 
       {/* ✅ Right Section: Search + Theme + Profile */}
       <div style={{ display: "flex", alignItems: "center", gap: "15px", position: "relative" }}>
-        {/* Search */}
-        <input
-          type="text"
-          placeholder="Search..."
-          style={{
-            padding: "6px 10px",
-            borderRadius: "8px",
-            border: theme === "dark" ? "1px solid #555" : "1px solid #ccc",
-            background: theme === "dark" ? "#222" : "#fff",
-            color: theme === "dark" ? "#fff" : "#000",
-            outline: "none",
+        {/* ✅ Search bar with Enter key support */}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSearch();
           }}
-        />
+          style={{ display: "flex", alignItems: "center", gap: "6px" }}
+        >
+          <input
+            type="text"
+            placeholder="Search..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{
+              padding: "6px 10px",
+              borderRadius: "8px",
+              border: theme === "dark" ? "1px solid #555" : "1px solid #ccc",
+              background: theme === "dark" ? "#222" : "#fff",
+              color: theme === "dark" ? "#fff" : "#000",
+              outline: "none",
+            }}
+          />
+          <button
+            type="submit"
+            style={{
+              background: "#2563eb",
+              color: "white",
+              border: "none",
+              borderRadius: "8px",
+              padding: "6px 12px",
+              cursor: "pointer",
+              fontWeight: "bold",
+            }}
+          >
+            🔍
+          </button>
+        </form>
 
         {/* Theme toggle */}
         <button

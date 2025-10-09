@@ -1,22 +1,16 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import "./FreelancerDashboard.css"; // your existing CSS
+import "./FreelancerDashboard.css";
 
 function FreelancerDashboard() {
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem("user"));
 
   return (
     <div className="container">
       {/* ✅ Sidebar */}
       <div className="sidebar">
-        <div className="profile">
-          <div className="avatar"></div>
-          <div>
-            <div>{user?.username || "Freelancer"}</div>
-            <div>Freelancer</div>
-          </div>
-        </div>
+        {/* 🔹 Profile section removed */}
+
         <div
           className="nav-item"
           onClick={() => navigate("/freelancer-dashboard")}

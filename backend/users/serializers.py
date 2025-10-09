@@ -1,40 +1,67 @@
 # users/serializers.py
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Profile
-from .models import ProfileClient, ProfileFreelancer
+from .models import Profile, ProfileClient, ProfileFreelancer
 
+
+# 👤 Register Serializer (for signup API)
+class RegisterSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True)
+
+    class Meta:
+        model = User
+        fields = ["username", "email", "password"]
+
+    def create(self, validated_data):
+        user = User.objects.create_user(
+            username=validated_data["username"],
+            email=validated_data.get("email", ""),
+            password=validated_data["password"],
+        )
+        return user
+
+
+# 👤 Basic User Serializer
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ("id", "username", "email")
 
+
+# 👤 General Profile Serializer
 class ProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
 
     class Meta:
         model = Profile
-<<<<<<< HEAD
-        fields = ("id", "user", "bio", "location", "skills", "created_at")
-        read_only_fields = ("id", "user", "created_at")
-
-class ProfileClientSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ProfileClient
-        fields = ['id', 'user', 'contact', 'business_name', 'bio']
-
-class ProfileFreelancerSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ProfileFreelancer
-        fields = ['id', 'user', 'contact', 'skills', 'hourly_rate', 'available']
-=======
         fields = (
             "id",
             "user",
+            "bio",
+            "location",
+            "skills",
             "role",
             "portfolio",
-            "skills",
             "hourly_rate",
             "availability",
+            "created_at",
         )
->>>>>>> cad77ed10b3d6ee548919fe3a9a44c51d76a74e8
+        read_only_fields = ("id", "user", "created_at")
+
+
+# 🧑‍💼 Client Profile Serializer
+class ProfileClientSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+
+    class Meta:
+        model = ProfileClient
+        fields = ["id", "user", "contact", "business_name", "bio"]
+
+
+# 🧑‍💻 Freelancer Profile Serializer
+class ProfileFreelancerSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+
+    class Meta:
+        model = ProfileFreelancer
+        fields = ["id", "user", "contact", "skills", "hourly_rate", "available"]

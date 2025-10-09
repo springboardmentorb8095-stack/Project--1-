@@ -1,31 +1,30 @@
+# users/views.py
 from django.contrib.auth.models import User
 from rest_framework import generics, permissions, filters
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.generics import ListAPIView
-from django.http import JsonResponse, HttpResponse
-
-from .serializers import RegisterSerializer, ProfileSerializer
-from .models import Profile
-<<<<<<< HEAD
 from django.http import JsonResponse
-from .models import ProfileClient, ProfileFreelancer
-from .serializers import ProfileClientSerializer, ProfileFreelancerSerializer
-=======
 
-# ---------------- Existing Views ---------------- #
->>>>>>> cad77ed10b3d6ee548919fe3a9a44c51d76a74e8
+from .serializers import (
+    RegisterSerializer,
+    ProfileSerializer,
+    ProfileClientSerializer,
+)
+from .models import Profile, ProfileClient
 
 
 # ✅ Home route (for testing)
 def home(request):
     return JsonResponse({"message": "Backend running 🚀"})
 
+
 # 👤 Register a new user
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     permission_classes = [permissions.AllowAny]
     serializer_class = RegisterSerializer
+
 
 # 👤 CRUD for logged-in user's profile
 class MeProfileView(APIView):
@@ -47,7 +46,6 @@ class MeProfileView(APIView):
         profile.delete()
         return Response({"detail": "Profile deleted"})
 
-<<<<<<< HEAD
 
 # ✅ For Client Profile (Create + Update)
 class ProfileClientView(APIView):
@@ -63,7 +61,6 @@ class ProfileClientView(APIView):
 
     def post(self, request):
         print("📩 POST data received (Client):", request.data)  # Debug log
-
         serializer = ProfileClientSerializer(data=request.data)
         if serializer.is_valid():
             try:
@@ -78,8 +75,7 @@ class ProfileClientView(APIView):
             return Response(serializer.errors, status=400)
 
     def put(self, request):
-        print("📩 PUT data received (Client):", request.data)  # Debug log
-
+        print("📩 PUT data received (Client):", request.data)
         profile, created = ProfileClient.objects.get_or_create(user=request.user)
         serializer = ProfileClientSerializer(profile, data=request.data, partial=True)
         if serializer.is_valid():
@@ -94,9 +90,9 @@ class ProfileClientView(APIView):
         else:
             print("❌ Serializer Errors (Client):", serializer.errors)
             return Response(serializer.errors, status=400)
-=======
-# ---------------- New Feature: Search & Filter Profiles ---------------- #
 
+
+# 🔎 New Feature: Search & Filter Profiles
 class ProfileSearchFilterView(ListAPIView):
     """
     API to search and filter profiles by username, skills, role, availability,
@@ -126,4 +122,3 @@ class ProfileSearchFilterView(ListAPIView):
             queryset = queryset.filter(availability__icontains=availability)
 
         return queryset
->>>>>>> cad77ed10b3d6ee548919fe3a9a44c51d76a74e8
