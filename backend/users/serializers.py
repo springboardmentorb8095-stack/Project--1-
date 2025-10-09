@@ -1,38 +1,20 @@
 # users/serializers.py
-from django.contrib.auth.models import User
 from rest_framework import serializers
+from django.contrib.auth.models import User
 from .models import Profile
 from .models import ProfileClient, ProfileFreelancer
-
-class RegisterSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, min_length=6)
-
-    class Meta:
-        model = User
-        fields = ("id", "username", "email", "password")
-
-    def create(self, validated_data):
-        user = User.objects.create_user(
-            username=validated_data["username"],
-            email=validated_data.get("email", ""),
-            password=validated_data["password"],
-        )
-        # create empty profile
-        Profile.objects.create(user=user)
-        return user
-
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ("id", "username", "email", "first_name", "last_name")
-
+        fields = ("id", "username", "email")
 
 class ProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
 
     class Meta:
         model = Profile
+<<<<<<< HEAD
         fields = ("id", "user", "bio", "location", "skills", "created_at")
         read_only_fields = ("id", "user", "created_at")
 
@@ -45,3 +27,14 @@ class ProfileFreelancerSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProfileFreelancer
         fields = ['id', 'user', 'contact', 'skills', 'hourly_rate', 'available']
+=======
+        fields = (
+            "id",
+            "user",
+            "role",
+            "portfolio",
+            "skills",
+            "hourly_rate",
+            "availability",
+        )
+>>>>>>> cad77ed10b3d6ee548919fe3a9a44c51d76a74e8
