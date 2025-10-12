@@ -168,7 +168,7 @@ function FreelancerDashboard() {
                         setShowForm(true);
                       }}
                     >
-                      📝 Apply
+                       Apply Now
                     </button>
                   </div>
                 ))}
@@ -310,3 +310,4 @@ function FreelancerDashboard() {
 }
 
 export default FreelancerDashboard;
+
