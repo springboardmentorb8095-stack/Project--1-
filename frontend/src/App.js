@@ -18,9 +18,10 @@ import ProjectsPage from "./pages/ProjectsPage";
 import MyProjects from "./pages/MyProjects";
 import PostProject from "./pages/PostProject";
 import HomePage from "./pages/HomePage";
+import ProjectsSearchPage from "./pages/ProjectsSearchPage";  // ✅ added
 import "./pages/Auth.css";
 
-// ✅ Header Component (Back + Greeting + Search + Theme Toggle + Profile)
+// ✅ Header Component
 function HeaderBar({ theme, toggleTheme }) {
   const navigate = useNavigate();
   const user =
@@ -41,10 +42,9 @@ function HeaderBar({ theme, toggleTheme }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // ✅ Search function
   const handleSearch = () => {
     if (searchTerm.trim() !== "") {
-      navigate(`/projects?search=${encodeURIComponent(searchTerm)}`);
+      navigate(`/projects/search?search=${encodeURIComponent(searchTerm)}`); // ✅ updated route
       setSearchTerm("");
     }
   };
@@ -65,9 +65,9 @@ function HeaderBar({ theme, toggleTheme }) {
         transition: "0.3s ease-in-out",
       }}
     >
-      {/* ✅ Back Button */}
+      {/* Back Button */}
       <button
-        onClick={() => navigate(-1)} // one step back
+        onClick={() => navigate(-1)}
         style={{
           background: "none",
           border: "none",
@@ -80,14 +80,14 @@ function HeaderBar({ theme, toggleTheme }) {
         ⬅ Back
       </button>
 
-      {/* ✅ Greeting */}
+      {/* Greeting */}
       <div style={{ fontSize: "18px", fontWeight: "600" }}>
         {greeting}, {user.username} 👋
       </div>
 
-      {/* ✅ Right Section: Search + Theme + Profile */}
+      {/* Right Section */}
       <div style={{ display: "flex", alignItems: "center", gap: "15px", position: "relative" }}>
-        {/* ✅ Search bar with Enter key support */}
+        {/* Search bar */}
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -233,7 +233,7 @@ function HeaderBar({ theme, toggleTheme }) {
   );
 }
 
-// ✅ Layout Wrapper (Header removed from Home/Login/Register)
+// ✅ Layout Wrapper
 function Layout({ children, theme, toggleTheme }) {
   const location = useLocation();
 
@@ -283,6 +283,7 @@ function App() {
           <Route path="/client-dashboard" element={<ClientDashboard />} />
           <Route path="/freelancer-dashboard" element={<FreelancerDashboard />} />
           <Route path="/projects" element={<ProjectsPage />} />
+          <Route path="/projects-search" element={<ProjectsSearchPage />} /> {/* ✅ added */}
           <Route path="/my-projects" element={<MyProjects />} />
           <Route path="/post-project" element={<PostProject />} />
           <Route path="/homepage" element={<HomePage />} />

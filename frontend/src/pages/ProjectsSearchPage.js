@@ -1,32 +1,45 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
-import "./Dashboard.css"; // reuse your existing styles
+import React, { useState } from "react";
+import "./Dashboard.css";
+
+const sampleProjects = [
+  {
+    id: 1,
+    title: "Website Redesign",
+    client_name: "Tech Innovations Ltd",
+    budget: 2000,
+    deadline: "2025-10-15",
+  },
+  {
+    id: 2,
+    title: "Mobile App Backend API",
+    client_name: "StartUp Hub",
+    budget: 1500,
+    deadline: "2025-11-01",
+  },
+  {
+    id: 3,
+    title: "Portfolio Website",
+    client_name: "John Doe",
+    budget: 700,
+    deadline: "2025-10-20",
+  },
+];
 
 const ProjectsSearchPage = () => {
-  const [projects, setProjects] = useState([]);
   const [skill, setSkill] = useState("");
   const [minBudget, setMinBudget] = useState("");
   const [maxBudget, setMaxBudget] = useState("");
   const [deadline, setDeadline] = useState("");
+  const [showSample, setShowSample] = useState(false);
 
-  const fetchProjects = async () => {
-    try {
-      let url = "http://127.0.0.1:8000/projects/search/?";
-      if (skill) url += `search=${skill}&`;
-      if (minBudget) url += `budget_min=${minBudget}&`;
-      if (maxBudget) url += `budget_max=${maxBudget}&`;
-      if (deadline) url += `deadline=${deadline}&`;
-
-      const res = await axios.get(url);
-      setProjects(res.data);
-    } catch (err) {
-      console.error("Error fetching projects:", err);
+  const handleApplyFilters = () => {
+    if (!skill || !minBudget || !maxBudget || !deadline) {
+      alert("Please fill all filter fields before applying.");
+      return;
     }
+    // Just show sample projects, no backend call
+    setShowSample(true);
   };
-
-  useEffect(() => {
-    fetchProjects();
-  }, []);
 
   return (
     <div className="dashboard-container">
@@ -63,7 +76,7 @@ const ProjectsSearchPage = () => {
           style={{ marginRight: "10px", padding: "5px" }}
         />
         <button
-          onClick={fetchProjects}
+          onClick={handleApplyFilters}
           style={{
             padding: "5px 10px",
             cursor: "pointer",
@@ -79,16 +92,39 @@ const ProjectsSearchPage = () => {
 
       {/* Project cards */}
       <div className="dashboard-cards">
-        {projects.length === 0 && <p>No projects found.</p>}
-        {projects.map((p) => (
-          <div className="dashboard-card" key={p.id}>
-            <h3>{p.title}</h3>
-            <p><strong>Client:</strong> {p.client_name}</p>
-            <p><strong>Skills:</strong> {p.skills_required}</p>
-            <p><strong>Budget:</strong> ₹{p.budget}</p>
-            <p><strong>Deadline:</strong> {p.deadline}</p>
-          </div>
-        ))}
+        {showSample && (
+          <>
+            <p style={{ fontWeight: "bold" }}>
+              No projects found. Try these projects:
+            </p>
+            {sampleProjects.map((p) => (
+              <div className="dashboard-card" key={p.id}>
+                <h3>{p.title}</h3>
+                <p>
+                  <strong>Client:</strong> {p.client_name}
+                </p>
+                <p>
+                  <strong>Budget:</strong> ${p.budget}
+                </p>
+                <p>
+                  <strong>Deadline:</strong> {p.deadline}
+                </p>
+                <button
+                  style={{
+                    padding: "5px 10px",
+                    backgroundColor: "#4b2a99",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "5px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Apply Now
+                </button>
+              </div>
+            ))}
+          </>
+        )}
       </div>
     </div>
   );
