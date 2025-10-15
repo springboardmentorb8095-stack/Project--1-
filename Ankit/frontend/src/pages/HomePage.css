@@ -1,0 +1,120 @@
+/* 🌈 Background Theme */
+.light {
+  background: linear-gradient(135deg, #e0f7ff, #ffffff);
+  color: #000;
+}
+
+.dark {
+  background: linear-gradient(135deg, #1e1e1e, #121212);
+  color: #eaeaea;
+}
+
+.homepage {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.4s ease-in-out;
+}
+
+/* 🌐 Header */
+.homepage-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 40px;
+  font-weight: bold;
+}
+
+.logo {
+  font-size: 26px;
+  color: #007bff;
+}
+
+/* ☀️🌙 Toggle Button */
+.theme-toggle {
+  background: transparent;
+  border: 2px solid #007bff;
+  border-radius: 8px;
+  color: #007bff;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: 0.3s;
+}
+
+.theme-toggle:hover {
+  background: #007bff;
+  color: #fff;
+}
+
+/* 🚀 Hero Section */
+.hero {
+  flex: 1;
+  text-align: center;
+  padding: 80px 20px;
+}
+
+.hero-content h2 {
+  font-size: 42px;
+  font-weight: 700;
+  animation: fadeInUp 1s ease;
+}
+
+.hero-content span {
+  color: #007bff;
+}
+
+.hero-content p {
+  max-width: 600px;
+  margin: 20px auto;
+  line-height: 1.6;
+  font-size: 18px;
+  animation: fadeInUp 1.2s ease;
+}
+
+/* 🟢 Buttons */
+.btn {
+  display: inline-block;
+  padding: 12px 22px;
+  margin: 10px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.primary-btn {
+  background-color: #007bff;
+  color: white;
+}
+
+.secondary-btn {
+  background-color: transparent;
+  border: 2px solid #007bff;
+  color: #007bff;
+}
+
+.btn:hover {
+  transform: scale(1.05);
+}
+
+/* ⚡ Animation */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 🔻 Footer */
+.footer {
+  text-align: center;
+  padding: 15px;
+  font-size: 14px;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
