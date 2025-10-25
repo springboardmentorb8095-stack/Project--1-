@@ -1,9 +1,9 @@
-from rest_framework import viewsets, filters, status, serializers
-from django.contrib.auth import authenticate
-from django.contrib.auth.models import User
-from rest_framework.decorators import api_view
+from rest_framework import viewsets, filters, status
+from rest_framework.decorators import api_view, action
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.contrib.auth import authenticate
+from django.contrib.auth.models import User
 from django_filters.rest_framework import DjangoFilterBackend
 
 from .models import Profile, Skill, Item, Project, Proposal, Contract, Message, Review
@@ -13,25 +13,25 @@ from .serializers import (
     MessageSerializer, ReviewSerializer
 )
 
-# -------- Profile --------
+# ---------------------- PROFILE ----------------------
 class ProfileViewSet(viewsets.ModelViewSet):
     queryset = Profile.objects.all()
     serializer_class = ProfileSerializer
 
 
-# -------- Skill --------
+# ---------------------- SKILL ----------------------
 class SkillViewSet(viewsets.ModelViewSet):
     queryset = Skill.objects.all()
     serializer_class = SkillSerializer
 
 
-# -------- Item --------
+# ---------------------- ITEM ----------------------
 class ItemViewSet(viewsets.ModelViewSet):
     queryset = Item.objects.all()
     serializer_class = ItemSerializer
 
 
-# -------- Project --------
+# ---------------------- PROJECT ----------------------
 class ProjectViewSet(viewsets.ModelViewSet):
     queryset = Project.objects.all()
     serializer_class = ProjectSerializer
@@ -41,55 +41,69 @@ class ProjectViewSet(viewsets.ModelViewSet):
     ordering_fields = ["budget", "duration"]
 
 
-# -------- Proposal --------
-from rest_framework.decorators import action
-from rest_framework.response import Response
-from rest_framework import status
-
+# ---------------------- PROPOSAL ----------------------
 class ProposalViewSet(viewsets.ModelViewSet):
     queryset = Proposal.objects.all()
     serializer_class = ProposalSerializer
 
-    @action(detail=True, methods=['post'])
+    # ✅ Auto-contract creation logic when accepted
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        if instance.status == "accepted":
+            from .models import Contract
+            contract, created = Contract.objects.get_or_create(proposal=instance)
+            if created:
+                print(f"✅ Contract auto-created for proposal ID {instance.id}")
+
+    @action(detail=True, methods=["post"])
     def accept(self, request, pk=None):
         proposal = self.get_object()
         proposal.status = "accepted"
         proposal.save()
-        return Response({"message": f"✅ Proposal from {proposal.freelancer.user_name} accepted for {proposal.project.title}"})
+        # Auto create contract
+        Contract.objects.get_or_create(proposal=proposal)
+        return Response({
+            "message": f"✅ Proposal from {proposal.freelancer.user_name} accepted for {proposal.project.title}"
+        })
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=["post"])
     def reject(self, request, pk=None):
         proposal = self.get_object()
         proposal.status = "rejected"
         proposal.save()
-        return Response({"message": f"❌ Proposal from {proposal.freelancer.user_name} rejected for {proposal.project.title}"})
+        return Response({
+            "message": f"❌ Proposal from {proposal.freelancer.user_name} rejected for {proposal.project.title}"
+        })
 
 
-
-# -------- Contract --------
+# ---------------------- CONTRACT ----------------------
 class ContractViewSet(viewsets.ModelViewSet):
     queryset = Contract.objects.all()
     serializer_class = ContractSerializer
 
 
-# -------- Message --------
+# ---------------------- MESSAGE ----------------------
 class MessageViewSet(viewsets.ModelViewSet):
-    queryset = Message.objects.all()
+    queryset = Message.objects.all().order_by("timestamp")
     serializer_class = MessageSerializer
+def create(self, request, *args, **kwargs):
+    print("📩 Incoming Message Data:", request.data)
+    return super().create(request, *args, **kwargs)
 
 
-# -------- Review --------
+
+# ---------------------- REVIEW ----------------------
 class ReviewViewSet(viewsets.ModelViewSet):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
 
 
-# -------- Authentication --------
-@api_view(['POST'])
+# ---------------------- AUTH ----------------------
+@api_view(["POST"])
 def register_user(request):
-    username = request.data.get('username')
-    email = request.data.get('email')
-    password = request.data.get('password')
+    username = request.data.get("username")
+    email = request.data.get("email")
+    password = request.data.get("password")
 
     if not username or not email or not password:
         return Response({"error": "All fields are required"}, status=status.HTTP_400_BAD_REQUEST)
@@ -109,10 +123,10 @@ def register_user(request):
     )
 
 
-@api_view(['POST'])
+@api_view(["POST"])
 def login_user(request):
-    username = request.data.get('username')
-    password = request.data.get('password')
+    username = request.data.get("username")
+    password = request.data.get("password")
 
     user = authenticate(username=username, password=password)
     if user is not None:
@@ -121,7 +135,8 @@ def login_user(request):
     else:
         return Response({"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
 
-@api_view(['POST'])
+
+@api_view(["POST"])
 def set_user_role(request):
     username = request.data.get("username")
     role = request.data.get("role")
@@ -134,7 +149,6 @@ def set_user_role(request):
     except Profile.DoesNotExist:
         return Response({"error": "Profile not found."}, status=404)
 
-    # ✅ Allow role set only once
     if not profile.is_client and not profile.is_freelancer:
         if role == "client":
             profile.is_client = True

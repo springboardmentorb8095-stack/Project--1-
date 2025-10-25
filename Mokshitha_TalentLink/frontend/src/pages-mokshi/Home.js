@@ -9,7 +9,7 @@ export default function Home() {
     <div className="home-container">
       <header className="home-header">
         <h1>🌟 Welcome to TalentLink</h1>
-        <p>Your bridge between Freelancers and Clients 🚀</p>
+        <p>bridge between Freelancers and Clients 🚀</p>
       </header>
 
       <div className="home-content">
@@ -30,7 +30,7 @@ export default function Home() {
       </div>
 
       <footer className="home-footer">
-        <p>Made with ❤️ by Subbu & Mokshitha | TalentLink © 2025</p>
+        <p>Made by Mokshitha | TalentLink © 2025</p>
       </footer>
     </div>
   );

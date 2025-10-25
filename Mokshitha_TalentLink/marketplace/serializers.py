@@ -88,9 +88,17 @@ class ProposalSerializer(serializers.ModelSerializer):
 
 # -------- Contract Serializer --------
 class ContractSerializer(serializers.ModelSerializer):
+    project_title = serializers.ReadOnlyField(source="proposal.project.title")
+    freelancer_name = serializers.ReadOnlyField(source="proposal.freelancer.user_name")
+    client_name = serializers.ReadOnlyField(source="proposal.project.owner.user_name")
+
     class Meta:
         model = Contract
-        fields = "__all__"
+        fields = [
+            "id", "proposal", "project_title",
+            "freelancer_name", "client_name",
+            "start_date", "end_date", "status", "terms"
+        ]
 
 
 # -------- Message Serializer --------
