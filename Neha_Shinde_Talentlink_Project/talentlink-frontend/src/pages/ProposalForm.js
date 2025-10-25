@@ -1,33 +1,44 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 
 function ProposalForm({ projectId }) {
   const [bidAmount, setBidAmount] = useState('');
   const [message, setMessage] = useState('');
   const [timelineWeeks, setTimelineWeeks] = useState('');
-  const token = localStorage.getItem('access');
+  const [token, setToken] = useState('');
+
+  useEffect(() => {
+    const storedToken = localStorage.getItem('access');
+    const isJWT = /^ey[\w-]+\.[\w-]+\.[\w-]+$/.test(storedToken);
+    if (storedToken && isJWT) {
+      setToken(storedToken);
+    } else {
+      toast.error("Missing or invalid token. Please log in.");
+    }
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Access token:", token);
 
     const payload = {
       project: parseInt(projectId),
       proposed_rate: parseFloat(bidAmount),
-      message,
+      message: message.trim(),
       timeline_weeks: parseInt(timelineWeeks)
     };
-
-    console.log("Submitting proposal payload:", payload);
 
     try {
       await axios.post('http://127.0.0.1:8000/api/proposals/', payload, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      alert('Proposal submitted!');
+      toast.success('✅ Proposal submitted!');
+      setBidAmount('');
+      setMessage('');
+      setTimelineWeeks('');
     } catch (err) {
-      console.error("Error response:", err.response?.data);
-      alert('Error submitting proposal: ' + JSON.stringify(err.response?.data));
+      console.error("Error submitting proposal:", err.response?.data || err.message);
+      toast.error('❌ Failed to submit proposal: ' + (err.response?.data?.detail || err.message));
     }
   };
 
@@ -70,6 +81,7 @@ function ProposalForm({ projectId }) {
           placeholder="Enter your bid in ₹"
           type="number"
           style={inputStyle}
+          required
         />
       </div>
 
@@ -81,6 +93,7 @@ function ProposalForm({ projectId }) {
           placeholder="Describe your approach or experience"
           rows={4}
           style={{ ...inputStyle, resize: 'vertical' }}
+          required
         />
       </div>
 
@@ -92,6 +105,7 @@ function ProposalForm({ projectId }) {
           placeholder="Estimated duration"
           type="number"
           style={inputStyle}
+          required
         />
       </div>
 
@@ -101,6 +115,7 @@ function ProposalForm({ projectId }) {
 }
 
 export default ProposalForm;
+
 
 
 /*import React, { useState } from 'react';

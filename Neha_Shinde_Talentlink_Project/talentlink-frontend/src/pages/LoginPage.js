@@ -32,36 +32,32 @@ function LoginPage() {
       const accessToken = response.data.access;
       const refreshToken = response.data.refresh;
 
-      // ✅ Store tokens
-      localStorage.setItem('access', accessToken);
-      localStorage.setItem('refresh', refreshToken);
-      console.log("Access token stored:", accessToken);
-      toast.success('Login successful!');
+      const isJWT = /^ey[\w-]+\.[\w-]+\.[\w-]+$/.test(accessToken);
+      if (accessToken && isJWT) {
+        localStorage.setItem('access', accessToken);  // ✅ Correct key
+        localStorage.setItem('refresh', refreshToken);
+        toast.success('Login successful!');
+      } else {
+        throw new Error("Invalid token format received");
+      }
 
-      // ✅ Check if profile exists
-      try {
-        const profileRes = await axios.get('http://127.0.0.1:8000/api/profiles/', {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        });
+      const token = localStorage.getItem('access');  // ✅ Consistent key
+      const profileRes = await axios.get('http://127.0.0.1:8000/api/profiles/', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-        if (Array.isArray(profileRes.data) && profileRes.data.length > 0) {
-          toast.info('Welcome back!');
-          navigate('/dashboard');
-        } else {
-          toast.info('No profile found. Redirecting to setup...');
-          navigate('/profile-setup');
-        }
-      } catch (profileError) {
-        console.error("Error checking profile:", profileError);
-        toast.error("Could not verify profile. Redirecting to setup...");
-        navigate('/profile-setup');
+      if (Array.isArray(profileRes.data) && profileRes.data.length > 0) {
+        toast.info('Welcome back!');
+        navigate('/dashboard', { replace: true });
+      } else {
+        toast.info('No profile found. Redirecting to setup...');
+        navigate('/profile-setup', { replace: true });
       }
 
     } catch (error) {
-      console.error("Login error:", error.response?.data);
+      console.error("Login error:", error.response?.data || error.message);
       toast.error('Login failed: ' + (error.response?.data?.detail || error.message));
+      navigate('/login');
     } finally {
       setLoading(false);
     }
@@ -74,32 +70,36 @@ function LoginPage() {
       <div className="card p-4 shadow animate__animated animate__fadeIn" style={{ maxWidth: '400px', width: '100%' }}>
         <h3 className="text-center mb-4 text-danger">Login</h3>
 
-        <div className="mb-3">
-          <label className="form-label"><FaUser /> Username</label>
-          <input
-            className="form-control"
-            value={username}
-            onChange={e => setUsername(e.target.value)}
-            aria-label="Username"
-          />
-          {errors.username && <small className="text-danger">{errors.username}</small>}
-        </div>
+        <form onSubmit={(e) => { e.preventDefault(); handleLogin(); }}>
+          <div className="mb-3">
+            <label className="form-label"><FaUser /> Username</label>
+            <input
+              className="form-control"
+              value={username}
+              onChange={e => setUsername(e.target.value)}
+              aria-label="Username"
+              required
+            />
+            {errors.username && <small className="text-danger">{errors.username}</small>}
+          </div>
 
-        <div className="mb-3">
-          <label className="form-label"><FaLock /> Password</label>
-          <input
-            type="password"
-            className="form-control"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            aria-label="Password"
-          />
-          {errors.password && <small className="text-danger">{errors.password}</small>}
-        </div>
+          <div className="mb-3">
+            <label className="form-label"><FaLock /> Password</label>
+            <input
+              type="password"
+              className="form-control"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              aria-label="Password"
+              required
+            />
+            {errors.password && <small className="text-danger">{errors.password}</small>}
+          </div>
 
-        <button className="btn btn-primary w-100" onClick={handleLogin} disabled={loading}>
-          {loading ? 'Logging in...' : 'Login'}
-        </button>
+          <button type="submit" className="btn btn-primary w-100" disabled={loading}>
+            {loading ? 'Logging in...' : 'Login'}
+          </button>
+        </form>
 
         <p className="text-center mt-3 text-muted">
           Don't have an account? <a href="/register">Register</a>
