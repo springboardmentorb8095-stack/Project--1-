@@ -1,0 +1,60 @@
+/* Reset browser default */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f3e8ff; /* light lavender */
+  color: #4b2a99; /* dark purple for text */
+  min-height: 100vh;
+}
+
+a {
+  text-decoration: none;
+  color: #5b21b6;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+button {
+  padding: 0.6rem 1.2rem;
+  border: none;
+  background-color: #a78bfa; /* light purple button */
+  color: #fff;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+button:hover {
+  background-color: #7c3aed; /* darker purple */
+}
+
+input, select {
+  width: 100%;
+  padding: 0.5rem;
+  margin-top: 0.25rem;
+  margin-bottom: 1rem;
+  border: 1px solid #c4b5fd; /* light purple border */
+  border-radius: 0.35rem;
+  background-color: #faf5ff; /* very light purple for input */
+  color: #4b2a99; /* visible text */
+}
+
+h1, h2 {
+  color: #4b2a99;
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* centers horizontally */
+  justify-content: center; /* centers vertically (if height is fixed) */
+  text-align: center;
+}

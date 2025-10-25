@@ -1,0 +1,163 @@
+/* ==============================
+   Page Wrapper
+   ============================== */
+.pageWrapper {
+  min-height: 100vh;
+  background: url("https://img.freepik.com/free-vector/futuristic-background-design_23-2148503793.jpg?semt=ais_hybrid&w=740&q=80")
+    center/cover no-repeat fixed;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: center;
+  font-family: "Poppins", sans-serif;
+  color: #fff;
+  padding: 2rem;
+  box-sizing: border-box;
+}
+
+/* ==============================
+   Profile Container
+   ============================== */
+.container {
+  width: 100%;
+  max-width: 750px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(12px);
+  border-radius: 20px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+  padding: 2.8rem;
+  text-align: center;
+  animation: fadeIn 0.6s ease-in;
+  margin-top: 3rem;
+  margin-left: 4rem;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ==============================
+   Card Styles
+   ============================== */
+.card {
+  background: linear-gradient(135deg, #a1c4fd, #c2e9fb);
+  color: #222;
+  border-radius: 15px;
+  padding: 2rem;
+  margin-top: 3rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  transition: all 0.4s ease;
+}
+
+.card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+}
+
+/* ==============================
+   Form Elements
+   ============================== */
+label {
+  display: block;
+  text-align: left;
+  font-weight: 600;
+  margin-top: 1rem;
+  color: #333;
+}
+
+input,
+textarea {
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 0.8rem 1rem;
+  border-radius: 10px;
+  border: none;
+  outline: none;
+  background: rgba(255, 255, 255, 0.9);
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+input:focus,
+textarea:focus {
+  background: #fff;
+  box-shadow: 0 0 10px rgba(123, 31, 162, 0.5);
+  transform: scale(1.02);
+}
+
+/* ==============================
+   Buttons
+   ============================== */
+button {
+  margin-top: 1.5rem;
+  padding: 0.9rem 1.8rem;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: #fff;
+}
+
+button[type="submit"] {
+  background: linear-gradient(135deg, #42e695, #3bb2b8);
+}
+
+button[type="submit"]:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+}
+
+.toggleBtn {
+  background: linear-gradient(135deg, #ff6a00, #ee0979);
+}
+
+.toggleBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+}
+
+/* ==============================
+   Loading Text
+   ============================== */
+.loading {
+  text-align: center;
+  font-size: 1.2rem;
+  color: #fff;
+  margin-top: 5rem;
+  animation: glow 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+  from {
+    text-shadow: 0 0 8px #b388ff, 0 0 16px #7c4dff;
+  }
+  to {
+    text-shadow: 0 0 18px #e1bee7, 0 0 25px #ba68c8;
+  }
+}
+
+/* ==============================
+   Responsive
+   ============================== */
+@media (max-width: 992px) {
+  .pageWrapper {
+    flex-direction: column;
+    align-items: center;
+    padding: 1rem;
+  }
+
+  .container {
+    margin: 0;
+    width: 95%;
+    padding: 2rem;
+  }
+}
