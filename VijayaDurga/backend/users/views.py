@@ -10,8 +10,9 @@ from .serializers import (
     RegisterSerializer,
     ProfileSerializer,
     ProfileClientSerializer,
+    ProjectSerializer,   # ✅ new
 )
-from .models import Profile, ProfileClient
+from .models import Profile, ProfileClient, Project   # ✅ new
 
 
 # ✅ Home route (for testing)
@@ -122,3 +123,26 @@ class ProfileSearchFilterView(ListAPIView):
             queryset = queryset.filter(availability__icontains=availability)
 
         return queryset
+
+
+# 🧩 New Feature: Project Create + View (for Clients)
+class ProjectView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        """Get all projects of logged-in client"""
+        projects = Project.objects.filter(client=request.user).order_by("-created_at")
+        serializer = ProjectSerializer(projects, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        """Post a new project"""
+        print("📩 Project POST data:", request.data)
+        serializer = ProjectSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(client=request.user)
+            print("✅ Project saved for:", request.user.username)
+            return Response({"message": "✅ Project posted successfully!"})
+        else:
+            print("❌ Errors:", serializer.errors)
+            return Response(serializer.errors, status=400)

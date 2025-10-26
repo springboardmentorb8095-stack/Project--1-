@@ -26,7 +26,7 @@ function RegisterPage() {
     setLoading(true);
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/register/", {
+      const response = await fetch("http://localhost:8000/api/register/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -35,11 +35,11 @@ function RegisterPage() {
       });
 
       const data = await response.json();
-      console.log("📩 Backend Response:", data); // ✅ See actual error or success here
 
       if (response.ok) {
-        alert("✅ Registration successful!");
+        console.log("✅ User registered successfully:", data);
         localStorage.setItem("user", JSON.stringify({ ...data, role: formData.role }));
+        alert("Registration successful ✅");
 
         // ✅ Redirect based on role
         if (formData.role === "client") {
@@ -49,13 +49,10 @@ function RegisterPage() {
         }
       } else {
         console.error("❌ Registration failed:", data);
-        alert(
-          "Registration failed ❌\n" +
-          (data?.detail || JSON.stringify(data))
-        );
+        alert("Registration failed: " + JSON.stringify(data));
       }
     } catch (error) {
-      console.error("🚨 Error during registration:", error);
+      console.error("🚨 Error:", error);
       alert("Something went wrong while registering ❌");
     } finally {
       setLoading(false);
@@ -65,7 +62,6 @@ function RegisterPage() {
   return (
     <div className="auth-container">
       <h2>📝 Register</h2>
-
       <form onSubmit={handleSubmit} className="auth-form">
         <input
           type="text"
@@ -75,7 +71,6 @@ function RegisterPage() {
           onChange={handleChange}
           required
         />
-
         <input
           type="email"
           name="email"
@@ -84,7 +79,6 @@ function RegisterPage() {
           onChange={handleChange}
           required
         />
-
         <input
           type="password"
           name="password"
