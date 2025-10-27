@@ -6,6 +6,7 @@ from .views import (
     MeProfileView,
     ProfileClientView,
     ProfileSearchFilterView,
+    ProjectView,   # ✅ added
     home,
 )
 
@@ -23,4 +24,7 @@ urlpatterns = [
 
     # 🔎 Search + Filter API
     path('profiles/search/', ProfileSearchFilterView.as_view(), name='profile-search'),
+
+    # 🧩 Project API (create + list)
+    path('projects/', ProjectView.as_view(), name='projects'),   # ✅ new route
 ]

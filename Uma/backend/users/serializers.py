@@ -1,7 +1,7 @@
 # users/serializers.py
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Profile, ProfileClient, ProfileFreelancer
+from .models import Profile, ProfileClient, ProfileFreelancer, Project  # ✅ added Project model
 
 
 # 👤 Register Serializer (for signup API)
@@ -37,16 +37,13 @@ class ProfileSerializer(serializers.ModelSerializer):
         fields = (
             "id",
             "user",
-            "bio",
-            "location",
             "skills",
             "role",
             "portfolio",
             "hourly_rate",
             "availability",
-            "created_at",
         )
-        read_only_fields = ("id", "user", "created_at")
+        read_only_fields = ("id", "user")
 
 
 # 🧑‍💼 Client Profile Serializer
@@ -65,3 +62,23 @@ class ProfileFreelancerSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProfileFreelancer
         fields = ["id", "user", "contact", "skills", "hourly_rate", "available"]
+
+
+# 🧩 Project Serializer (new)
+class ProjectSerializer(serializers.ModelSerializer):
+    client = UserSerializer(read_only=True)
+
+    class Meta:
+        model = Project
+        fields = [
+            "id",
+            "client",
+            "title",
+            "budget",
+            "skills",
+            "deadline",
+            "status",
+            "description",
+            "created_at",
+        ]
+        read_only_fields = ["id", "client", "created_at"]
