@@ -7,6 +7,8 @@ import {
   useNavigate,
 } from "react-router-dom";
 
+import { FaBell, FaEnvelope } from "react-icons/fa"; // Notification + Message icons
+
 import RegisterPage from "./pages/RegisterPage";
 import LoginPage from "./pages/LoginPage";
 import Profile_Client from "./pages/Profile_Client";
@@ -18,20 +20,30 @@ import ProjectsPage from "./pages/ProjectsPage";
 import MyProjects from "./pages/MyProjects";
 import PostProject from "./pages/PostProject";
 import HomePage from "./pages/HomePage";
-import ProjectsSearchPage from "./pages/ProjectsSearchPage";  // ✅ added
+import ProjectsSearchPage from "./pages/ProjectsSearchPage";
 import "./pages/Auth.css";
+import { AiOutlineMail } from "react-icons/ai"; // Outline mail icon
+
+// ✅ NEW IMPORT for Chat Page
+import ChatPage from "./pages/ChatPage"; // <-- Added line
 
 // ✅ Header Component
 function HeaderBar({ theme, toggleTheme }) {
   const navigate = useNavigate();
-  const user =
-    JSON.parse(localStorage.getItem("user")) || {
-      username: "Guest",
-      name: "Unknown",
-      email: "example@mail.com",
-      role: "User",
-      profilePhoto: null,
-    };
+  let user = {
+    username: "Guest",
+    name: "Unknown",
+    email: "example@mail.com",
+    role: "User",
+    profilePhoto: null,
+  };
+
+  try {
+    const stored = localStorage.getItem("user");
+    if (stored) user = JSON.parse(stored);
+  } catch (err) {
+    console.log("Invalid user data in localStorage");
+  }
 
   const hour = new Date().getHours();
   let greeting = "Hello";
@@ -40,14 +52,7 @@ function HeaderBar({ theme, toggleTheme }) {
   else greeting = "Good Evening";
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-
-  const handleSearch = () => {
-    if (searchTerm.trim() !== "") {
-      navigate(`/projects/search?search=${encodeURIComponent(searchTerm)}`); // ✅ updated route
-      setSearchTerm("");
-    }
-  };
+  const [messageOpen, setMessageOpen] = useState(false);
 
   return (
     <div
@@ -87,67 +92,90 @@ function HeaderBar({ theme, toggleTheme }) {
 
       {/* Right Section */}
       <div style={{ display: "flex", alignItems: "center", gap: "15px", position: "relative" }}>
-        {/* Search bar */}
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSearch();
-          }}
-          style={{ display: "flex", alignItems: "center", gap: "6px" }}
-        >
-          <input
-            type="text"
-            placeholder="Search..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+        {/* Notification Icon */}
+        <div style={{ position: "relative", cursor: "pointer" }} onClick={() => alert("No new notifications!")}>
+          <FaBell size={24} color={theme === "dark" ? "#fff" : "#333"} />
+          <span
             style={{
-              padding: "6px 10px",
-              borderRadius: "8px",
-              border: theme === "dark" ? "1px solid #555" : "1px solid #ccc",
-              background: theme === "dark" ? "#222" : "#fff",
-              color: theme === "dark" ? "#fff" : "#000",
-              outline: "none",
-            }}
-          />
-          <button
-            type="submit"
-            style={{
-              background: "#2563eb",
+              position: "absolute",
+              top: -5,
+              right: -5,
+              background: "red",
               color: "white",
-              border: "none",
-              borderRadius: "8px",
-              padding: "6px 12px",
-              cursor: "pointer",
+              borderRadius: "50%",
+              padding: "2px 6px",
+              fontSize: "10px",
               fontWeight: "bold",
             }}
           >
-            🔍
-          </button>
-        </form>
+            3
+          </span>
+        </div>
 
-        {/* Theme toggle */}
-        <button
-          onClick={toggleTheme}
-          style={{
-            background: theme === "dark" ? "#333" : "#fff",
-            color: theme === "dark" ? "#fff" : "#333",
-            border: "1px solid #ccc",
-            borderRadius: "8px",
-            padding: "6px 12px",
-            cursor: "pointer",
-            fontWeight: "bold",
-          }}
-        >
-          {theme === "dark" ? "🌙 Dark" : "☀️ Light"}
-        </button>
+        {/* Message Icon */}
+        <div style={{ position: "relative", cursor: "pointer" }} onClick={() => setMessageOpen(!messageOpen)}>
+          <FaEnvelope size={24} color={theme === "dark" ? "#fff" : "#333"} />
+          <span
+            style={{
+              position: "absolute",
+              top: -5,
+              right: -5,
+              background: "red",
+              color: "white",
+              borderRadius: "50%",
+              padding: "2px 6px",
+              fontSize: "10px",
+              fontWeight: "bold",
+            }}
+          >
+            1
+          </span>
+
+          {/* Message Dropdown */}
+          {messageOpen && (
+            <div
+              style={{
+                position: "absolute",
+                right: 0,
+                top: "35px",
+                width: "300px",
+                background: theme === "dark" ? "#222" : "#fff",
+                color: theme === "dark" ? "#fff" : "#000",
+                boxShadow: "0px 4px 10px rgba(0,0,0,0.2)",
+                borderRadius: "10px",
+                padding: "10px",
+                zIndex: 1000,
+              }}
+            >
+              <h4 style={{ margin: "5px 0" }}>Messages</h4>
+              <div style={{ maxHeight: "200px", overflowY: "auto" }}>
+                <p style={{ padding: "5px 0", borderBottom: "1px solid #ccc" }}>Message 1</p>
+                <p style={{ padding: "5px 0", borderBottom: "1px solid #ccc" }}>Message 2</p>
+                <p style={{ padding: "5px 0", borderBottom: "1px solid #ccc" }}>Message 3</p>
+              </div>
+              <button
+                onClick={() => navigate("/chat")} // ✅ Go to chat page
+                style={{
+                  marginTop: "5px",
+                  width: "100%",
+                  padding: "6px 10px",
+                  background: "#2563eb",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                }}
+              >
+                💬 Open Chat
+              </button>
+            </div>
+          )}
+        </div>
 
         {/* Profile dropdown */}
         <div style={{ position: "relative" }}>
           <img
-            src={
-              user.profilePhoto ||
-              "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
-            }
+            src={user.profilePhoto || "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"}
             alt="Profile"
             onClick={() => setDropdownOpen(!dropdownOpen)}
             style={{
@@ -176,10 +204,7 @@ function HeaderBar({ theme, toggleTheme }) {
             >
               <div style={{ textAlign: "center" }}>
                 <img
-                  src={
-                    user.profilePhoto ||
-                    "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
-                  }
+                  src={user.profilePhoto || "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"}
                   alt="Profile"
                   style={{
                     width: "60px",
@@ -189,9 +214,7 @@ function HeaderBar({ theme, toggleTheme }) {
                   }}
                 />
                 <h3 style={{ margin: 0 }}>{user.username}</h3>
-                <p style={{ margin: "5px 0", fontSize: "14px", opacity: 0.8 }}>
-                  {user.email}
-                </p>
+                <p style={{ margin: "5px 0", fontSize: "14px", opacity: 0.8 }}>{user.email}</p>
                 <p
                   style={{
                     margin: "5px 0",
@@ -283,10 +306,13 @@ function App() {
           <Route path="/client-dashboard" element={<ClientDashboard />} />
           <Route path="/freelancer-dashboard" element={<FreelancerDashboard />} />
           <Route path="/projects" element={<ProjectsPage />} />
-          <Route path="/projects-search" element={<ProjectsSearchPage />} /> {/* ✅ added */}
+          <Route path="/projects-search" element={<ProjectsSearchPage />} />
           <Route path="/my-projects" element={<MyProjects />} />
           <Route path="/post-project" element={<PostProject />} />
           <Route path="/homepage" element={<HomePage />} />
+
+          {/* ✅ NEW CHAT ROUTE */}
+          <Route path="/chat" element={<ChatPage />} />
         </Routes>
       </Layout>
     </Router>

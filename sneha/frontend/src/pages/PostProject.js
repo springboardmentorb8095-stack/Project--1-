@@ -17,9 +17,20 @@ function PostProject() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const stored = JSON.parse(localStorage.getItem("clientProjects")) || [];
-    stored.push(formData);
-    localStorage.setItem("clientProjects", JSON.stringify(stored));
+
+    const newProject = {
+      ...formData,
+      createdAt: new Date().toLocaleString(),
+    };
+
+    // ✅ Save project for Client Dashboard
+    const clientProjects = JSON.parse(localStorage.getItem("clientProjects")) || [];
+    localStorage.setItem("clientProjects", JSON.stringify([...clientProjects, newProject]));
+
+    // ✅ Save project for Admin Dashboard (shared localStorage)
+    const adminProjects = JSON.parse(localStorage.getItem("adminProjects")) || [];
+    localStorage.setItem("adminProjects", JSON.stringify([...adminProjects, newProject]));
+
     alert("✅ Project posted successfully!");
     navigate("/my-projects");
   };
@@ -27,19 +38,49 @@ function PostProject() {
   return (
     <div className="container">
       <div className="sidebar">
-        <div className="nav-item" onClick={() => navigate("/client-dashboard")}>🏠 Dashboard</div>
-        <div className="nav-item" onClick={() => navigate("/my-projects")}>📁 My Projects</div>
-        <div className="nav-item" onClick={() => navigate("/post-project")}>➕ Post Project</div>
+        <div className="nav-item" onClick={() => navigate("/client-dashboard")}>
+          🏠 Dashboard
+        </div>
+        <div className="nav-item" onClick={() => navigate("/my-projects")}>
+          📁 My Projects
+        </div>
+        <div className="nav-item" onClick={() => navigate("/post-project")}>
+          ➕ Post Project
+        </div>
       </div>
 
       <div className="main">
         <h2>Create Your Project</h2>
         <form onSubmit={handleSubmit} className="form">
-          <input name="title" placeholder="Project Title" onChange={handleChange} required />
-          <input name="budget" placeholder="Budget (₹)" type="number" onChange={handleChange} required />
-          <input name="skills" placeholder="Required Skills" onChange={handleChange} required />
-          <input name="deadline" placeholder="Deadline (YYYY-MM-DD)" type="date" onChange={handleChange} required />
-          <button type="submit" className="btn">Post Project</button>
+          <input
+            name="title"
+            placeholder="Project Title"
+            onChange={handleChange}
+            required
+          />
+          <input
+            name="budget"
+            placeholder="Budget (₹)"
+            type="number"
+            onChange={handleChange}
+            required
+          />
+          <input
+            name="skills"
+            placeholder="Required Skills"
+            onChange={handleChange}
+            required
+          />
+          <input
+            name="deadline"
+            placeholder="Deadline (YYYY-MM-DD)"
+            type="date"
+            onChange={handleChange}
+            required
+          />
+          <button type="submit" className="btn">
+            🚀 Post Project
+          </button>
         </form>
       </div>
     </div>
