@@ -2,16 +2,18 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../api/axios";
 
-function ProjectDetails() {
-  const { id } = useParams();
+function ProjectDetails({ projectId: propProjectId }) {
+  const { id: urlProjectId } = useParams(); // from /projects/:id
   const navigate = useNavigate();
   const token = localStorage.getItem("access");
+
+  const projectId = propProjectId || urlProjectId;
 
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [proposal, setProposal] = useState(null);
   const [proposalLoading, setProposalLoading] = useState(true);
-  const [allProposals, setAllProposals] = useState([]); // 👈 for client
+  const [allProposals, setAllProposals] = useState([]);
 
   let user = null;
   let userId = null;
@@ -30,7 +32,7 @@ function ProjectDetails() {
 
   const fetchProject = async () => {
     try {
-      const res = await api.get(`/projects/${id}/`, {
+      const res = await api.get(`/projects/${projectId}/`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setProject(res.data);
@@ -52,7 +54,7 @@ function ProjectDetails() {
       });
 
       const userProposal = res.data.find(
-        (p) => String(p.project) === String(id)
+        (p) => String(p.project) === String(projectId)
       );
       setProposal(userProposal || null);
     } catch (err) {
@@ -66,7 +68,7 @@ function ProjectDetails() {
     if (!isClient) return;
 
     try {
-      const res = await api.get(`/projects/${id}/proposals/`, {
+      const res = await api.get(`/projects/${projectId}/proposals/`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setAllProposals(res.data || []);
@@ -78,7 +80,7 @@ function ProjectDetails() {
   const handleDelete = async () => {
     if (!window.confirm("Are you sure you want to delete this project?")) return;
     try {
-      await api.delete(`/projects/${id}/`, {
+      await api.delete(`/projects/${projectId}/`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       alert("Project deleted successfully!");
@@ -90,10 +92,12 @@ function ProjectDetails() {
   };
 
   useEffect(() => {
-    fetchProject();
-    fetchUserProposal();
-    fetchProposalsForClient();
-  }, [id]);
+    if (projectId) {
+      fetchProject();
+      fetchUserProposal();
+      fetchProposalsForClient();
+    }
+  }, [projectId]);
 
   const canEdit = isClient && String(project?.client) === String(userId);
 
@@ -108,7 +112,7 @@ function ProjectDetails() {
         <strong>Budget:</strong> ${project.budget}
       </p>
       <p>
-        <strong>Skills:</strong>{" "}
+        <strong>Required Skills:</strong>{" "}
         {project.skills && project.skills.length > 0
           ? typeof project.skills[0] === "string"
             ? project.skills.join(", ")
@@ -118,33 +122,56 @@ function ProjectDetails() {
       <p>
         <strong>Duration:</strong> {project.duration} days
       </p>
+      <p>
+        <strong>Status:</strong> {project.status}
+      </p>
 
-      {isFreelancer && (
-        <button
-          onClick={() =>
-            navigate(proposal ? `/proposals/edit/${proposal.id}` : `/proposals/new/${id}`)
-          }
-          style={{ marginTop: "1rem" }}
-        >
-          {proposal ? "Update Proposal" : "Send Proposal"}
-        </button>
+      {project.status === "open" ? (
+        <>
+          {isFreelancer && (
+            <button
+              onClick={() =>
+                navigate(
+                  proposal
+                    ? `/proposals/edit/${proposal.id}`
+                    : `/proposals/new/${project.id}`
+                )
+              }
+              style={{ marginTop: "1rem" }}
+            >
+              {proposal ? "Update Proposal" : "Send Proposal"}
+            </button>
+          )}
+
+          {canEdit && (
+            <div style={{ marginTop: "1rem" }}>
+              <button onClick={() => navigate(`/projects/edit/${project.id}`)}>
+                Edit Project
+              </button>
+              <button
+                onClick={handleDelete}
+                style={{ marginLeft: "1rem", color: "red" }}
+              >
+                Delete Project
+              </button>
+            </div>
+          )}
+        </>
+      ) : (
+        <>
+          {proposal && (
+            <p style={{ marginTop: "0.5rem" }}>
+              <strong>Your Proposal Status</strong> :{" "}
+              {proposal.status === "rejected"
+                ? "Not Selected"
+                : proposal.status}
+            </p>
+          )}
+          <h3>Application Closed.</h3>
+        </>
       )}
 
-      {canEdit && (
-        <div style={{ marginTop: "1rem" }}>
-          <button onClick={() => navigate(`/projects/edit/${project.id}`)}>
-            Edit Project
-          </button>
-          <button
-            onClick={handleDelete}
-            style={{ marginLeft: "1rem", color: "red" }}
-          >
-            Delete Project
-          </button>
-        </div>
-      )}
-
-      {/* 💬 Client Proposal List */}
+      {/* Client Proposal List */}
       {canEdit && (
         <div style={{ marginTop: "2rem" }}>
           <h3>Proposals Received</h3>
@@ -152,11 +179,26 @@ function ProjectDetails() {
             <p>No proposals yet.</p>
           ) : (
             allProposals.map((p) => (
-              <div key={p.id} style={{ border: "1px solid #ccc", padding: "1rem", marginBottom: "1rem" }}>
-                <p><strong>Freelancer:</strong> {p.freelancer_name || "Unknown"}</p>
-                <p><strong>Budget:</strong> ${p.proposed_rate}</p>
-                <p><strong>Status:</strong> {p.status}</p>
-                <button onClick={() => navigate(`/proposals/view/${p.id}`)}>View Proposal</button>
+              <div
+                key={p.id}
+                style={{
+                  border: "1px solid #ccc",
+                  padding: "1rem",
+                  marginBottom: "1rem",
+                }}
+              >
+                <p>
+                  <strong>Freelancer:</strong> {p.freelancer_name || "Unknown"}
+                </p>
+                <p>
+                  <strong>Budget:</strong> ${p.proposed_rate}
+                </p>
+                <p>
+                  <strong>Status:</strong> {p.status}
+                </p>
+                <button onClick={() => navigate(`/proposals/view/${p.id}`)}>
+                  View Proposal
+                </button>
               </div>
             ))
           )}

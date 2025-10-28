@@ -39,17 +39,20 @@ class Skill(models.Model):
 
 # 4. Project
 class Project(models.Model):
+    STATUS_CHOICES = [
+        ('open', 'Open'),
+        ('closed', 'Application closed'),
+    ]
+
     client = models.ForeignKey(User, on_delete=models.CASCADE, related_name="projects")
     title = models.CharField(max_length=255)
     description = models.TextField()
     budget = models.DecimalField(max_digits=10, decimal_places=2)
     duration = models.CharField(max_length=100)
     skills = models.ManyToManyField(Skill, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='open')  # ✅ New field
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at=models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return self.title
+    updated_at = models.DateTimeField(auto_now=True)
 
 # 5. Proposal
 class Proposal(models.Model):
@@ -117,3 +120,35 @@ class PortfolioItem(models.Model):
 
     def __str__(self):
         return f"{self.title} ({self.profile.user.username})"
+
+# Notifiactions
+
+class Notification(models.Model):
+    NOTIF_TYPE_CHOICES = [
+        ('message', 'Message'),
+        ('contract', 'Contract'),
+        ('proposal', 'Proposal'),
+        # add more types as needed
+    ]
+    recipient = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='notifications'
+    )
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='notifications_from'
+    )
+    notif_type = models.CharField(max_length=50, choices=NOTIF_TYPE_CHOICES)
+    verb = models.CharField(max_length=255)  # e.g., “sent you a message”, “contract completed”
+    target_id = models.PositiveIntegerField(null=True, blank=True)  # e.g., message id or contract id
+    target_type = models.CharField(max_length=100, null=True, blank=True)  # e.g., “Message”, “Contract”
+    unread = models.BooleanField(default=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.actor} {self.verb} → {self.recipient}"
+

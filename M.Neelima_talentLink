@@ -1,0 +1,71 @@
+## 2) Backend Setup (Django + DRF + JWT)
+Location: talentlink_backend/
+### 2.1 Create and activate a virtual environment
+Linux
+bash
+cd talentlink_backend
+python3 -m venv .venv
+source .venv/bin/activate
+Windows (PowerShell)
+powershell
+cd talentlink_backend
+py -m venv .venv
+.venv\Scripts\Activate.ps1
+### 2.2 Install dependencies
+bash
+pip install --upgrade pip
+pip install -r requirements.txt
+### 2.3 Environment variables
+There is a .env file in the backend. Defaults are for local dev:
+DEBUG=True
+SECRET_KEY=change-me
+ALLOWED_HOSTS=localhost,127.0.0.1
+> Database: SQLite is used by default (db.sqlite3), no setup required.
+### 2.4 Apply migrations and create a superuser
+bash
+python manage.py migrate
+python manage.py createsuperuse
+### 2.5 Run the API
+bash
+python manage.py runserver 0.0.0.0:8000
+### 2.6 API docs (OpenAPI/Swagger)
+- Swagger UI: http://localhost:8000/api/docs/
+- Schema: http://localhost:8000/api/schema/
+### 2.7 API route prefixes
+- Auth: /api/auth/
+- Projects: /api/projects/
+- Proposals: /api/proposals/
+- Contracts: /api/contracts/
+- Messages (Milestone 3): /api/messages/
+- Reviews (Milestone 3): /api/reviews/
+- Dashboard: /api/dashboard/
+## 3) Frontend Setup (React)
+Location: talentlink-frontend/
+### 3.1 Configure API base URL
+The frontend reads REACT_APP_API_URL from .env. It is already set to:
+REACT_APP_API_URL=http://localhost:8000/api
+The CRA proxy also points to http://localhost:8000.
+### 3.2 Install and run
+bash
+cd talentlink-frontend
+npm install
+npm start
+Frontend will start on http://localhost:3000/.
+### 4.1 Create two test users
+- Use Django Admin at http://localhost:8000/admin/ to create:
+ - a Client account
+ - a Freelancer account
+- Or use the /api/auth/ endpoints from the frontend “Sign up” screens.
+### 4.2 Create a Project (as Client)
+- From the UI: Post Project
+- Or POST /api/projects/ with JWT auth.
+### 4.3 Submit and accept a Proposal
+- Login as Freelancer → submit a proposal.
+- Login as Client → accept proposal → this creates a Contract.
+### 4.4 Messaging (contract‑bound)
+- Open the Active Contract card and click Message.
+- This opens a contract‑specific Conversation.
+- Backend endpoints used:
+ - GET /api/messages/conversations/
+ - POST /api/messages/ to send a message
+ - GET /api/messages/?conversation=<id> to list thread messages

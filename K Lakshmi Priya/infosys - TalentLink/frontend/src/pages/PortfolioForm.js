@@ -70,6 +70,13 @@ function PortfolioForm() {
         <button type="submit" disabled={saving}>
           {saving ? "Saving..." : "Add"}
         </button>
+        <button
+        style={{ marginLeft: "1rem" }}
+        onClick={() => navigate(`/`)}
+        disabled={saving}
+      >
+        Cancel
+      </button>
       </form>
     </div>
   );

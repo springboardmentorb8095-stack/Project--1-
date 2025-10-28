@@ -39,7 +39,7 @@ function Portfolio() {
 
   return (
     <div style={{ padding: "2rem" }}>
-      <h1>My Portfolio</h1>
+      <h3>Portfolio</h3>
       <Link to="/portfolio/add">➕ Add New Project</Link>
 
       {items.length === 0 ? (

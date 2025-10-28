@@ -1,6 +1,9 @@
+
+#serializers.py
+
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Profile, PortfolioItem, Project, Proposal, Skill
+from .models import Profile, PortfolioItem, Project, Proposal, Skill, Contract, Message, Notification
 
 User = get_user_model()
 
@@ -95,15 +98,20 @@ class ProjectSerializer(serializers.ModelSerializer):
 
     # Return nested skill objects with id and name
     skills = SkillSerializer(many=True, read_only=True)
+    
+    status = serializers.CharField(read_only=True)  
 
     # Show client ID (read-only)
     client = serializers.PrimaryKeyRelatedField(read_only=True)
+    
+    client_name = serializers.CharField(source='client.username', read_only=True)
+
 
     class Meta:
         model = Project
         fields = [
             'id', 'client', 'title', 'description', 'budget',
-            'duration', 'skill_ids', 'skills', 'created_at'
+            'duration', 'skill_ids', 'skills','status', 'created_at','client_name',
         ]
 
     def create(self, validated_data):
@@ -115,7 +123,6 @@ class ProjectSerializer(serializers.ModelSerializer):
         
         # Use client from .save() call (in perform_create)
         client = self.context['request'].user  # just fallback (optional)
-
         project = Project.objects.create(
             **validated_data,
             client=client
@@ -138,11 +145,17 @@ class ProjectSerializer(serializers.ModelSerializer):
 class ProposalSerializer(serializers.ModelSerializer):
     freelancer_name = serializers.CharField(source='freelancer.username', read_only=True)
     project_title = serializers.CharField(source='project.title', read_only=True)
+    project_id = serializers.CharField(source='project.id', read_only=True)
+    
+
 
     class Meta:
         model = Proposal
         fields = '__all__'
         read_only_fields = ['freelancer', 'status', 'created_at']
+
+
+        
 
 # serializers.py
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
@@ -154,7 +167,58 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         # Add only user ID and role
         data['user'] = {
             "id": self.user.id,
+            "name":self.user.username,
             "role": self.user.role,
         }
 
+        print(data)
+
         return data
+
+# ContractSerializer
+class NestedProposalSerializer(serializers.ModelSerializer):
+    project_id = serializers.IntegerField(source='project.id', read_only=True)
+    project_title = serializers.CharField(source='project.title', read_only=True)
+
+    class Meta:
+        model = Proposal
+        fields = ['id', 'project_id', 'project_title']
+        
+class ContractSerializer(serializers.ModelSerializer):
+    proposal = NestedProposalSerializer(read_only=True)
+    freelancer_id = serializers.CharField(source="proposal.freelancer.id", read_only=True)
+    freelancer_name = serializers.CharField(source="proposal.freelancer.username", read_only=True)
+    client_id = serializers.CharField(source="proposal.project.client.id", read_only=True)
+    client_name = serializers.CharField(source="proposal.project.client.username", read_only=True)
+
+    class Meta:
+        model = Contract
+        fields = [
+            'id', 'proposal', 'freelancer_name', 'client_name',
+            'start_date', 'end_date', 'status',
+            'client_id', 'freelancer_id'
+        ]
+
+
+class MessageSerializer(serializers.ModelSerializer):
+    sender_name = serializers.CharField(source='sender.username', read_only=True)
+    receiver_name = serializers.CharField(source='receiver.username', read_only=True)
+
+    class Meta:
+        model = Message
+        fields = ['id', 'sender', 'sender_name', 'receiver', 'receiver_name', 'content', 'timestamp']
+        read_only_fields = ['sender', 'timestamp']
+
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    actor_name = serializers.CharField(source='actor.username', read_only=True)
+
+    class Meta:
+        model = Notification
+        fields = [
+            'id', 'recipient', 'actor', 'actor_name',
+            'notif_type', 'verb', 'target_id', 'target_type',
+            'unread', 'timestamp'
+        ]
+        read_only_fields = ['actor', 'timestamp']

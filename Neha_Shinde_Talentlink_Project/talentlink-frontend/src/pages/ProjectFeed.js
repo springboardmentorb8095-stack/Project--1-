@@ -10,7 +10,21 @@ function ProjectFeed() {
     max_duration: ''
   });
 
-  const token = localStorage.getItem('access');
+  const [token, setToken] = useState('');
+
+  useEffect(() => {
+    const storedToken = localStorage.getItem('access');
+    const isJWT = /^ey[\w-]+\.[\w-]+\.[\w-]+$/.test(storedToken);
+    if (storedToken && isJWT) {
+      setToken(storedToken);
+    } else {
+      console.warn("Missing or invalid token");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (token) fetchProjects(); // initial load
+  }, [token]);
 
   const fetchProjects = async (filters = {}) => {
     const query = new URLSearchParams(filters).toString();
@@ -22,20 +36,22 @@ function ProjectFeed() {
       });
       setProjects(res.data);
     } catch (err) {
-      console.error(err);
+      console.error("Error fetching projects:", err);
     }
   };
-
-  useEffect(() => {
-    fetchProjects(); // initial load
-  }, []);
 
   const handleInputChange = (e) => {
     setFilters({ ...filters, [e.target.name]: e.target.value });
   };
 
   const handleFilter = () => {
-    fetchProjects(filters);
+    const cleanFilters = {
+      skill: filters.skill.trim(),
+      min_budget: filters.min_budget || undefined,
+      max_budget: filters.max_budget || undefined,
+      max_duration: filters.max_duration || undefined
+    };
+    fetchProjects(cleanFilters);
   };
 
   const styles = {
@@ -158,21 +174,26 @@ function ProjectFeed() {
       </div>
 
       <div style={styles.grid}>
-        {projects.map(project => (
-          <div key={project.id} style={styles.card}>
-            <h4 style={styles.title}>{project.title}</h4>
-            <p style={styles.detail}><strong>Description:</strong> {project.description}</p>
-            <p style={styles.detail}><strong>💰 Budget:</strong> ₹{project.budget}</p>
-            <p style={styles.detail}><strong>⏱ Duration:</strong> {project.duration_weeks} weeks</p>
-            <p style={styles.detail}><strong>📌 Status:</strong> {project.status}</p>
-          </div>
-        ))}
+        {projects.length > 0 ? (
+          projects.map(project => (
+            <div key={project.id} style={styles.card}>
+              <h4 style={styles.title}>{project.title}</h4>
+              <p style={styles.detail}><strong>Description:</strong> {project.description}</p>
+              <p style={styles.detail}><strong>💰 Budget:</strong> ₹{project.budget}</p>
+              <p style={styles.detail}><strong>⏱ Duration:</strong> {project.duration_weeks} weeks</p>
+              <p style={styles.detail}><strong>📌 Status:</strong> {project.status}</p>
+            </div>
+          ))
+        ) : (
+          <p style={{ textAlign: 'center', color: '#fff' }}>No projects found.</p>
+        )}
       </div>
     </div>
   );
 }
 
 export default ProjectFeed;
+
 
 
 

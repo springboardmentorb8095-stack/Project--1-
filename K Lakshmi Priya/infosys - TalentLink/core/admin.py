@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 # Register your models here.
-from .models import User, Profile, Project, Proposal, Contract, Message, Review, Skill, PortfolioItem
+from .models import User, Profile, Project, Proposal, Contract, Message, Review, Skill, PortfolioItem, Notification
 
 
 @admin.register(User)
@@ -24,7 +24,7 @@ class ProfileAdmin(admin.ModelAdmin):
 
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
-    list_display = ("id", "client", "title", "budget", "duration", "get_skills", "created_at", "updated_at")
+    list_display = ("id", "client", "title", "budget", "duration","status", "get_skills", "created_at", "updated_at")
     search_fields = ("title", "description", "skills__required")
     list_filter = ("created_at", "budget")
     def get_skills(self, obj):
@@ -69,3 +69,10 @@ class PortfolioItemAdmin(admin.ModelAdmin):
     list_display = ("id", "profile", "title", "url", "added_on")
     search_fields = ("title", "url", "profile__user__username")
     list_filter = ("added_on",)
+
+
+@admin.register(Notification)
+class NotificationAdmin(admin.ModelAdmin):
+    list_display = ("id", "actor", "verb", "recipient", "notif_type", "unread", "timestamp")
+    list_filter = ("notif_type", "unread", "timestamp")
+    search_fields = ("verb", "target_type", "actor__username", "recipient__username")
