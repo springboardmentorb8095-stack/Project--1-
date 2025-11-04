@@ -2,11 +2,9 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import { FaUserCircle } from "react-icons/fa";
-
-function ProjectList() {
+function ProjectList({ setPanel }) {
   const navigate = useNavigate();
   const token = localStorage.getItem("access");
-
   const [projects, setProjects] = useState([]);
   const [proposals, setProposals] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -20,17 +18,13 @@ function ProjectList() {
   const [isFreelancer, setIsFreelancer] = useState(false);
 
   useEffect(() => {
-    try {
-      const userStr = localStorage.getItem("user");
-      if (userStr) {
-        const parsedUser = JSON.parse(userStr);
-        setUser(parsedUser);
-        setUserId(parsedUser?.id);
-        setIsClient(parsedUser?.role === "client");
-        setIsFreelancer(parsedUser?.role === "freelancer");
-      }
-    } catch (e) {
-      console.error("Error parsing user from localStorage", e);
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      const parsedUser = JSON.parse(userStr);
+      setUser(parsedUser);
+      setUserId(parsedUser?.id);
+      setIsClient(parsedUser?.role === "client");
+      setIsFreelancer(parsedUser?.role === "freelancer");
     }
   }, []);
 
@@ -49,7 +43,6 @@ function ProjectList() {
 
   const fetchProposals = async () => {
     if (!isFreelancer || !token || !userId) return;
-
     try {
       const res = await api.get(`/proposals/?freelancer=${userId}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -78,121 +71,154 @@ function ProjectList() {
     }
   };
 
-
   const filteredProjects = (() => {
     if (isClient && showMyProjectsOnly) {
       return projects.filter((p) => String(p.client) === String(userId));
     }
     if (isFreelancer && showAppliedProjectsOnly) {
-      const appliedProjectIds = new Set(proposals.map((proposal) => proposal.project));
-      return projects.filter((p) => appliedProjectIds.has(p.id));
+      const appliedIds = new Set(proposals.map((proposal) => proposal.project));
+      return projects.filter((p) => appliedIds.has(p.id));
     }
     return projects;
   })();
 
-  if (loading) return <p>Loading projects...</p>;
+  // ✅ Updated navigation: opens right panel if not logged in
+  const handleProtectedNavigate = (path, panel = null) => {
+    if (!token) {
+      if (setPanel) setPanel("login"); // open login panel instead of navigating
+      return;
+    }
+
+    if (panel && (isClient || isFreelancer)) {
+      navigate(`/projects/new`);
+      return;
+    }
+
+    navigate(path);
+  };
+
+  if (loading) return <p className="text-center py-10">Loading projects...</p>;
 
   return (
-    <div style={{ padding: "2rem" }}>
-      <h2>Available Projects</h2>
+    <div className="bg-gray-50 px-6 py-4 max-w-6xl mx-auto">
+      <h2 className="text-3xl font-bold mb-6 text-gray-800">Explore Projects</h2>
+      
+
       {!token && (
-        <p style={{ color: "gray" }}>
-          Log in to apply for or post projects.
+        <p className="text-gray-500 mb-6 text-center">
+          Please log in to apply for or post projects.
         </p>
       )}
 
-      {isClient && (
-        <>
-          <button onClick={() => navigate("/projects/new")}>
-            + Post New Project
-          </button>
-
-          <div style={{ margin: "1rem 0" }}>
-            <label>
+      {/* Controls */}
+      <div className="flex flex-wrap gap-4 mb-6">
+        {isClient && (
+          <>
+            <button
+              onClick={() =>
+                handleProtectedNavigate("/projects/new", "/projects")
+              }
+              className="bg-blue-600 text-white px-5 py-2 rounded-lg shadow hover:bg-blue-700 transition"
+            >
+              + Post New Project
+            </button>
+            <label className="flex items-center gap-2 text-gray-700">
               <input
                 type="checkbox"
                 checked={showMyProjectsOnly}
                 onChange={() => setShowMyProjectsOnly((prev) => !prev)}
-              />{" "}
+                className="rounded border-gray-300 focus:ring-blue-500"
+              />
               Show only my projects
             </label>
-          </div>
-        </>
-      )}
+          </>
+        )}
 
-      {isFreelancer && (
-        <div style={{ margin: "1rem 0" }}>
-          <label>
+        {isFreelancer && (
+          <label className="flex items-center gap-2 text-gray-700">
             <input
               type="checkbox"
               checked={showAppliedProjectsOnly}
               onChange={() => setShowAppliedProjectsOnly((prev) => !prev)}
-            />{" "}
+              className="rounded border-gray-300 focus:ring-blue-500"
+            />
             Show only projects I've applied for
           </label>
-        </div>
-      )}
+        )}
 
-      <div style={{ marginBottom: "1rem" }}>
-        <input
-          type="text"
-          placeholder="Search by skill, title, budget..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          style={{ padding: "0.5rem", width: "250px" }}
-        />
-        <button onClick={handleSearch} style={{ marginLeft: "10px" }}>
-          Search
-        </button>
+        {/* Search */}
+        <div className="flex flex-1 max-w-md">
+          <input
+            type="text"
+            placeholder="Search by skill, title, budget..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="flex-1 border border-gray-300 rounded-l-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          />
+          <button
+            onClick={handleSearch}
+            className="bg-blue-600 text-white px-4 py-2 rounded-r-lg hover:bg-blue-700 transition"
+          >
+            Search
+          </button>
+        </div>
       </div>
 
-      <div style={{ marginTop: "1rem" }}>
-        {filteredProjects.length === 0 ? (
-          <p>No projects available.</p>
-        ) : (
-          filteredProjects.map((p) => (
-
-
-            
+      {/* Projects List */}
+      {filteredProjects.length === 0 ? (
+        <p className="text-center text-gray-500 py-10">No projects available.</p>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {filteredProjects.map((p) => (
             <div
               key={p.id}
-              style={{
-                border: "1px solid #ccc",
-                padding: "1rem",
-                marginBottom: "1rem",
-                borderRadius: "8px",
-              }}
+              className="border border-gray-200 rounded-xl p-5 shadow hover:shadow-lg transition bg-white"
             >
-            <p
-              onClick={() => navigate(String(p.client) === String(userId) ? `/profile` : `/users/${p.client}/profile`)}
-              style={{ cursor: "pointer", display: "flex", alignItems: "center" }}
-            >
-              <FaUserCircle size={24} style={{ marginRight: "8px" }} />
-              {p.client_name}
-            </p>
+              <div
+                onClick={() =>
+                  handleProtectedNavigate(
+                    String(p.client) === String(userId)
+                      ? "/profile"
+                      : `/users/${p.client}/profile`
+                  )
+                }
+                className="flex items-center gap-3 text-gray-800 font-medium cursor-pointer mb-3"
+              >
+                <FaUserCircle size={28} />
+                <span>{p.client_name}</span>
+              </div>
+
               <h3
-                style={{ cursor: "pointer", color: p.status != "open" ? "#575757":"blue" }}
-                onClick={() => navigate(`/projects/${p.id}`)}
+                onClick={() => handleProtectedNavigate(`/projects/${p.id}`)}
+                className={`text-xl font-semibold mb-2 cursor-pointer ${
+                  p.status !== "open"
+                    ? "text-gray-400"
+                    : "text-blue-600 hover:underline"
+                }`}
               >
                 {p.title}
               </h3>
-              <p>{p.description}</p>
-              <p>
-                <strong>Budget:</strong> ${p.budget} |{" "}
-                <strong>Duration:</strong> {p.duration} days
+
+              <p className="mb-2 text-gray-700">{p.description}</p>
+              <p className="text-sm text-gray-500 mb-3">
+                <strong>Budget:</strong> ${p.budget} | <strong>Duration:</strong>{" "}
+                {p.duration} days
               </p>
 
               {isClient && String(p.client) === String(userId) && (
-                <p style={{ color: "green" }}>(Posted by you)</p>
+                <p className="text-green-600 mb-3 font-medium">(Posted by you)</p>
               )}
 
-              <button onClick={() => navigate(`/projects/${p.id}`)}>
+              <button
+                onClick={() => handleProtectedNavigate(`/projects/${p.id}`)}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+              >
                 View Details
               </button>
             </div>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -3,7 +3,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from .views import RegisterView, ContractViewSet, UserDetailView, ProfileView, PortfolioItemViewSet, ProjectViewSet, ProposalViewSet, SkillViewSet, CustomLoginView, PublicProfileView, PublicPortfolioView, NotificationViewSet, MessageViewSet
+from .views import RegisterView, ContractViewSet, UserDetailView, ProfileView, PortfolioItemViewSet, ProjectViewSet, ProposalViewSet, SkillViewSet, CustomLoginView, PublicProfileView, PublicPortfolioView, NotificationViewSet, MessageViewSet, ReviewViewSet
 
 
 router = DefaultRouter()
@@ -22,6 +22,7 @@ router.register(r'messages', MessageViewSet, basename="messages")
 
 router.register(r'notifications', NotificationViewSet, basename='notification')
 
+router.register(r'reviews', ReviewViewSet, basename='reviews')
 
 urlpatterns = [
     path('register/', RegisterView.as_view(), name='register'),

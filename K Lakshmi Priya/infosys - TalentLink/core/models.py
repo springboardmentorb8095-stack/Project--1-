@@ -61,7 +61,6 @@ class Proposal(models.Model):
         ('accepted', 'Accepted'),
         ('rejected', 'Rejected'),
     ]
-
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="proposals")
     freelancer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="proposals")
     cover_letter = models.TextField()

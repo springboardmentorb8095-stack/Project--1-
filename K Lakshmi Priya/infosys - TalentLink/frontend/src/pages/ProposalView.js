@@ -1,13 +1,9 @@
-
-//ProposalView.js
-
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../api/axios";
-import { FaUserCircle } from "react-icons/fa";
+import { FaUserCircle, FaArrowLeft, FaProjectDiagram } from "react-icons/fa";
 
-
-function ProposalView() {
+export default function ProposalView() {
   const { id } = useParams(); // proposal ID
   const token = localStorage.getItem("access");
   const navigate = useNavigate();
@@ -32,10 +28,11 @@ function ProposalView() {
 
   const updateStatus = async (status) => {
     try {
-        await api.patch(`/proposals/${id}/update-status/`, { status }, {
-
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await api.patch(
+        `/proposals/${id}/update-status/`,
+        { status },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       alert(`Proposal ${status}`);
       fetchProposal(); // refresh
     } catch (err) {
@@ -48,41 +45,103 @@ function ProposalView() {
     fetchProposal();
   }, [id]);
 
-  if (loading) return <p>Loading proposal...</p>;
-  if (error) return <p>{error}</p>;
-  if (!proposal) return <p>Proposal not found.</p>;
+  if (loading)
+    return (
+      <div className="flex justify-center items-center h-64 text-gray-500">
+        Loading proposal...
+      </div>
+    );
+  if (error)
+    return (
+      <div className="flex justify-center items-center h-64 text-red-500">
+        {error}
+      </div>
+    );
+  if (!proposal)
+    return (
+      <div className="flex justify-center items-center h-64 text-gray-500">
+        Proposal not found.
+      </div>
+    );
 
   return (
-    <div style={{ padding: "2rem" }}>
-    <p
-      onClick={() => navigate(`/users/${proposal.freelancer}/profile`)}
-      style={{ cursor: "pointer", display: "flex", alignItems: "center" }}
-    >
-      <FaUserCircle size={24} style={{ marginRight: "8px" }} />
-      {proposal.freelancer_name}
-    </p>
-      <h2>Proposal by {proposal.freelancer_name || "Freelancer"}</h2>
-      <p><strong>Budget:</strong> ${proposal.proposed_rate}</p>
-      <p><strong>Cover Letter:</strong></p>
-      <p>{proposal.cover_letter}</p>
-      <p><strong>Status:</strong> {proposal.status=="rejected" ? "Not Selected" : proposal.status}</p>
+    <div className="max-w-4xl mx-auto p-6 space-y-6">
 
-      {proposal.status === "pending" && (
-        <div style={{ marginTop: "1rem" }}>
-          <button onClick={() => updateStatus("accepted")} style={{ marginRight: "1rem" }}>
-            Accept
-          </button>
-          <button onClick={() => updateStatus("rejected")} style={{ color: "red" }}>
-            Reject
-          </button>
+
+      {/* Freelancer Info Card */}
+      <div className="bg-white rounded-xl shadow-md p-6 flex items-center gap-4">
+        <FaUserCircle size={48} className="text-blue-500" />
+        <div>
+          <h2
+            className="text-xl font-bold cursor-pointer hover:text-blue-600"
+            onClick={() =>
+              navigate(`/users/${proposal.freelancer}/profile`)
+            }
+          >
+            {proposal.freelancer_name}
+          </h2>
+          <p className="text-gray-500">Freelancer</p>
         </div>
-      )}
+      </div>
 
-      <button style={{ marginTop: "1rem" }} onClick={() => navigate(-1)}>
-        Back
-      </button>
+      {/* Proposal Details Card */}
+      <div className="bg-white rounded-xl shadow-md p-6 space-y-4">
+        <h3
+          onClick={() => navigate(`/projects/${proposal.project_id}`)}
+          className="text-2xl font-semibold text-blue-700 cursor-pointer hover:underline flex items-center gap-2"
+        >
+          <FaProjectDiagram /> {proposal.project_title}
+        </h3>
+        <hr/>
+
+        <div className="flex flex-wrap gap-6 text-gray-700">
+          <p>
+            <strong>Budget:</strong> ${proposal.proposed_rate}
+          </p>
+          <p>
+            <strong>Status:</strong>{" "}
+            <span
+              className={`font-semibold ${
+                proposal.status === "accepted"
+                  ? "text-green-600"
+                  : proposal.status === "rejected"
+                  ? "text-red-600"
+                  : "text-yellow-600"
+              }`}
+            >
+              {proposal.status === "rejected"
+                ? "Not Selected"
+                : proposal.status.charAt(0).toUpperCase() +
+                  proposal.status.slice(1)}
+            </span>
+          </p>
+        </div>
+
+        <div>
+          <p className="font-semibold mb-1">Cover Letter:</p>
+          <p className="text-gray-600 whitespace-pre-line">
+            {proposal.cover_letter}
+          </p>
+        </div>
+
+        {/* Action Buttons */}
+        {proposal.status === "pending" && (
+          <div className="flex gap-4 mt-4">
+            <button
+              onClick={() => updateStatus("accepted")}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+            >
+              Accept
+            </button>
+            <button
+              onClick={() => updateStatus("rejected")}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+            >
+              Reject
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
-
-export default ProposalView;
