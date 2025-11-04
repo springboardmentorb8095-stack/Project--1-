@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import "./Dashboard.css";
+import NotificationBox from "./NotificationBox";
+import { useNavigate } from "react-router-dom";
+
 
 export default function FreelancerDashboard() {
   const [activeTab, setActiveTab] = useState("profile");
@@ -22,6 +25,8 @@ export default function FreelancerDashboard() {
   const [filterSkill, setFilterSkill] = useState("");
   const [filterBudget, setFilterBudget] = useState("");
   const [filterDuration, setFilterDuration] = useState("");
+  const [reviews, setReviews] = useState([]);
+  const navigate = useNavigate();
 
   const profileId = localStorage.getItem("profileId"); // must be set at login/register
 
@@ -33,9 +38,10 @@ export default function FreelancerDashboard() {
       setProfile(res.data || {});
       // combine possible formats
       const skillNames =
-        (res.data?.skills_details?.map((s) => s.name).join(", ")) ||
-        (Array.isArray(res.data?.skills) ? res.data.skills.join(", ") : "") ||
-        "";
+  (Array.isArray(res.data?.skills) ? res.data.skills.map((s) => s.name).join(", ") : "") ||
+  (Array.isArray(res.data?.skill_names) ? res.data.skill_names.join(", ") : "") ||
+  "";
+
       setSkillsInput(skillNames);
     } catch (err) {
       console.error("Error fetching profile:", err);
@@ -96,6 +102,27 @@ export default function FreelancerDashboard() {
   useEffect(() => {
     fetchContracts();
   }, [fetchContracts]);
+  useEffect(() => {
+  const fetchReviews = async () => {
+    try {
+      const res = await axios.get("http://127.0.0.1:8000/api/reviews/");
+      const storedName =
+        (localStorage.getItem("profileName") ||
+         localStorage.getItem("freelancerProfileName") ||
+         "").trim().toLowerCase();
+
+      const myReviews = res.data.filter(
+        (r) => r.reviewee_name?.toLowerCase() === storedName
+      );
+      setReviews(myReviews);
+    } catch (err) {
+      console.error("Error fetching reviews:", err);
+    }
+  };
+
+  fetchReviews();
+}, []);
+
 
   // ---------------- Profile update ----------------
   const handleProfileUpdate = async () => {
@@ -114,7 +141,7 @@ export default function FreelancerDashboard() {
         is_client: false,
         is_freelancer: true,
         // backend expects `skills` (list of strings) for the serializer we built earlier
-        skills: skillsList,
+        skill_names: skillsList,
       };
 
       await axios.put(`http://127.0.0.1:8000/api/profiles/${profileId}/`, payload, {
@@ -195,48 +222,109 @@ export default function FreelancerDashboard() {
     if (!name) return "F";
     return name.trim().split(" ").map((n) => n[0]).join("").slice(0,2).toUpperCase();
   };
+  // ------------------- back button ----------------
+  const handleBack = () => {
+  // 👇 Check if we’re not already on Profile tab
+  if (activeTab !== "profile" && setActiveTab) {
+    setActiveTab("profile"); // go back to profile tab
+  } else {
+    navigate("/"); // if already on profile, go to homepage
+  }
+};
+
 
   // ---------------- Render ----------------
   return (
     <div className="freelancer-dashboard-root">
       <h1>🧑‍💻 Freelancer Dashboard</h1>
+      <button className="back-btn" onClick={handleBack}>← Back</button>
+
+      <NotificationBox />
+
 
       <div className="tabs-row">
         <button className={activeTab === "profile" ? "tab active" : "tab"} onClick={() => setActiveTab("profile")}>Profile</button>
         <button className={activeTab === "projects" ? "tab active" : "tab"} onClick={() => setActiveTab("projects")}>Browse Projects</button>
         <button className={activeTab === "proposals" ? "tab active" : "tab"} onClick={() => setActiveTab("proposals")}>My Proposals</button>
         <button className={activeTab === "contracts" ? "tab active" : "tab"} onClick={() => setActiveTab("contracts")}>My Contracts</button>
+        <button
+  className={activeTab === "reviews" ? "tab active" : "tab"}
+  onClick={() => setActiveTab("reviews")}
+>
+  ⭐ Reviews
+</button>
+
       </div>
 
       {/* ---------- PROFILE ---------- */}
       {activeTab === "profile" && (
         <div className="profile-pane">
           {!editing ? (
-            <div className="profile-card">
-              <div className="avatar">{initials(profile.user_name)}</div>
-              <h2 className="p-name">{profile.user_name}</h2>
-              <p className="p-email">{profile.email}</p>
+  <div className="profile-display">
+    <div className="profile-header">
+      <div className="profile-avatar">{initials(profile.user_name)}</div>
+      <div className="profile-info">
+        <h2>{profile.user_name}</h2>
+        <p className="email">{profile.email}</p>
+        <div className="rate-status">
+          <span className="rate">💰 ₹{profile.hourly_rate || "500"}/hr</span>
+          <span className={`status ${profile.availability || "available"}`}>
+            {profile.availability || "available"}
+          </span>
+        </div>
+      </div>
+    </div>
 
-              <div className="p-badges">
-                <span className="badge money">₹{profile.hourly_rate || "500"}/hr</span>
-                <span className={`badge avail ${profile.availability || "available"}`}>{profile.availability || "available"}</span>
-              </div>
+    <div className="profile-content">
+      <div className="section">
+        <h3>👤 About</h3>
+        <p>{profile.bio || "Not provided yet"}</p>
+      </div>
+      <div className="section">
+  <h3>🧠 Skills</h3>
+  <div className="skills-list">
+    {profile.skills_details?.length ? (
+      profile.skills_details.map((s, i) => {
+        const name = s.name.toLowerCase();
+        let icon = "💡";
+        if (name.includes("react")) icon = "⚛️";
+        else if (name.includes("python")) icon = "🐍";
+        else if (name.includes("ai") || name.includes("ml")) icon = "🤖";
+        else if (name.includes("html")) icon = "🌐";
+        else if (name.includes("css")) icon = "🎨";
+        else if (name.includes("javascript")) icon = "⚡";
+        else if (name.includes("node")) icon = "🟩";
+        else if (name.includes("sql") || name.includes("database")) icon = "🗄️";
 
-              <h3>About</h3>
-              <p className="p-bio">{profile.bio || "Not provided yet"}</p>
+        return (
+          <span key={i} className="skill-chip">
+            {icon} {s.name}
+          </span>
+        );
+      })
+    ) : (
+      <p className="no-skills">No skills added</p>
+    )}
+  </div>
+</div>
 
-              <h3>Skills</h3>
-              <div className="skills-block">
-                {profile.skills_details?.length ? profile.skills_details.map((s) => (
-                  <span key={s.id} className="skill-pill">{s.name}</span>
-                )) : <span className="no-skills">No skills added</span>}
-              </div>
 
-              <div className="profile-actions">
-                <button onClick={() => setEditing(true)} className="btn-edit">✏️ Edit Profile</button>
-              </div>
-            </div>
-          ) : (
+      {profile.portfolio && (
+        <div className="section">
+          <h3>🌐 Portfolio</h3>
+          <a href={profile.portfolio} target="_blank" rel="noopener noreferrer" className="portfolio-link">
+            {profile.portfolio}
+          </a>
+        </div>
+      )}
+    </div>
+
+    <div className="profile-actions">
+      <button onClick={() => setEditing(true)} className="btn-edit">✏️ Edit Profile</button>
+    </div>
+  </div>
+) : (
+
             <div className="profile-edit-card">
               <input value={profile.user_name || ""} onChange={(e)=>setProfile({...profile, user_name: e.target.value})} placeholder="Full name"/>
               <input value={profile.email || ""} onChange={(e)=>setProfile({...profile, email: e.target.value})} placeholder="Email"/>
@@ -346,9 +434,28 @@ export default function FreelancerDashboard() {
             </div>
           )) : <p>No contracts yet.</p>}
         </div>
-        
       )}
+      {/* ---------- REVIEWS SECTION ---------- */}
+{activeTab === "reviews" && (
+  <div className="reviews-pane">
+    <h2>⭐ Client Reviews</h2>
+    {reviews.length ? (
+      reviews.map((r) => (
+        <div key={r.id} className="review-card">
+          <h3>{r.project_title}</h3>
+          <p>💬 {r.comment}</p>
+          <p>⭐ Rating: {r.rating}/5</p>
+          <p><b>From:</b> {r.reviewer_name}</p>
+        </div>
+      ))
+    ) : (
+      <p>No reviews yet.</p>
+    )}
+  </div>
+)}
+
     </div>
+            
   );
 }
 

@@ -4,7 +4,7 @@ from .views import (
     ProfileViewSet, SkillViewSet, ItemViewSet,
     ProjectViewSet, ProposalViewSet, ContractViewSet,
     MessageViewSet, ReviewViewSet,
-    register_user, set_user_role, login_user
+    register_user, set_user_role, login_user,NotificationViewSet
 )
 
 router = DefaultRouter()
@@ -16,6 +16,8 @@ router.register(r'proposals', ProposalViewSet)
 router.register(r'contracts', ContractViewSet)
 router.register(r'messages', MessageViewSet)
 router.register(r'reviews', ReviewViewSet)
+router.register(r'notifications', NotificationViewSet)
+
 
 urlpatterns = [
     path('', include(router.urls)),

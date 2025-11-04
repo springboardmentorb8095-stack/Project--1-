@@ -9,6 +9,11 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  const handleBack = () => {
+  navigate("/"); // always go home
+};
+
+
   const handleLogin = async (e) => {
     e.preventDefault();
     if (!username || !password) {
@@ -19,6 +24,7 @@ export default function Login() {
     try {
       setLoading(true);
 
+      // ✅ Step 1: Authenticate
       const res = await axios.post("http://127.0.0.1:8000/api/login/", {
         username,
         password,
@@ -28,7 +34,7 @@ export default function Login() {
       localStorage.setItem("refresh", res.data.refresh);
       localStorage.setItem("loggedUser", username);
 
-      // fetch user profile
+      // ✅ Step 2: Fetch profile details
       const profileRes = await axios.get("http://127.0.0.1:8000/api/profiles/");
       const profile = profileRes.data.find((p) => p.user_name === username);
 
@@ -40,16 +46,22 @@ export default function Login() {
         return;
       }
 
+      // ✅ Step 3: Store correct user details
       localStorage.setItem("profileId", profile.id);
+      localStorage.setItem("profileName", profile.user_name);
 
-      // role check
-      if (!profile.is_client && !profile.is_freelancer) {
-        alert("Please select your role to continue!");
-        navigate("/role");
-      } else if (profile.is_freelancer) {
+      // ✅ Step 4: Role-specific storage (to avoid confusion in chat)
+      if (profile.is_freelancer) {
+        localStorage.setItem("freelancerProfileName", profile.user_name);
+        localStorage.removeItem("clientProfileName");
         navigate("/freelancer-dashboard");
       } else if (profile.is_client) {
+        localStorage.setItem("clientProfileName", profile.user_name);
+        localStorage.removeItem("freelancerProfileName");
         navigate("/client-dashboard");
+      } else {
+        alert("Please select your role to continue!");
+        navigate("/role");
       }
     } catch (error) {
       setLoading(false);
@@ -60,6 +72,8 @@ export default function Login() {
 
   return (
     <div className="auth-container">
+        <button className="back-btn" onClick={handleBack}>←🏠 Back</button>
+
       <h2>Login</h2>
       {loading ? (
         <p>⏳ Checking your profile...</p>
