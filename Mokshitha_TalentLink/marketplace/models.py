@@ -21,7 +21,6 @@ class Profile(models.Model):
     availability = models.CharField(max_length=20, choices=AVAILABILITY_CHOICES, default="available")
     is_client = models.BooleanField(default=False)
     is_freelancer = models.BooleanField(default=False)
-
     def __str__(self):
         return self.user_name
 
@@ -120,3 +119,13 @@ class Review(models.Model):
 
     def __str__(self):
         return f"Review for {self.reviewee.user_name} on {self.project.title}"
+class Notification(models.Model):
+    user = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="notifications")
+    message = models.CharField(max_length=255)
+    link = models.CharField(max_length=255, blank=True, null=True)  # optional link (e.g., "/chat/1")
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Notification for {self.user.user_name}: {self.message[:50]}"
+

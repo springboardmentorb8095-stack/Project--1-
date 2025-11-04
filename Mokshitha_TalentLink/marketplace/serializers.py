@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Profile, Skill, Item, Project, Proposal, Contract, Message, Review
+from .models import Profile, Skill, Item, Project, Proposal, Contract, Message, Review,Notification
 
 
 # -------- Skill Serializer --------
@@ -110,6 +110,19 @@ class MessageSerializer(serializers.ModelSerializer):
 
 # -------- Review Serializer --------
 class ReviewSerializer(serializers.ModelSerializer):
+    reviewer_name = serializers.CharField(source='reviewer.user_name', read_only=True)
+    reviewee_name = serializers.CharField(source='reviewee.user_name', read_only=True)
+    project_title = serializers.CharField(source='project.title', read_only=True)
+
     class Meta:
         model = Review
-        fields = "__all__"
+        fields = ['id', 'reviewer', 'reviewee', 'project', 'rating', 'comment',
+                  'reviewer_name', 'reviewee_name', 'project_title']
+
+class NotificationSerializer(serializers.ModelSerializer):
+    user_name = serializers.CharField(source="user.user_name", read_only=True)
+
+    class Meta:
+        model = Notification
+        fields = ["id", "user", "user_name", "message", "link", "is_read", "created_at"]
+

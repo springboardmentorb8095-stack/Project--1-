@@ -9,13 +9,14 @@ export default function ChatPage() {
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [contract, setContract] = useState(null);
- const storedName =
-  localStorage.getItem("profileName") ||
-  localStorage.getItem("freelancerProfileName") ||
-  localStorage.getItem("clientProfileName") ||
-  "User";
-const profileName = storedName.trim();
 
+  // ✅ Safely detect who is logged in (client or freelancer)
+  const storedName =
+    localStorage.getItem("profileName") ||
+    localStorage.getItem("freelancerProfileName") ||
+    localStorage.getItem("clientProfileName") ||
+    "User";
+  const profileName = storedName.trim();
 
   // ✅ Fetch messages
   const fetchMessages = async () => {
@@ -30,7 +31,7 @@ const profileName = storedName.trim();
     }
   };
 
-  // ✅ Fetch contract (to identify sender/receiver)
+  // ✅ Fetch contract details
   useEffect(() => {
     axios
       .get(`http://127.0.0.1:8000/api/contracts/${contractId}/`)
@@ -44,7 +45,7 @@ const profileName = storedName.trim();
     if (!contract) return alert("Contract not loaded yet!");
 
     const receiverName =
-      profileName === contract.client_name
+      profileName.toLowerCase() === contract.client_name.toLowerCase()
         ? contract.freelancer_name
         : contract.client_name;
 
@@ -57,7 +58,7 @@ const profileName = storedName.trim();
         content: newMessage,
       });
       setNewMessage("");
-      fetchMessages();
+      fetchMessages(); // Refresh messages instantly
     } catch (err) {
       console.error("Error sending message:", err);
       alert("Failed to send message!");
@@ -66,7 +67,7 @@ const profileName = storedName.trim();
     }
   };
 
-  // ✅ Auto-refresh every 3 seconds
+  // ✅ Auto-refresh chat
   useEffect(() => {
     fetchMessages();
     const interval = setInterval(fetchMessages, 3000);
@@ -112,4 +113,3 @@ const profileName = storedName.trim();
     </div>
   );
 }
-

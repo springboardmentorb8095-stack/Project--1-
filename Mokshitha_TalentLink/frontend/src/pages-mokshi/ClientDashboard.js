@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
 import "./ClientDashboard.css";
+import NotificationBox from "./NotificationBox";
+import { useNavigate } from "react-router-dom";
 
 export default function ClientDashboard() {
   const [activeTab, setActiveTab] = useState("post");
@@ -16,6 +18,33 @@ export default function ClientDashboard() {
   const [duration, setDuration] = useState("");
   const [skills, setSkills] = useState("");
   const [editingId, setEditingId] = useState(null);
+
+const [reviewText, setReviewText] = useState("");
+const [rating, setRating] = useState("");
+const [submittedReviews, setSubmittedReviews] = useState([]);
+const [showReviewBox, setShowReviewBox] = useState(null); // which contract review box is open
+const [reviewRating, setReviewRating] = useState(0);
+const [hoverRating, setHoverRating] = useState(0);
+const [reviewComment, setReviewComment] = useState("");
+const navigate = useNavigate();
+
+// ✅ Open Reviews tab automatically if URL hash is #reviews
+useEffect(() => {
+  const checkHash = () => {
+    if (window.location.hash === "#reviews") {
+      setActiveTab("reviews");
+    }
+  };
+
+  // Run once after initial render
+  checkHash();
+
+  // Run again when hash changes dynamically
+  window.addEventListener("hashchange", checkHash);
+
+  return () => window.removeEventListener("hashchange", checkHash);
+}, []);
+
 
   const profileId = localStorage.getItem("profileId");
   const username =
@@ -176,11 +205,71 @@ setContracts(filtered);
       console.error("Error updating contract:", err);
     }
   };
+  //....................
+  const handleSubmitReview = async (contract) => {
+  const reviewerId = localStorage.getItem("profileId");
+  const reviewerName = localStorage.getItem("profileName");
+
+  // find the freelancer by name to get their profile ID
+  let revieweeId = null;
+  try {
+    const profilesRes = await axios.get("http://127.0.0.1:8000/api/profiles/");
+    const freelancerProfile = profilesRes.data.find(
+      (p) => p.user_name === contract.freelancer_name
+    );
+    if (freelancerProfile) revieweeId = freelancerProfile.id;
+  } catch (err) {
+    console.error("Error fetching profiles:", err);
+  }
+
+  if (!revieweeId) {
+    alert("❌ Could not find freelancer profile!");
+    return;
+  }
+
+  const payload = {
+    reviewer: reviewerId,
+    reviewee: revieweeId,
+    project: contract.project || contract.id, // handles both cases
+    rating: contract.newRating || 5, // or get from user input if you have a rating field
+    comment: contract.newComment || "Great work!", // or your actual input value
+  };
+
+  console.log("📦 Final Review Payload:", payload);
+
+  try {
+    const res = await axios.post("http://127.0.0.1:8000/api/reviews/", payload);
+    alert("✅ Review submitted successfully!");
+    setReviewComment(""); // clears text box after submission
+    setShowReviewBox(null);
+
+    console.log("🟢 Response:", res.data);
+  } catch (error) {
+    console.error("❌ Error submitting review:", error.response?.data || error.message);
+    alert("❌ Failed to submit review! Check console for details.");
+  }
+};
+
+// -------------Back button ------------
+const handleBack = () => {
+  // 👇 Check if we’re not already on Profile tab
+  if (activeTab !== "profile" && setActiveTab) {
+    setActiveTab("profile"); // go back to profile tab
+  } else {
+    navigate("/"); // if already on profile, go to homepage
+  }
+};
+
 
   // -------------------- UI --------------------
   return (
     <div className="client-dashboard">
       <h1>💼 Client Dashboard</h1>
+      
+<button className="back-btn" onClick={handleBack}>← Back</button>
+
+       <NotificationBox />
+
       <p>Manage your projects, proposals, and contracts.</p>
 
       <div className="tab-buttons">
@@ -312,41 +401,115 @@ setContracts(filtered);
         </div>
       )}
 
+      
       {/* ✅ CONTRACTS TAB */}
-      {activeTab === "contracts" && (
-        <div className="contracts-section">
-          <h2>📜 Contracts</h2>
-          {loading ? (
-            <p>Loading contracts...</p>
-          ) : contracts.length ? (
-            <div className="contract-grid">
-              {contracts.map((c) => (
-                <div key={c.id} className={`contract-card ${c.status}`}>
-                  <h3>{c.project_title}</h3>
-                  <p><b>Freelancer:</b> {c.freelancer_name}</p>
-                  <p><b>Status:</b> <span className={`status ${c.status}`}>{c.status}</span></p>
-                  <p><b>Start:</b> {c.start_date}</p>
-                  <p><b>End:</b> {c.end_date}</p>
-                  <p className="terms">{c.terms}</p>
+{activeTab === "contracts" && (
+  <div className="contracts-section">
+    <h2>📜 Contracts</h2>
+    {loading ? (
+      <p>Loading contracts...</p>
+    ) : contracts.length ? (
+      <div className="contract-grid">
+        {contracts.map((c) => (
+          <div key={c.id} className={`contract-card ${c.status}`}>
+            <h3>{c.project_title}</h3>
+            <p><b>Freelancer:</b> {c.freelancer_name}</p>
+            <p><b>Status:</b> <span className={`status ${c.status}`}>{c.status}</span></p>
+            <p><b>Start:</b> {c.start_date}</p>
+            <p><b>End:</b> {c.end_date}</p>
+            <p className="terms">{c.terms}</p>
 
-                  {c.status === "active" && (
-                    <button className="complete-btn" onClick={() => markAsCompleted(c.id)}>
-                      ✅ Mark as Completed
-                    </button>
-                  )}
+            {c.status === "active" && (
+              <button className="complete-btn" onClick={() => markAsCompleted(c.id)}>
+                ✅ Mark as Completed
+              </button>
+            )}
 
-                  {/* 💬 Chat button */}
-                  <Link to={`/chat/${c.id}`}>
-                    <button className="chat-btn">💬 Chat</button>
-                  </Link>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p>No contracts found.</p>
-          )}
-        </div>
-      )}
+            {/* 💬 Chat button */}
+            <Link to={`/chat/${c.id}`}>
+              <button className="chat-btn">💬 Chat</button>
+            </Link>
+
+            {c.status === "completed" && (
+  <button
+    className="review-btn"
+    onClick={() =>
+      setShowReviewBox(showReviewBox === c.id ? null : c.id)
+    }
+  >
+    ⭐ Make Review
+  </button>
+)}
+
+{showReviewBox === c.id && (
+  <div className="review-slide-box">
+    <div className="rating-stars">
+  {[1, 2, 3, 4, 5].map((star) => (
+    <span
+      key={star}
+      onClick={() => setReviewRating(star)}
+      onMouseEnter={() => setHoverRating(star)}
+      onMouseLeave={() => setHoverRating(0)}
+      style={{
+        cursor: "pointer",
+        fontSize: "28px",
+        color:
+          star <= (hoverRating || reviewRating) ? "#FFD700" : "#ccc",
+        transition: "color 0.2s ease",
+      }}
+    >
+      ★
+    </span>
+  ))}
+</div>
+
+
+    <textarea
+      placeholder="Write your review..."
+      value={reviewComment}
+      onChange={(e) => setReviewComment(e.target.value)}
+    />
+    <div className="review-actions">
+      <button
+        onClick={() =>
+          handleSubmitReview({
+            ...c,
+            newComment: reviewComment,
+            newRating: reviewRating,
+          })
+        }
+        className="submit-btn"
+      >
+        ✅ Submit
+      </button>
+      <button
+        className="cancel-btn"
+        onClick={() => setShowReviewBox(null)}
+      >
+        ❌ Cancel
+      </button>
+    </div>
+  </div>
+)}
+
+
+            {/* ⭐ Review Section (only when completed) */}
+            
+      
+
+            {/* ✅ Show confirmation if review submitted */}
+            {submittedReviews.includes(c.id) && (
+              <p className="review-confirmed">⭐ Review Submitted!</p>
+            )}
+          </div>
+        ))}
+      </div>
+    ) : (
+      <p>No contracts found.</p>
+    )}
+  </div>
+)}
+
     </div>
   );
 }
