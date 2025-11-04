@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import { isLoggedIn } from "../utils/auth";
 import ProjectList from "./ProjectList";
+import Portfolio from "./Portfolio";
 
 function Dashboard() {
   const [profile, setProfile] = useState(null);
@@ -132,6 +133,9 @@ function Dashboard() {
               ) : !error ? (
                 <p>Loading profile...</p>
               ) : null}
+
+
+              <Portfolio />
             </div>
           )}
         </div>

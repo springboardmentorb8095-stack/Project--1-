@@ -5,6 +5,51 @@
   text-align: center;
 }
 
+/* Authentication Pages Background */
+.auth-page {
+    background-image: url('https://images.unsplash.com/photo-1556740738-b6a63e27c4df?q=80&w=2070&auto=format&fit=crop');
+    background-size: cover;
+    background-position: center;
+    min-height: 100vh;
+}
+.auth-card {
+    background-color: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(10px);
+}
+
+
+/* Hero Section */
+.hero-section {
+    background: linear-gradient(45deg, #007bff, #6610f2);
+    color: white;
+    padding: 6rem 0;
+    text-align: center;
+}
+.hero-section h1 {
+    font-size: 3.5rem;
+    font-weight: 700;
+}
+.hero-section .lead {
+    font-size: 1.25rem;
+}
+
+
+/* Feature Section */
+.feature-section {
+    padding: 4rem 0;
+}
+.feature-icon {
+    font-size: 3rem;
+    color: #007bff;
+}
+.feature-image {
+    max-width: 100%;
+    height: auto;
+    border-radius: 15px;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+
+
 .logo {
   height: 6em;
   padding: 1.5em;
@@ -35,8 +80,73 @@
 
 .card {
   padding: 2em;
+  transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+}
+
+.card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.1);
 }
 
 .read-the-docs {
   color: #888;
+}
+
+/* Components.css */
+
+.navbar-brand {
+  font-weight: bold;
+  color: #333;
+}
+
+.btn-primary {
+  background-color: #007bff;
+  border: none;
+  transition: background-color 0.3s, transform 0.3s;
+}
+
+.btn-primary:hover {
+  background-color: #0056b3;
+  transform: scale(1.05);
+}
+
+.project-card {
+  transition: all 0.3s ease;
+  border-radius: 15px;
+  overflow: hidden;
+}
+
+.project-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+.flex-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: center;
+}
+
+/* New Form Styles */
+.form-label {
+  font-weight: 600;
+  color: #333;
+}
+
+.form-control, .form-select {
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  padding: 0.75rem 1rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-control:focus, .form-select:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 0.25rem rgba(0, 123, 255, 0.25);
+}
+
+.form-check-input:checked {
+  background-color: #007bff;
+  border-color: #007bff;
 }

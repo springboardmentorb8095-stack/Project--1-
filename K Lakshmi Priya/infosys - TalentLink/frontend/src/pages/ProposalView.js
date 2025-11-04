@@ -4,6 +4,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../api/axios";
+import { FaUserCircle } from "react-icons/fa";
+
 
 function ProposalView() {
   const { id } = useParams(); // proposal ID
@@ -52,11 +54,18 @@ function ProposalView() {
 
   return (
     <div style={{ padding: "2rem" }}>
+    <p
+      onClick={() => navigate(`/users/${proposal.freelancer}/profile`)}
+      style={{ cursor: "pointer", display: "flex", alignItems: "center" }}
+    >
+      <FaUserCircle size={24} style={{ marginRight: "8px" }} />
+      {proposal.freelancer_name}
+    </p>
       <h2>Proposal by {proposal.freelancer_name || "Freelancer"}</h2>
       <p><strong>Budget:</strong> ${proposal.proposed_rate}</p>
       <p><strong>Cover Letter:</strong></p>
       <p>{proposal.cover_letter}</p>
-      <p><strong>Status:</strong> {proposal.status}</p>
+      <p><strong>Status:</strong> {proposal.status=="rejected" ? "Not Selected" : proposal.status}</p>
 
       {proposal.status === "pending" && (
         <div style={{ marginTop: "1rem" }}>

@@ -18,6 +18,15 @@ import ProposalView from "./pages/ProposalView";
 
 // inside your <Routes> component
 
+import PublicProfile from "./pages/PublicProfile";
+import Contracts from "./pages/Contracts";
+import ChatThread from "./pages/ChatThread";
+import MessageInbox from "./pages/MessageInbox";
+import NotificationsDropdown from "./pages/NotificationsDropdown";
+
+import ContractDetail from "./pages/ContractDetail"; // Adjust path as needed
+
+
 
 function App() {
   return (
@@ -39,6 +48,19 @@ function App() {
         <Route path="/proposals/edit/:proposalId" element={<ProposalForm />} />
         
         <Route path="/proposals/view/:id" element={<ProposalView />} />
+        <Route path="/users/:id/profile" element={<PublicProfile />} />
+        <Route path="/contracts" element={<Contracts />} />
+
+        
+        <Route path="/contracts/:id" element={<ContractDetail />} />
+
+        <Route path="/messages" element={<MessageInbox />} />
+        <Route path="/messages/:userId" element={<ChatThread />} />
+
+        <Route path="/noti" element={<NotificationsDropdown />} />
+
+
+
       </Routes>
     </Router>
   );

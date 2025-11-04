@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import AsyncCreatableSelect from "react-select/async-creatable";
+import Portfolio from "./Portfolio";
 
 function Profile() {
   const [profile, setProfile] = useState({
@@ -111,7 +112,6 @@ useEffect(() => {
       [name]: value,
     }));
   };
-
   // Handle skill select changes
   const handleSkillChange = (selectedOptions) => {
     setProfile((prev) => ({
@@ -151,6 +151,7 @@ useEffect(() => {
   if (loading) return <p>Loading profile...</p>;
 
   return (
+    <div>
     <div style={{ padding: "2rem" }}>
       <h1>Edit Profile</h1>
       {error && <p style={{ color: "red" }}>{error}</p>}
@@ -238,6 +239,10 @@ useEffect(() => {
         </label>
       </div>
 
+
+
+
+
       <button onClick={handleSave} disabled={saving}>
         {saving ? "Saving..." : "Save Profile"}
       </button>
@@ -250,6 +255,9 @@ useEffect(() => {
         Cancel / Back to Dashboard
       </button>
     </div>
+    <div>
+      <Portfolio />
+    </div></div>
   );
 }
 

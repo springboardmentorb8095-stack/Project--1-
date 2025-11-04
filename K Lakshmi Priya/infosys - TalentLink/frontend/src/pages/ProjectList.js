@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
+import { FaUserCircle } from "react-icons/fa";
 
 function ProjectList() {
   const navigate = useNavigate();
@@ -77,19 +78,6 @@ function ProjectList() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this project?")) return;
-    try {
-      await api.delete(`/projects/${id}/`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      alert("Project deleted successfully!");
-      fetchProjects();
-    } catch (err) {
-      console.error(err);
-      alert("Failed to delete project");
-    }
-  };
 
   const filteredProjects = (() => {
     if (isClient && showMyProjectsOnly) {
@@ -107,7 +95,6 @@ function ProjectList() {
   return (
     <div style={{ padding: "2rem" }}>
       <h2>Available Projects</h2>
-
       {!token && (
         <p style={{ color: "gray" }}>
           Log in to apply for or post projects.
@@ -164,6 +151,9 @@ function ProjectList() {
           <p>No projects available.</p>
         ) : (
           filteredProjects.map((p) => (
+
+
+            
             <div
               key={p.id}
               style={{
@@ -173,8 +163,15 @@ function ProjectList() {
                 borderRadius: "8px",
               }}
             >
+            <p
+              onClick={() => navigate(String(p.client) === String(userId) ? `/profile` : `/users/${p.client}/profile`)}
+              style={{ cursor: "pointer", display: "flex", alignItems: "center" }}
+            >
+              <FaUserCircle size={24} style={{ marginRight: "8px" }} />
+              {p.client_name}
+            </p>
               <h3
-                style={{ cursor: "pointer", color: "blue" }}
+                style={{ cursor: "pointer", color: p.status != "open" ? "#575757":"blue" }}
                 onClick={() => navigate(`/projects/${p.id}`)}
               >
                 {p.title}
