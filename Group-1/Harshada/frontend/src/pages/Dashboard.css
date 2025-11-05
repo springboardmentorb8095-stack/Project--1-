@@ -1,0 +1,261 @@
+/* ================================================================
+ 🌟 Universal Dashboard Styling (Clients + Freelancers + Overview)
+================================================================== */
+
+/* ===== Base Layout ===== */
+.dashboard-container {
+  text-align: center;
+  background: linear-gradient(135deg, #eef2ff, #f8fafc, #e0e7ff);
+  min-height: 100vh;
+  padding: 40px 20px;
+  font-family: "Poppins", sans-serif;
+  color: #1e293b;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+/* ===== Titles ===== */
+.dashboard-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1e3a8a;
+  margin-bottom: 10px;
+}
+
+.dashboard-subtitle {
+  font-size: 1rem;
+  color: #475569;
+  margin-bottom: 40px;
+}
+
+/* ===== Cards Grid ===== */
+.dashboard-cards {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  flex-wrap: wrap;
+}
+
+/* ===== Individual Cards ===== */
+.dashboard-card {
+  background-color: #ffffff;
+  border-radius: 18px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  padding: 30px;
+  width: 270px;
+  text-align: left;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.dashboard-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 10px 25px rgba(79, 70, 229, 0.25);
+}
+
+.dashboard-card h3 {
+  font-size: 1.2rem;
+  color: #2563eb;
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.dashboard-card p {
+  color: #475569;
+  font-size: 0.95rem;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+/* ===== Primary Button ===== */
+.dashboard-btn {
+  background: linear-gradient(90deg, #4f46e5, #2563eb, #7c3aed);
+  color: #fff;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  width: 100%;
+  font-size: 0.95rem;
+}
+
+.dashboard-btn:hover {
+  background: linear-gradient(90deg, #6366f1, #3b82f6, #8b5cf6);
+  transform: translateY(-2px);
+}
+
+/* ===== Cancel Button ===== */
+.dashboard-btn.cancel {
+  background: #ef4444;
+}
+.dashboard-btn.cancel:hover {
+  background: #dc2626;
+}
+
+/* ===== Popup Modal ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 50;
+  animation: fadeIn 0.3s ease;
+}
+
+.modal {
+  background: #ffffff;
+  padding: 25px;
+  border-radius: 15px;
+  width: 400px;
+  max-width: 90%;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+  text-align: left;
+  animation: slideUp 0.3s ease;
+}
+
+.modal h3 {
+  color: #1e3a8a;
+  margin-bottom: 15px;
+  text-align: center;
+  font-size: 1.2rem;
+}
+
+.apply-form label {
+  display: block;
+  font-weight: 600;
+  color: #0f172a;
+  margin-top: 10px;
+}
+
+.apply-form input {
+  width: 100%;
+  padding: 10px;
+  margin-top: 5px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.apply-form input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 8px rgba(37, 99, 235, 0.25);
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+/* ===== Animations ===== */
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(30px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* ===== Dark Mode ===== */
+.dark-mode {
+  background: linear-gradient(135deg, #0f172a, #1e293b, #334155);
+  color: #f8fafc;
+}
+.dark-mode .dashboard-card {
+  background: #1e293b;
+  color: #e2e8f0;
+  box-shadow: 0 4px 20px rgba(255, 255, 255, 0.08);
+}
+.dark-mode .dashboard-btn {
+  background: linear-gradient(90deg, #6366f1, #3b82f6, #8b5cf6);
+}
+.dark-mode .modal {
+  background: #1e293b;
+  color: #f8fafc;
+}
+
+/* ===== Responsive Layout ===== */
+@media (max-width: 1024px) {
+  .dashboard-card {
+    width: 45%;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-card {
+    width: 90%;
+    text-align: center;
+  }
+  .dashboard-title {
+    font-size: 1.6rem;
+  }
+  .dashboard-subtitle {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-container {
+    padding: 20px;
+  }
+  .dashboard-card {
+    width: 100%;
+    padding: 20px;
+  }
+  .dashboard-title {
+    font-size: 1.4rem;
+  }
+  .dashboard-subtitle {
+    font-size: 0.85rem;
+  }
+}
+.chart-container {
+  margin: 20px 0;
+  background: #fff;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+
+.review-card {
+  background: #fff;
+  padding: 15px;
+  margin: 12px 0;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.reply-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.reply-input input {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+.reply-input button {
+  background: #2196f3;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.total-reviews {
+  margin-left: 8px;
+  color: gray;
+  font-size: 0.9rem;
+}

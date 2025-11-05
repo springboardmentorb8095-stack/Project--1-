@@ -1,0 +1,398 @@
+/* 🌈 Projects Page – Elegant Freelancer Marketplace UI (Enhanced Version) */
+
+.projects-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f9fbff, #eef4ff, #e0f2fe);
+  padding: 3rem 2rem;
+  font-family: "Poppins", sans-serif;
+  color: #1e293b;
+  animation: fadeInPage 0.6s ease-in-out;
+}
+
+/* Fade In Animation */
+@keyframes fadeInPage {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ===== Header ===== */
+.projects-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.projects-header h1 {
+  font-size: 2.4rem;
+  font-weight: 700;
+  color: #1e40af;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  background: linear-gradient(90deg, #1e40af, #4f46e5);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.projects-header p {
+  font-size: 1rem;
+  color: #475569;
+  margin-top: 0.6rem;
+}
+
+/* ===== Grid Layout ===== */
+.projects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  gap: 2rem;
+  justify-items: center;
+  padding-bottom: 2rem;
+}
+
+/* ===== Project Card ===== */
+.project-card {
+  position: relative;
+  width: 100%;
+  max-width: 360px;
+  padding: 2rem;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 1.5rem;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 10px 30px rgba(37, 99, 235, 0.12);
+  transition: all 0.35s ease;
+  overflow: hidden;
+}
+
+.project-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    circle at top left,
+    rgba(96, 165, 250, 0.15),
+    transparent 70%
+  );
+  z-index: 0;
+  transition: 0.4s ease;
+}
+
+.project-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 15px 45px rgba(37, 99, 235, 0.18);
+}
+
+.project-card:hover::before {
+  background: radial-gradient(
+    circle at top left,
+    rgba(96, 165, 250, 0.25),
+    transparent 80%
+  );
+}
+
+.project-card-content {
+  position: relative;
+  z-index: 2;
+}
+
+/* ===== Title & Info ===== */
+.project-title {
+  font-size: 1.4rem;
+  color: #2563eb;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.project-card p {
+  margin: 0.3rem 0;
+  font-size: 0.95rem;
+  color: #334155;
+}
+
+/* ===== Apply Button ===== */
+.btn-apply {
+  margin-top: 1.3rem;
+  background: linear-gradient(90deg, #2563eb, #4f46e5);
+  color: white;
+  border: none;
+  width: 100%;
+  padding: 0.8rem 0;
+  border-radius: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: 0.3s ease;
+  box-shadow: 0 5px 14px rgba(37, 99, 235, 0.25);
+}
+
+.btn-apply:hover {
+  transform: scale(1.05);
+  background: linear-gradient(90deg, #1e3a8a, #4338ca);
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.35);
+}
+
+/* ===== Applied Button ===== */
+.btn-apply.applied-btn {
+  background: linear-gradient(90deg, #16a34a, #22c55e);
+  cursor: not-allowed;
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
+  transform: scale(1);
+  color: #fff;
+}
+
+.project-card.applied {
+  border: 2px solid #22c55e;
+  animation: successPop 0.8s ease-in-out;
+}
+/* Open Chat Button */
+.btn-secondary {
+  background: linear-gradient(90deg, #2563eb, #4f46e5);
+  color: white;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.2);
+}
+
+.btn-secondary:hover {
+  background: linear-gradient(90deg, #1d4ed8, #4338ca);
+  transform: scale(1.05);
+  box-shadow: 0 6px 15px rgba(59, 130, 246, 0.35);
+}
+
+
+@keyframes successPop {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* ===== Status Section ===== */
+.applied-section {
+  margin-top: 1rem;
+}
+
+.status-update {
+  margin-top: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.status-update label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #334155;
+}
+
+.status-update select {
+  border: 1.5px solid #93c5fd;
+  border-radius: 0.6rem;
+  padding: 0.4rem 0.7rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  background: #f8fafc;
+  color: #1e293b;
+  transition: 0.3s;
+}
+
+.status-update select:hover {
+  border-color: #3b82f6;
+}
+
+/* ===== Status Badges (Colors) ===== */
+.status-badge {
+  display: inline-block;
+  padding: 0.3rem 0.7rem;
+  border-radius: 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: white;
+  margin-top: 0.5rem;
+}
+
+.status-pending {
+  background-color: #fbbf24; /* yellow */
+}
+
+.status-active {
+  background-color: #3b82f6; /* blue */
+}
+
+.status-completed {
+  background-color: #22c55e; /* green */
+}
+
+/* ===== Modal (Form Popup) ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(6px);
+  animation: fadeIn 0.3s ease-in;
+}
+
+.modal {
+  background: #ffffff;
+  border-radius: 20px;
+  width: 90%;
+  max-width: 480px;
+  padding: 2rem 2.5rem;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.25);
+  animation: fadeInUp 0.4s ease-in-out;
+}
+
+.modal h2 {
+  text-align: center;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #1d4ed8;
+  margin-bottom: 1.5rem;
+}
+
+.apply-form input,
+.apply-form textarea {
+  width: 100%;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 0.8rem;
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.apply-form input:focus,
+.apply-form textarea:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.apply-form textarea {
+  resize: none;
+  height: 100px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1rem;
+}
+
+.btn-cancel {
+  background: #f3f4f6;
+  color: #111827;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-weight: 500;
+  border: none;
+  transition: 0.3s;
+}
+
+.btn-cancel:hover {
+  background: #e5e7eb;
+}
+
+.btn-primary {
+  background: linear-gradient(90deg, #2563eb, #4f46e5);
+  color: white;
+  padding: 10px 22px;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  transition: 0.3s;
+}
+
+.btn-primary:hover {
+  transform: scale(1.05);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 📱 Responsive Layouts */
+@media (max-width: 1024px) {
+  .auth-card,
+  .profile-card {
+    width: 90%;
+    padding: 2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .auth-card,
+  .profile-card {
+    width: 95%;
+    padding: 1.8rem;
+    border-radius: 1rem;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+  }
+
+  input, select, textarea {
+    font-size: 0.9rem;
+    padding: 0.75rem;
+  }
+
+  .save-btn {
+    width: 100%;
+    font-size: 0.95rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .auth-container, .profile-page {
+    flex-direction: column;
+    padding: 1rem;
+  }
+
+  h2 {
+    font-size: 1.3rem;
+  }
+
+  input, select, textarea {
+    width: 100%;
+    font-size: 0.85rem;
+  }
+}
+
