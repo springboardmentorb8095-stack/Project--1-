@@ -1,192 +1,109 @@
 # users/views.py
 from django.contrib.auth.models import User
-from rest_framework import generics, permissions, filters, status
+from rest_framework import generics, permissions, filters
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.generics import ListAPIView
 from django.http import JsonResponse
-from django.db import IntegrityError
 
 from .serializers import (
     RegisterSerializer,
     ProfileSerializer,
     ProfileClientSerializer,
-    ProfileFreelancerSerializer,
+    ProjectSerializer,   # ✅ new
 )
-from .models import Profile, ProfileClient, ProfileFreelancer
+from .models import Profile, ProfileClient, Project   # ✅ new
 
 
-# ✅ Health check (test route)
+# ✅ Home route (for testing)
 def home(request):
-    """Simple backend status check."""
-    return JsonResponse({"message": "TalentLink Backend Running 🚀"})
+    return JsonResponse({"message": "Backend running 🚀"})
 
 
 # 👤 Register a new user
 class RegisterView(generics.CreateAPIView):
-    """
-    Registers a new user (client or freelancer).
-    Endpoint: POST /api/users/register/
-    """
     queryset = User.objects.all()
     permission_classes = [permissions.AllowAny]
     serializer_class = RegisterSerializer
 
 
-# 👤 CRUD for logged-in user's main profile
+# 👤 CRUD for logged-in user's profile
 class MeProfileView(APIView):
-    """
-    Create / Retrieve / Update / Delete generic user profile.
-    Endpoint: /api/users/me/
-    """
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        """Retrieve logged-in user's profile."""
-        try:
-            profile = Profile.objects.get(user=request.user)
-            return Response(ProfileSerializer(profile).data)
-        except Profile.DoesNotExist:
-            return Response({"detail": "Profile not found"}, status=404)
-
-    def post(self, request):
-        """Create a new profile."""
-        serializer = ProfileSerializer(data=request.data)
-        if serializer.is_valid():
-            try:
-                serializer.save(user=request.user)
-                return Response(
-                    {"message": "✅ Profile created successfully!", "profile": serializer.data},
-                    status=201,
-                )
-            except IntegrityError:
-                return Response({"error": "Profile already exists"}, status=400)
-        return Response(serializer.errors, status=400)
+        profile = Profile.objects.get(user=request.user)
+        return Response(ProfileSerializer(profile).data)
 
     def put(self, request):
-        """Update profile."""
-        try:
-            profile = Profile.objects.get(user=request.user)
-        except Profile.DoesNotExist:
-            return Response({"detail": "Profile not found"}, status=404)
-
+        profile = Profile.objects.get(user=request.user)
         serializer = ProfileSerializer(profile, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(
-                {"message": "✅ Profile updated successfully!", "profile": serializer.data}
-            )
-        return Response(serializer.errors, status=400)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
 
     def delete(self, request):
-        """Delete user profile."""
-        try:
-            profile = Profile.objects.get(user=request.user)
-            profile.delete()
-            return Response({"detail": "✅ Profile deleted successfully"})
-        except Profile.DoesNotExist:
-            return Response({"detail": "Profile not found"}, status=404)
+        profile = Profile.objects.get(user=request.user)
+        profile.delete()
+        return Response({"detail": "Profile deleted"})
 
 
-# 🧑‍💼 Client Profile (Create / Update / Retrieve)
+# ✅ For Client Profile (Create + Update)
 class ProfileClientView(APIView):
-    """
-    Handles client profile creation and update.
-    Endpoint: /api/users/client/profile/
-    """
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        """Retrieve client profile."""
         try:
             profile = ProfileClient.objects.get(user=request.user)
-            return Response(ProfileClientSerializer(profile).data)
+            serializer = ProfileClientSerializer(profile)
+            return Response(serializer.data)
         except ProfileClient.DoesNotExist:
-            return Response({"detail": "Client profile not found"}, status=404)
+            return Response({"detail": "Profile not found"}, status=404)
 
     def post(self, request):
-        """Create new client profile."""
+        print("📩 POST data received (Client):", request.data)  # Debug log
         serializer = ProfileClientSerializer(data=request.data)
         if serializer.is_valid():
             try:
                 serializer.save(user=request.user)
-                return Response(
-                    {"message": "✅ Client profile created successfully!"},
-                    status=201,
-                )
-            except IntegrityError:
-                return Response({"error": "Client profile already exists"}, status=400)
-        return Response(serializer.errors, status=400)
+                print("✅ Client Profile created for:", request.user)
+                return Response({"message": "✅ Client profile created successfully!"})
+            except Exception as e:
+                print("🔥 ERROR while saving client profile:", str(e))
+                return Response({"error": str(e)}, status=500)
+        else:
+            print("❌ Serializer Errors (Client):", serializer.errors)
+            return Response(serializer.errors, status=400)
 
     def put(self, request):
-        """Update or create if missing."""
+        print("📩 PUT data received (Client):", request.data)
         profile, created = ProfileClient.objects.get_or_create(user=request.user)
         serializer = ProfileClientSerializer(profile, data=request.data, partial=True)
         if serializer.is_valid():
-            serializer.save()
-            msg = (
-                "✅ Client profile created successfully!"
-                if created
-                else "✅ Client profile updated successfully!"
-            )
-            return Response({"message": msg})
-        return Response(serializer.errors, status=400)
-
-
-# 🧑‍💻 Freelancer Profile (Create / Update / Retrieve)
-class ProfileFreelancerView(APIView):
-    """
-    Handles freelancer profile creation and update.
-    Endpoint: /api/users/freelancer/profile/
-    """
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get(self, request):
-        """Retrieve freelancer profile."""
-        try:
-            profile = ProfileFreelancer.objects.get(user=request.user)
-            return Response(ProfileFreelancerSerializer(profile).data)
-        except ProfileFreelancer.DoesNotExist:
-            return Response({"detail": "Freelancer profile not found"}, status=404)
-
-    def post(self, request):
-        """Create new freelancer profile."""
-        serializer = ProfileFreelancerSerializer(data=request.data)
-        if serializer.is_valid():
             try:
-                serializer.save(user=request.user)
-                return Response(
-                    {"message": "✅ Freelancer profile created successfully!"},
-                    status=201,
-                )
-            except IntegrityError:
-                return Response({"error": "Freelancer profile already exists"}, status=400)
-        return Response(serializer.errors, status=400)
-
-    def put(self, request):
-        """Update or create freelancer profile."""
-        profile, created = ProfileFreelancer.objects.get_or_create(user=request.user)
-        serializer = ProfileFreelancerSerializer(profile, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            msg = (
-                "✅ Freelancer profile created successfully!"
-                if created
-                else "✅ Freelancer profile updated successfully!"
-            )
-            return Response({"message": msg})
-        return Response(serializer.errors, status=400)
+                serializer.save()
+                msg = "✅ Client profile created successfully!" if created else "✅ Client profile updated successfully!"
+                print(msg)
+                return Response({"message": msg})
+            except Exception as e:
+                print("🔥 ERROR while updating client profile:", str(e))
+                return Response({"error": str(e)}, status=500)
+        else:
+            print("❌ Serializer Errors (Client):", serializer.errors)
+            return Response(serializer.errors, status=400)
 
 
-# 🔍 Profile Search & Filter API
+# 🔎 New Feature: Search & Filter Profiles
 class ProfileSearchFilterView(ListAPIView):
     """
-    Search or filter profiles by username, skills, role, or availability.
-    Example: ?search=python&role=freelancer&ordering=-hourly_rate
+    API to search and filter profiles by username, skills, role, availability,
+    and order by hourly_rate
     """
     queryset = Profile.objects.all()
     serializer_class = ProfileSerializer
     permission_classes = [permissions.AllowAny]
+
+    # Enable search & ordering
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ["user__username", "skills", "role", "availability"]
     ordering_fields = ["hourly_rate", "user__username"]
@@ -194,11 +111,38 @@ class ProfileSearchFilterView(ListAPIView):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        role = self.request.query_params.get("role")
-        availability = self.request.query_params.get("availability")
 
+        # Optional filter: role
+        role = self.request.query_params.get("role")
         if role:
             queryset = queryset.filter(role__iexact=role)
+
+        # Optional filter: availability
+        availability = self.request.query_params.get("availability")
         if availability:
             queryset = queryset.filter(availability__icontains=availability)
+
         return queryset
+
+
+# 🧩 New Feature: Project Create + View (for Clients)
+class ProjectView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        """Get all projects of logged-in client"""
+        projects = Project.objects.filter(client=request.user).order_by("-created_at")
+        serializer = ProjectSerializer(projects, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        """Post a new project"""
+        print("📩 Project POST data:", request.data)
+        serializer = ProjectSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(client=request.user)
+            print("✅ Project saved for:", request.user.username)
+            return Response({"message": "✅ Project posted successfully!"})
+        else:
+            print("❌ Errors:", serializer.errors)
+            return Response(serializer.errors, status=400)

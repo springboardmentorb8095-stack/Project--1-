@@ -1,91 +1,47 @@
 from pathlib import Path
-import os
-from dotenv import load_dotenv
-import warnings
-warnings.filterwarnings(
-    "ignore",
-    message="app_settings.*deprecated",
-    category=UserWarning,
-)
-warnings.filterwarnings(
-    "ignore",
-    message="ACCOUNT_LOGIN_METHODS conflicts with ACCOUNT_SIGNUP_FIELDS",
-    category=UserWarning,
-)
-warnings.filterwarnings(
-    "ignore",
-    message="ACCOUNT_LOGIN_METHODS conflicts with ACCOUNT_SIGNUP_FIELDS",
-)
-# ✅ Load environment variables
-load_dotenv()
 
-# --- Base Path ---
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# --- Security ---
-SECRET_KEY = "123"
+SECRET_KEY = "your-secret-key"
+
+# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
+
 ALLOWED_HOSTS = []
 
-# --- Installed Apps ---
+# Application definition
 INSTALLED_APPS = [
-    # Django defaults
+    "corsheaders",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "django.contrib.sites",
 
-    # Third-party
-    "corsheaders",
+    # Third-party apps
     "rest_framework",
-    "rest_framework.authtoken",
-    "dj_rest_auth",
-    "dj_rest_auth.registration",
-    "allauth",
-    "allauth.account",
-    "allauth.socialaccount",
-    "allauth.socialaccount.providers.google",
-    "allauth.socialaccount.providers.github",
 
     # Local apps
     "users",
-    "projects",
-    "proposals",
-    "contracts",
-    "messaging",
-    "channels",
-    "notification_review",
+    "projects",   
 ]
 
-# --- Sites Framework ---
-SITE_ID = 1
 
-# --- Middleware ---
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-
-    # CORS must be high
-    "corsheaders.middleware.CorsMiddleware",
+    "corsheaders.middleware.CorsMiddleware",  # ✅ must be at top
     "django.middleware.common.CommonMiddleware",
-
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
-
-    # ✅ Required for Allauth
-    "allauth.account.middleware.AccountMiddleware",
-
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-# --- URL Config ---
 ROOT_URLCONF = "lockdown_project.urls"
 
-# --- Templates ---
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
@@ -102,43 +58,37 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "lockdown_project.wsgi.application"
-ASGI_APPLICATION = "backend.asgi.application"
 
-# --- Database ---
+# Database
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": "postgres",
-        "USER": "postgres",
-        "PASSWORD": "123",
-        "HOST": "localhost",
-        "PORT": "5432",
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
     }
 }
 
-# --- Password Validation ---
+# Password validation
 AUTH_PASSWORD_VALIDATORS = []
 
-# --- Internationalization ---
+# Internationalization
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
 
-# --- Static Files ---
+# Static files (CSS, JavaScript, Images)
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-# --- REST Framework ---
+# ✅ Django REST Framework Settings
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": [
+    "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
-    ],
+    )
 }
 
-# --- CORS ---
-CORS_ALLOW_ALL_ORIGINS = True
+# ✅ CORS Settings (for React frontend)
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
@@ -148,8 +98,23 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3002",
     "http://localhost:3004",
     "http://127.0.0.1:3004",
+    
 ]
-CORS_ALLOW_METHODS = ["DELETE", "GET", "OPTIONS", "PATCH", "POST", "PUT"]
+
+# ✅ Allow all origins (for testing phase)
+CORS_ALLOW_ALL_ORIGINS = True
+
+# ✅ Allow common methods
+CORS_ALLOW_METHODS = [
+    "DELETE",
+    "GET",
+    "OPTIONS",
+    "PATCH",
+    "POST",
+    "PUT",
+]
+
+# ✅ Allow all headers (frontend-safe)
 CORS_ALLOW_HEADERS = [
     "accept",
     "accept-encoding",
@@ -162,47 +127,4 @@ CORS_ALLOW_HEADERS = [
     "x-requested-with",
 ]
 
-# --- Channels ---
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {"hosts": [("127.0.0.1", 6379)]},
-    },
-}
-
-# --- Notifications ---
-VAPID_PUBLIC_KEY = "123"
-VAPID_PRIVATE_KEY = "123"
-
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
-# --- Redirect URLs ---
-LOGIN_REDIRECT_URL = "/"
-LOGOUT_REDIRECT_URL = "/"
-
-# ✅ --- Updated Allauth Configuration ---
-ACCOUNT_LOGIN_METHODS = {"username", "email"}  # replaces ACCOUNT_AUTHENTICATION_METHOD
-ACCOUNT_SIGNUP_FIELDS = ["username", "email"]  # replaces old ACCOUNT_EMAIL_REQUIRED etc.
-ACCOUNT_EMAIL_VERIFICATION = "none"  # disable for dev
-# ACCOUNT_USERNAME_REQUIRED = True
-# ACCOUNT_EMAIL_REQUIRED = True
-
-# --- Social Login Providers ---
-SOCIALACCOUNT_PROVIDERS = {
-    "google": {
-        "APP": {
-            "client_id": os.getenv("SOCIAL_AUTH_GOOGLE_CLIENT_ID"),
-            "secret": os.getenv("SOCIAL_AUTH_GOOGLE_SECRET"),
-            "key": "",
-        },
-        "SCOPE": ["profile", "email"],
-        "AUTH_PARAMS": {"access_type": "online"},
-    },
-    "github": {
-        "APP": {
-            "client_id": os.getenv("SOCIAL_AUTH_GITHUB_CLIENT_ID"),
-            "secret": os.getenv("SOCIAL_AUTH_GITHUB_SECRET"),
-            "key": "",
-        },
-    },
-}

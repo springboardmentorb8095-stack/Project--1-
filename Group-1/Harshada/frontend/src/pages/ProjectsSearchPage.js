@@ -1,165 +1,133 @@
 import React, { useState } from "react";
+import "./Dashboard.css";
 
-function ProjectsSearchPage() {
-  const [filters, setFilters] = useState({
-    skill: "",
-    minBudget: "",
-    maxBudget: "",
-    date: "",
-  });
+const sampleProjects = [
+  {
+    id: 1,
+    title: "Website Redesign",
+    client_name: "Tech Innovations Ltd",
+    budget: 2000,
+    deadline: "2025-10-15",
+  },
+  {
+    id: 2,
+    title: "Mobile App Backend API",
+    client_name: "StartUp Hub",
+    budget: 1500,
+    deadline: "2025-11-01",
+  },
+  {
+    id: 3,
+    title: "Portfolio Website",
+    client_name: "John Doe",
+    budget: 700,
+    deadline: "2025-10-20",
+  },
+];
 
-  const [projects] = useState([
-    { title: "Landing Page Design", skill: "UI/UX", budget: 1500 },
-    { title: "React Web App", skill: "React", budget: 3000 },
-    { title: "API Integration", skill: "Backend", budget: 2500 },
-  ]);
-
-  const handleChange = (e) => {
-    setFilters({ ...filters, [e.target.name]: e.target.value });
-  };
+const ProjectsSearchPage = () => {
+  const [skill, setSkill] = useState("");
+  const [minBudget, setMinBudget] = useState("");
+  const [maxBudget, setMaxBudget] = useState("");
+  const [deadline, setDeadline] = useState("");
+  const [showSample, setShowSample] = useState(false);
 
   const handleApplyFilters = () => {
-    console.log("Filters applied:", filters);
+    if (!skill || !minBudget || !maxBudget || !deadline) {
+      alert("Please fill all filter fields before applying.");
+      return;
+    }
+    // Just show sample projects, no backend call
+    setShowSample(true);
   };
 
   return (
-    <div
-      style={{
-        padding: "40px",
-        background: "#f8fafc",
-        minHeight: "100vh",
-        fontFamily: "Segoe UI, sans-serif",
-      }}
-    >
-      <h2
-        style={{
-          fontSize: "28px",
-          fontWeight: "700",
-          color: "#1e293b",
-          marginBottom: "20px",
-          display: "flex",
-          alignItems: "center",
-          gap: "10px",
-        }}
-      >
-        📂 Find Projects
-      </h2>
+    <div className="dashboard-container">
+      <h2 className="dashboard-title">📁 Find Projects</h2>
 
-      {/* ===== Filter Bar ===== */}
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: "12px",
-          alignItems: "center",
-          background: "rgba(255, 255, 255, 0.9)",
-          backdropFilter: "blur(10px)",
-          padding: "20px 25px",
-          borderRadius: "16px",
-          boxShadow: "0 4px 20px rgba(0, 0, 0, 0.08)",
-          marginBottom: "30px",
-        }}
-      >
+      {/* Filters */}
+      <div style={{ marginBottom: "20px" }}>
         <input
           type="text"
-          name="skill"
-          value={filters.skill}
-          onChange={handleChange}
-          placeholder="Skill (e.g. React, Python)"
-          style={inputStyle}
+          placeholder="Skill"
+          value={skill}
+          onChange={(e) => setSkill(e.target.value)}
+          style={{ marginRight: "10px", padding: "5px" }}
         />
         <input
           type="number"
-          name="minBudget"
-          value={filters.minBudget}
-          onChange={handleChange}
           placeholder="Min Budget"
-          style={inputStyle}
+          value={minBudget}
+          onChange={(e) => setMinBudget(e.target.value)}
+          style={{ marginRight: "10px", padding: "5px" }}
         />
         <input
           type="number"
-          name="maxBudget"
-          value={filters.maxBudget}
-          onChange={handleChange}
           placeholder="Max Budget"
-          style={inputStyle}
+          value={maxBudget}
+          onChange={(e) => setMaxBudget(e.target.value)}
+          style={{ marginRight: "10px", padding: "5px" }}
         />
         <input
           type="date"
-          name="date"
-          value={filters.date}
-          onChange={handleChange}
-          style={inputStyle}
+          placeholder="Deadline"
+          value={deadline}
+          onChange={(e) => setDeadline(e.target.value)}
+          style={{ marginRight: "10px", padding: "5px" }}
         />
-        <button onClick={handleApplyFilters} style={buttonStyle}>
+        <button
+          onClick={handleApplyFilters}
+          style={{
+            padding: "5px 10px",
+            cursor: "pointer",
+            backgroundColor: "#4b2a99",
+            color: "white",
+            border: "none",
+            borderRadius: "5px",
+          }}
+        >
           Apply Filters
         </button>
       </div>
 
-      {/* ===== Projects List ===== */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-          gap: "20px",
-        }}
-      >
-        {projects.map((p, i) => (
-          <div
-            key={i}
-            style={{
-              background: "#fff",
-              borderRadius: "14px",
-              padding: "20px",
-              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)",
-              transition: "transform 0.3s",
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.02)")}
-            onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
-          >
-            <h3
-              style={{
-                color: "#4f46e5",
-                marginBottom: "8px",
-                fontWeight: "600",
-              }}
-            >
-              {p.title}
-            </h3>
-            <p style={{ color: "#475569", marginBottom: "6px" }}>
-              🧠 Skill: {p.skill}
+      {/* Project cards */}
+      <div className="dashboard-cards">
+        {showSample && (
+          <>
+            <p style={{ fontWeight: "bold" }}>
+              No projects found. Try these projects:
             </p>
-            <p style={{ color: "#475569" }}>💰 Budget: ₹{p.budget}</p>
-          </div>
-        ))}
+            {sampleProjects.map((p) => (
+              <div className="dashboard-card" key={p.id}>
+                <h3>{p.title}</h3>
+                <p>
+                  <strong>Client:</strong> {p.client_name}
+                </p>
+                <p>
+                  <strong>Budget:</strong> ${p.budget}
+                </p>
+                <p>
+                  <strong>Deadline:</strong> {p.deadline}
+                </p>
+                <button
+                  style={{
+                    padding: "5px 10px",
+                    backgroundColor: "#4b2a99",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "5px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Apply Now
+                </button>
+              </div>
+            ))}
+          </>
+        )}
       </div>
     </div>
   );
-}
-
-/* ===== Reusable Styles ===== */
-const inputStyle = {
-  flex: "1",
-  minWidth: "160px",
-  padding: "10px 14px",
-  border: "1.5px solid #e2e8f0",
-  borderRadius: "10px",
-  background: "#f9fafb",
-  color: "#1e293b",
-  fontSize: "14px",
-  transition: "all 0.3s ease",
-};
-
-const buttonStyle = {
-  background: "linear-gradient(135deg, #4f46e5, #7c3aed)",
-  color: "#fff",
-  fontWeight: "600",
-  border: "none",
-  padding: "10px 20px",
-  borderRadius: "10px",
-  cursor: "pointer",
-  transition: "all 0.3s ease",
-  boxShadow: "0 4px 10px rgba(124, 58, 237, 0.3)",
 };
 
 export default ProjectsSearchPage;

@@ -121,8 +121,7 @@ function Profile_Freelancer() {
           required
         />
 
-        <button className="save-btn">💾 Save Profile</button>
-
+        <button type="submit">Save Profile</button>
       </form>
     </div>
   );

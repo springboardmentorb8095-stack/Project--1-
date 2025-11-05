@@ -1,130 +1,150 @@
-import React, { useState, useEffect } from "react";
-import "./ProjectsPage.css";
+import React, { useState } from "react";
+import "./Dashboard.css";
 
-function ProjectsSearchPage() {
-  const [projects, setProjects] = useState([
+function ProjectsPage() {
+  const [showForm, setShowForm] = useState(false);
+  const [selectedProject, setSelectedProject] = useState(null);
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    budget: "",
+    deadline: "",
+    reason: "",
+  });
+
+  const projects = [
     {
+      id: 1,
       title: "Website Redesign",
       client: "Tech Innovations Ltd",
-      budget: 2000,
+      budget: "$2000",
       deadline: "2025-10-15",
-      applied: false,
-      status: "Not Applied",
     },
     {
+      id: 2,
       title: "Mobile App Backend API",
       client: "StartUp Hub",
-      budget: 1500,
+      budget: "$1500",
       deadline: "2025-11-01",
-      applied: false,
-      status: "Not Applied",
     },
     {
+      id: 3,
       title: "Portfolio Website",
       client: "John Doe",
-      budget: 700,
+      budget: "$700",
       deadline: "2025-10-20",
-      applied: false,
-      status: "Not Applied",
     },
-  ]);
+  ];
 
-  useEffect(() => {
-    const storedProjects =
-      JSON.parse(localStorage.getItem("freelancerProjects")) || [];
-    setProjects((prev) =>
-      prev.map((p) => {
-        const match = storedProjects.find((s) => s.title === p.title);
-        return match ? { ...p, ...match, applied: true } : p;
-      })
-    );
-  }, []);
-
-  // Apply to project
   const handleApply = (project) => {
-    const name = prompt("Enter your name to apply:");
-    if (!name) return alert("Please enter a name to apply!");
-
-    const newProjects = projects.map((p) =>
-      p.title === project.title
-        ? { ...p, applied: true, status: "Pending", freelancer: name }
-        : p
-    );
-
-    setProjects(newProjects);
-    localStorage.setItem(
-      "freelancerProjects",
-      JSON.stringify(newProjects.filter((p) => p.applied))
-    );
-    alert(`You have successfully applied for "${project.title}" ✅`);
+    setSelectedProject(project);
+    setShowForm(true);
   };
 
-  // Update status
-  const handleStatusChange = (title, newStatus) => {
-    const updated = projects.map((p) =>
-      p.title === title ? { ...p, status: newStatus } : p
-    );
-    setProjects(updated);
-    localStorage.setItem(
-      "freelancerProjects",
-      JSON.stringify(updated.filter((p) => p.applied))
-    );
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    alert(`
+✅ Application Submitted!
+Project: ${selectedProject.title}
+Name: ${formData.name}
+Email: ${formData.email}
+Budget: ${formData.budget}
+Deadline: ${formData.deadline}
+Why Fit: ${formData.reason}
+    `);
+    setShowForm(false);
+    setFormData({ name: "", email: "", budget: "", deadline: "", reason: "" });
   };
 
   return (
-    <div className="projects-page fade-in">
-      <header className="projects-header">
-        <h1>📁 Find Projects</h1>
-        <p>Browse and apply for projects that match your skills.</p>
-      </header>
+    <div className="dashboard-container">
+      <h2 className="dashboard-title">📁 Projects</h2>
+      <p className="dashboard-subtitle">
+        Explore available projects and apply for the ones that suit you best.
+      </p>
 
-      <div className="projects-grid">
-        {projects.map((p, i) => (
-          <div
-            className={`project-card ${p.applied ? "applied" : ""}`}
-            key={i}
-          >
-            <div className="project-card-content">
-              <h2 className="project-title">{p.title}</h2>
-              <p>
-                <strong>Client:</strong> {p.client}
-              </p>
-              <p>
-                <strong>Budget:</strong> ₹{p.budget}
-              </p>
-              <p>
-                <strong>Deadline:</strong> {p.deadline}
-              </p>
-
-              {!p.applied ? (
-                <button className="btn-apply" onClick={() => handleApply(p)}>
-                  Apply Now
-                </button>
-              ) : (
-                <div className="applied-section">
-                  <button className="btn-apply applied-btn">✅ Applied</button>
-
-                  <div className="status-update">
-                    <label>Status: </label>
-                    <select
-                      value={p.status}
-                      onChange={(e) =>
-                        handleStatusChange(p.title, e.target.value)
-                      }
-                    >
-                      <option value="Pending">Pending</option>
-                      <option value="Active">Active</option>
-                      <option value="Completed">Completed</option>
-                    </select>
-                  </div>
-                </div>
-              )}
-            </div>
+      <div className="dashboard-cards">
+        {projects.map((project) => (
+          <div className="dashboard-card" key={project.id}>
+            <h3>{project.title}</h3>
+            <p><strong>Client:</strong> {project.client}</p>
+            <p><strong>Budget:</strong> {project.budget}</p>
+            <p><strong>Deadline:</strong> {project.deadline}</p>
+            <button
+              className="dashboard-btn"
+              onClick={() => handleApply(project)}
+            >
+              Apply Now
+            </button>
           </div>
         ))}
       </div>
+
+      {/* ✅ Popup Form (Modal) */}
+      {showForm && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <h3>Apply for {selectedProject?.title}</h3>
+            <form onSubmit={handleSubmit} className="apply-form">
+              <label>Enter Your Name</label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                required
+              />
+
+              <label>Email ID</label>
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                required
+              />
+
+              <label>Project Budget</label>
+              <input
+                type="text"
+                value={formData.budget}
+                onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
+                required
+              />
+
+              <label>Deadline</label>
+              <input
+                type="date"
+                value={formData.deadline}
+                onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
+                required
+              />
+
+              <label>Why are you fit for this project?</label>
+              <textarea
+                value={formData.reason}
+                onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
+                placeholder="Explain why you're the right fit for this project..."
+                rows="4"
+                required
+              ></textarea>
+
+              <div className="modal-buttons">
+                <button type="submit" className="dashboard-btn">
+                  ✅ Submit
+                </button>
+                <button
+                  type="button"
+                  className="dashboard-btn cancel"
+                  onClick={() => setShowForm(false)}
+                >
+                  ❌ Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-export default ProjectsSearchPage;
+export default ProjectsPage;

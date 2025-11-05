@@ -1,106 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <!-- ✅ META BASICS -->
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#2563eb" />
-    <meta name="description" content="TalentLink — Professional freelancer & client collaboration platform" />
-    <meta name="author" content="TalentLink Team" />
-
-    <!-- ✅ SEO & SOCIAL PREVIEW -->
-    <meta property="og:title" content="TalentLink — Freelance Smarter" />
-    <meta property="og:description" content="Connect freelancers and clients with secure projects, proposals, contracts, chat, and real-time notifications." />
-    <meta property="og:image" content="%PUBLIC_URL%/banner.png" />
-    <meta property="og:type" content="website" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="TalentLink — Freelance Smarter" />
-    <meta name="twitter:description" content="Collaborate on projects with modern dashboards and real-time alerts." />
-    <meta name="twitter:image" content="%PUBLIC_URL%/banner.png" />
-
-    <!-- ✅ BRANDING -->
-    <title>TalentLink | Freelance Smarter</title>
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="description" content="React App" />
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-
-    <!-- ✅ CUSTOM FONTS -->
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
-
-    <!-- ✅ PRELOAD CORE STYLES -->
-    <style>
-      body {
-        font-family: "Inter", system-ui, sans-serif;
-        margin: 0;
-        padding: 0;
-        background: #f9fafb;
-        color: #111827;
-        transition: background 0.3s ease, color 0.3s ease;
-      }
-      .dark body {
-        background: #0f172a;
-        color: #f1f5f9;
-      }
-      #root {
-        display: flex;
-        flex-direction: column;
-        min-height: 100vh;
-      }
-
-      /* ✅ Animated Loader for startup */
-      .startup-loader {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 100vh;
-        flex-direction: column;
-        font-family: "Inter", sans-serif;
-      }
-      .loader-spinner {
-        width: 60px;
-        height: 60px;
-        border: 5px solid #3b82f6;
-        border-top: 5px solid transparent;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-      }
-      @keyframes spin {
-        100% {
-          transform: rotate(360deg);
-        }
-      }
-    </style>
+    <title>React App</title>
   </head>
-
   <body>
-    <noscript>You need to enable JavaScript to run TalentLink.</noscript>
-
-    <!-- ✅ LOADING SCREEN (until React mounts) -->
-    <div id="root">
-      <div class="startup-loader">
-        <div class="loader-spinner"></div>
-        <p style="margin-top: 12px; font-weight: 500; color: #3b82f6;">
-          Loading TalentLink...
-        </p>
-      </div>
-    </div>
-
-    <!-- ✅ Optional background sound for notifications -->
-    <audio id="notif-sound" src="%PUBLIC_URL%/notification.mp3" preload="auto"></audio>
-
-    <!-- ✅ Progressive Web App -->
-    <script>
-      if ("serviceWorker" in navigator) {
-        window.addEventListener("load", function () {
-          navigator.serviceWorker
-            .register("%PUBLIC_URL%/service-worker.js")
-            .then(() => console.log("Service Worker registered 🚀"))
-            .catch((err) => console.warn("SW registration failed:", err));
-        });
-      }
-    </script>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
   </body>
 </html>

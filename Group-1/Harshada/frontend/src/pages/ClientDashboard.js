@@ -1,258 +1,345 @@
-// src/pages/ClientDashboard.js
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-import { Bell } from "lucide-react";
-import "./ClientDashboard.css";
 
 function ClientDashboard() {
-  const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
-  const [reviews, setReviews] = useState([]);
-  const [notifications, setNotifications] = useState([]);
+  const [applications, setApplications] = useState([]);
+  const [selectedProject, setSelectedProject] = useState(null);
   const [showModal, setShowModal] = useState(false);
-  const [newReview, setNewReview] = useState({ project: "", rating: 0, comment: "" });
+  const [editProject, setEditProject] = useState(null);
+  const navigate = useNavigate();
 
-  const [user] = useState(
-    JSON.parse(localStorage.getItem("user")) || { username: "Client" }
-  );
-
-  // ✅ Load data from localStorage
   useEffect(() => {
-    const storedProjects = JSON.parse(localStorage.getItem("clientProjects")) || [];
-    setProjects(storedProjects);
-
-    const storedReviews = JSON.parse(localStorage.getItem("clientReviews")) || [
-      {
-        project: "TalentLink UI Design",
-        rating: 5,
-        comment: "Amazing freelancer! Very professional and met all deadlines.",
-      },
-      {
-        project: "Web App Development",
-        rating: 4,
-        comment: "Good communication and solid work quality.",
-      },
-    ];
-    setReviews(storedReviews);
-
-    const storedNotifications =
-      JSON.parse(localStorage.getItem("clientNotifications")) || [
-        {
-          type: "update",
-          message: "Freelancer John submitted a new proposal for your project.",
-          time: "2 hours ago",
-        },
-        {
-          type: "payment",
-          message: "Payment milestone released successfully.",
-          time: "Yesterday",
-        },
-      ];
-    setNotifications(storedNotifications);
+    const savedProjects = JSON.parse(localStorage.getItem("clientProjects")) || [];
+    const savedApplications = JSON.parse(localStorage.getItem("applications")) || [];
+    setProjects(savedProjects);
+    setApplications(savedApplications);
   }, []);
 
-  // ✅ Handle Add Review (creates freelancer notification too)
-  const handleAddReview = () => {
-    if (!newReview.project || !newReview.rating || !newReview.comment.trim()) {
-      alert("Please fill all fields before submitting!");
-      return;
+  const saveProjects = (updated) => {
+    setProjects(updated);
+    localStorage.setItem("clientProjects", JSON.stringify(updated));
+  };
+
+  const handleDeleteProject = (index) => {
+    if (window.confirm("Are you sure you want to delete this project?")) {
+      const updated = [...projects];
+      updated.splice(index, 1);
+      saveProjects(updated);
     }
+  };
 
-    const updatedReviews = [...reviews, newReview];
-    setReviews(updatedReviews);
-    localStorage.setItem("clientReviews", JSON.stringify(updatedReviews));
+  const handleEditSave = () => {
+    const updated = projects.map((p) =>
+      p.title === editProject.title ? editProject : p
+    );
+    saveProjects(updated);
+    setEditProject(null);
+  };
 
-    // Create notification for Freelancer
-    const freelancerNotifications =
-      JSON.parse(localStorage.getItem("freelancerNotifications")) || [];
-    freelancerNotifications.push({
-      type: "review",
-      message: `⭐ You received a ${newReview.rating}-star review for "${newReview.project}"`,
-      time: new Date().toLocaleString(),
+  const getApplicationsForProject = (title) =>
+    applications.filter((app) => app.projectTitle === title);
+
+  // ✅ Accept / Reject freelancer application
+  const handleStatusChange = (index, newStatus, title) => {
+    const updated = [...applications];
+    const target = updated.filter((app) => app.projectTitle === title)[index];
+    if (!target) return;
+
+    const newAppList = applications.map((app) =>
+      app.projectTitle === title && app.email === target.email
+        ? { ...app, status: newStatus }
+        : app
+    );
+    setApplications(newAppList);
+    localStorage.setItem("applications", JSON.stringify(newAppList));
+
+    const freelancerApps = JSON.parse(localStorage.getItem("freelancerApplications")) || [];
+    const updatedFreelancerApps = freelancerApps.map((app) =>
+      app.projectTitle === title && app.email === target.email
+        ? { ...app, status: newStatus }
+        : app
+    );
+    localStorage.setItem("freelancerApplications", JSON.stringify(updatedFreelancerApps));
+
+    alert(`Application ${newStatus} successfully!`);
+  };
+
+  // ✅ Approve freelancer proposed status
+  const handleApproveProposal = (email, title) => {
+    const apps = JSON.parse(localStorage.getItem("applications")) || [];
+    const freelancerApps = JSON.parse(localStorage.getItem("freelancerApplications")) || [];
+    const clientProjects = JSON.parse(localStorage.getItem("clientProjects")) || [];
+
+    const updatedApps = apps.map((a) => {
+      if (a.projectTitle === title && a.email === email) {
+        return {
+          ...a,
+          projectStatus: a.proposedStatus || a.projectStatus || null,
+          awaitingApproval: false,
+          approvedByClient: true,
+          approvedAt: new Date().toLocaleString(),
+          proposedStatus: undefined,
+          proposedAt: undefined,
+        };
+      }
+      return a;
     });
-    localStorage.setItem("freelancerNotifications", JSON.stringify(freelancerNotifications));
 
-    // Client sees confirmation
-    const updatedClientNotifications = [
-      {
-        type: "review",
-        message: `You added a review for "${newReview.project}"`,
-        time: "Just now",
-      },
-      ...notifications,
-    ];
-    setNotifications(updatedClientNotifications);
-    localStorage.setItem("clientNotifications", JSON.stringify(updatedClientNotifications));
+    const updatedFreelancerApps = freelancerApps.map((a) => {
+      if (a.projectTitle === title && a.email === email) {
+        return {
+          ...a,
+          projectStatus: a.proposedStatus || a.projectStatus || null,
+          awaitingApproval: false,
+          approvedByClient: true,
+          approvedAt: new Date().toLocaleString(),
+          proposedStatus: undefined,
+          proposedAt: undefined,
+        };
+      }
+      return a;
+    });
 
-    setNewReview({ project: "", rating: 0, comment: "" });
-    setShowModal(false);
+    const updatedProjects = clientProjects.map((p) => {
+      if (p.title === title) {
+        const newStatus = updatedApps.find((a) => a.projectTitle === title)?.projectStatus;
+        if (newStatus) p.status = newStatus;
+      }
+      return p;
+    });
+
+    localStorage.setItem("applications", JSON.stringify(updatedApps));
+    localStorage.setItem("freelancerApplications", JSON.stringify(updatedFreelancerApps));
+    localStorage.setItem("clientProjects", JSON.stringify(updatedProjects));
+    setApplications(updatedApps);
+    setProjects(updatedProjects);
+
+    alert("✅ Freelancer status approved and project status updated.");
+  };
+
+  // ❌ Reject freelancer proposed status
+  const handleRejectProposal = (email, title) => {
+    const apps = JSON.parse(localStorage.getItem("applications")) || [];
+    const freelancerApps = JSON.parse(localStorage.getItem("freelancerApplications")) || [];
+
+    const updatedApps = apps.map((a) => {
+      if (a.projectTitle === title && a.email === email) {
+        return {
+          ...a,
+          awaitingApproval: false,
+          clientRejected: true,
+          clientRejectedAt: new Date().toLocaleString(),
+          proposedStatus: undefined,
+          proposedAt: undefined,
+        };
+      }
+      return a;
+    });
+
+    const updatedFreelancerApps = freelancerApps.map((a) => {
+      if (a.projectTitle === title && a.email === email) {
+        return {
+          ...a,
+          awaitingApproval: false,
+          clientRejected: true,
+          clientRejectedAt: new Date().toLocaleString(),
+          proposedStatus: undefined,
+          proposedAt: undefined,
+        };
+      }
+      return a;
+    });
+
+    localStorage.setItem("applications", JSON.stringify(updatedApps));
+    localStorage.setItem("freelancerApplications", JSON.stringify(updatedFreelancerApps));
+    setApplications(updatedApps);
+    alert("❌ Freelancer's proposed status was not approved.");
+  };
+
+  // ✅ NEW: Chat navigation
+  const handleChatOpen = (projectTitle, freelancerEmail) => {
+    navigate(`/chat?projectTitle=${encodeURIComponent(projectTitle)}&freelancerEmail=${encodeURIComponent(freelancerEmail)}`);
   };
 
   return (
-    <div className="dashboard-container">
-      {/* ===== Sidebar ===== */}
-      <aside className="dashboard-sidebar">
-        <div className="sidebar-header">
-          <div className="sidebar-avatar">
-            <img
-              src="https://cdn-icons-png.flaticon.com/512/219/219983.png"
-              alt="Client Avatar"
-            />
-          </div>
-          <div>
-            <h2>{user.username}</h2>
-            <p>Client</p>
+    <div style={{ padding: "20px" }}>
+      {/* Header */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+        <h2>📊 Client Dashboard</h2>
+        <button
+          onClick={() => navigate("/post-project")}
+          style={{ backgroundColor: "#007bff", color: "white", border: "none", padding: "10px 16px", borderRadius: "8px", cursor: "pointer", fontWeight: "bold" }}
+        >
+          ➕ Create Project
+        </button>
+      </div>
+
+      {/* Summary */}
+      <div style={{ display: "flex", gap: "20px", marginBottom: "30px", flexWrap: "wrap" }}>
+        <div style={{ background: "#f1f5ff", padding: "20px", borderRadius: "12px", flex: "1", textAlign: "center" }}>
+          <h3>Total Projects</h3>
+          <p style={{ fontSize: "24px", fontWeight: "bold" }}>{projects.length}</p>
+        </div>
+        <div style={{ background: "#e7f9ee", padding: "20px", borderRadius: "12px", flex: "1", textAlign: "center" }}>
+          <h3>Active Projects</h3>
+          <p style={{ fontSize: "24px", fontWeight: "bold" }}>{projects.filter((p) => p.status === "Active").length}</p>
+        </div>
+        <div style={{ background: "#fff4e6", padding: "20px", borderRadius: "12px", flex: "1", textAlign: "center" }}>
+          <h3>Completed Projects</h3>
+          <p style={{ fontSize: "24px", fontWeight: "bold" }}>{projects.filter((p) => p.status === "Completed").length}</p>
+        </div>
+      </div>
+
+      {/* Projects */}
+      <h3>🗂️ My Projects</h3>
+      {projects.length === 0 ? (
+        <p>You didn't post any project yet.</p>
+      ) : (
+        projects.map((project, i) => {
+          const projectApps = getApplicationsForProject(project.title);
+          return (
+            <div key={i} style={{ background: "#f8f9fa", padding: "15px", borderRadius: "8px", border: "1px solid #dee2e6", marginBottom: "10px" }}>
+              <h4>{project.title}</h4>
+              <p>💰 Budget: {project.budget}</p>
+              <p>🧠 Skills: {project.skills}</p>
+              <p>📅 Deadline: {project.deadline}</p>
+              <p>📌 Status: <b>{project.status}</b></p>
+              <p>📨 Total Applications: {projectApps.length}</p>
+
+              <div style={{ marginTop: "10px" }}>
+                <button
+                  onClick={() => { setSelectedProject(project); setShowModal(true); }}
+                  style={{ background: "#007bff", color: "white", padding: "6px 12px", borderRadius: "8px", border: "none", marginRight: "10px", cursor: "pointer" }}
+                >
+                  View Applications
+                </button>
+
+                <button
+                  onClick={() => setEditProject({ ...project })}
+                  style={{ background: "#ffc107", color: "black", padding: "6px 12px", borderRadius: "8px", border: "none", marginRight: "10px", cursor: "pointer" }}
+                >
+                  Edit Project
+                </button>
+
+                <button
+                  onClick={() => handleDeleteProject(i)}
+                  style={{ background: "red", color: "white", padding: "6px 12px", borderRadius: "8px", border: "none", cursor: "pointer" }}
+                >
+                  Delete Project
+                </button>
+              </div>
+            </div>
+          );
+        })
+      )}
+
+      {/* Applications Modal */}
+      {showModal && selectedProject && (
+        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ background: "white", padding: "20px", borderRadius: "10px", maxWidth: "600px", width: "90%", boxShadow: "0 8px 25px rgba(0,0,0,0.2)" }}>
+            <h3>📨 Applications for {selectedProject.title}</h3>
+            <button
+              onClick={() => setShowModal(false)}
+              style={{ float: "right", background: "red", color: "white", border: "none", borderRadius: "6px", padding: "5px 10px", cursor: "pointer" }}
+            >
+              ✖ Close
+            </button>
+
+            <div style={{ marginTop: "20px" }}>
+              {getApplicationsForProject(selectedProject.title).length === 0 ? (
+                <p>No applications yet.</p>
+              ) : (
+                getApplicationsForProject(selectedProject.title).map((app, i) => (
+                  <div key={i} style={{ background: "#f3f4f6", padding: "10px", borderRadius: "8px", marginBottom: "10px" }}>
+                    <p><b>👤 Name:</b> {app.name}</p>
+                    <p><b>📧 Email:</b> {app.email}</p>
+                    <p><b>💰 Bid:</b> ₹{app.budget}</p>
+                    <p><b>📝 Reason:</b> {app.reason}</p>
+                    <p><b>📅 Deadline:</b> {app.deadline}</p>
+                    <p><b>📌 Status:</b> {app.status || "Pending"}</p>
+
+                    {/* ✅ Show Chat Button when Accepted */}
+                    {app.status === "Accepted" && (
+                      <button
+                        onClick={() => handleChatOpen(selectedProject.title, app.email)}
+                        style={{ background: "#28a745", color: "white", padding: "6px 12px", borderRadius: "8px", border: "none", marginTop: "8px", cursor: "pointer", fontWeight: "bold" }}
+                      >
+                        💬 Chat with Freelancer
+                      </button>
+                    )}
+
+                    {app.awaitingApproval && (
+                      <div style={{ marginTop: "8px", padding: "8px", borderRadius: "8px", background: "#fff8e6", border: "1px solid #ffe6a7" }}>
+                        <p style={{ margin: 0 }}><b>🔔 Proposed Status:</b> {app.proposedStatus}</p>
+                        <p style={{ margin: 0, fontSize: "13px", color: "#666" }}>Proposed on: {app.proposedAt}</p>
+
+                        <div style={{ marginTop: "10px", display: "flex", gap: "8px" }}>
+                          <button
+                            type="button"
+                            onClick={() => handleApproveProposal(app.email, selectedProject.title)}
+                            style={{ background: "linear-gradient(145deg, #28a745, #218838)", color: "white", padding: "8px 14px", borderRadius: "8px", border: "none", cursor: "pointer", fontWeight: "bold" }}
+                          >
+                            ✅ Approve
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleRejectProposal(app.email, selectedProject.title)}
+                            style={{ background: "linear-gradient(145deg, #dc3545, #c82333)", color: "white", padding: "8px 14px", borderRadius: "8px", border: "none", cursor: "pointer", fontWeight: "bold" }}
+                          >
+                            ❌ Not Approved
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    <div style={{ marginTop: "10px", display: "flex", gap: "10px" }}>
+                      <button
+                        type="button"
+                        onClick={() => handleStatusChange(i, "Accepted", selectedProject.title)}
+                        style={{ background: "linear-gradient(145deg, #28a745, #218838)", color: "white", padding: "8px 14px", borderRadius: "8px", border: "none", cursor: "pointer", fontWeight: "bold" }}
+                      >
+                        ✅ Accept
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleStatusChange(i, "Rejected", selectedProject.title)}
+                        style={{ background: "linear-gradient(145deg, #dc3545, #c82333)", color: "white", padding: "8px 14px", borderRadius: "8px", border: "none", cursor: "pointer", fontWeight: "bold" }}
+                      >
+                        ❌ Reject
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
+      )}
 
-        <nav className="sidebar-nav">
-          <button onClick={() => navigate("/client-dashboard")}>📊 Dashboard</button>
-          <button onClick={() => navigate("/post-project")}>➕ Post Project</button>
-          <button onClick={() => navigate("/my-projects")}>📁 My Projects</button>
-          <button onClick={() => navigate("/contracts")}>📜 Contracts</button>
-          <button onClick={() => navigate("/chat")}>💬 Messages</button>
-        </nav>
-      </aside>
+      {/* Edit Modal */}
+      {editProject && (
+        <div className="modal-overlay" onClick={() => setEditProject(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ background: "white", padding: "20px", borderRadius: "10px", maxWidth: "500px", width: "90%", boxShadow: "0 8px 25px rgba(0,0,0,0.2)" }}>
+            <h3>✏️ Edit Project</h3>
+            <label>Title:</label>
+            <input type="text" value={editProject.title} onChange={(e) => setEditProject({ ...editProject, title: e.target.value })} style={{ width: "100%", marginBottom: "10px", padding: "8px" }} />
+            <label>Budget:</label>
+            <input type="text" value={editProject.budget} onChange={(e) => setEditProject({ ...editProject, budget: e.target.value })} style={{ width: "100%", marginBottom: "10px", padding: "8px" }} />
+            <label>Skills:</label>
+            <input type="text" value={editProject.skills} onChange={(e) => setEditProject({ ...editProject, skills: e.target.value })} style={{ width: "100%", marginBottom: "10px", padding: "8px" }} />
+            <label>Deadline:</label>
+            <input type="date" value={editProject.deadline} onChange={(e) => setEditProject({ ...editProject, deadline: e.target.value })} style={{ width: "100%", marginBottom: "10px", padding: "8px" }} />
 
-      {/* ===== Main ===== */}
-      <main className="dashboard-main">
-        {/* Header with Notifications Icon */}
-        <header className="dashboard-header">
-          <div>
-            <h1>👋 Welcome back, {user.username}</h1>
-            <p className="subtitle">Here’s an overview of your hiring activity.</p>
+            <div style={{ marginTop: "15px", display: "flex", gap: "10px" }}>
+              <button onClick={handleEditSave} style={{ background: "#28a745", color: "white", padding: "8px 12px", border: "none", borderRadius: "6px", cursor: "pointer" }}>💾 Save</button>
+              <button onClick={() => setEditProject(null)} style={{ background: "#dc3545", color: "white", padding: "8px 12px", border: "none", borderRadius: "6px", cursor: "pointer" }}>❌ Cancel</button>
+            </div>
           </div>
-          <div className="header-actions">
-            <button
-              className="icon-btn"
-              title="View Notifications"
-              onClick={() => navigate("/client-notifications")}
-            >
-              <Bell size={24} />
-              {notifications.length > 0 && (
-                <span className="badge">{notifications.length}</span>
-              )}
-            </button>
-            <button className="btn-primary" onClick={() => navigate("/my-profile")}>
-              ✏️ Edit Profile
-            </button>
-          </div>
-        </header>
-
-        {/* ===== Metrics ===== */}
-        <section className="dashboard-metrics">
-          <motion.div whileHover={{ scale: 1.05 }} className="metric-card gradient-blue">
-            <h3>📂 Total Projects</h3>
-            <p>{projects.length}</p>
-          </motion.div>
-
-          <motion.div whileHover={{ scale: 1.05 }} className="metric-card gradient-green">
-            <h3>🟢 Active Projects</h3>
-            <p>{projects.filter((p) => p.status === "Active").length}</p>
-          </motion.div>
-
-          <motion.div whileHover={{ scale: 1.05 }} className="metric-card gradient-purple">
-            <h3>📜 Contracts Created</h3>
-            <p>{projects.filter((p) => p.status === "Contract").length}</p>
-          </motion.div>
-        </section>
-
-        {/* ===== Project Section ===== */}
-        <section className="dashboard-grid">
-          <div className="dashboard-card">
-            <h3>📁 My Projects</h3>
-            {projects.length === 0 ? (
-              <p className="empty-text">No projects posted yet.</p>
-            ) : (
-              <ul className="project-list">
-                {projects.map((p, i) => (
-                  <li key={i}>
-                    <span>{p.title}</span>
-                    <span className={`status ${p.status?.toLowerCase()}`}>{p.status}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-
-          <div className="dashboard-card">
-            <h3>⭐ Reviews & Feedback</h3>
-            <button className="btn-primary" onClick={() => setShowModal(true)}>
-              ✨ Add Review
-            </button>
-            <ul className="review-list">
-              {reviews.map((r, i) => (
-                <li key={i} className="review-item">
-                  <div className="review-header">
-                    <strong>{r.project}</strong>
-                    <span>{"⭐".repeat(r.rating)}</span>
-                  </div>
-                  <p>{r.comment}</p>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
-
-        {/* ===== Add Review Modal ===== */}
-        {showModal && (
-          <motion.div
-            className="modal-overlay"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-          >
-            <motion.div
-              className="modal-content"
-              initial={{ y: -50 }}
-              animate={{ y: 0 }}
-            >
-              <h2>📝 Give Review</h2>
-              <label>Project Name:</label>
-              <input
-                type="text"
-                value={newReview.project}
-                onChange={(e) =>
-                  setNewReview({ ...newReview, project: e.target.value })
-                }
-                placeholder="e.g. Portfolio Website"
-              />
-
-              <label>Rating:</label>
-              <div className="rating-stars">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <span
-                    key={star}
-                    className={star <= newReview.rating ? "active" : ""}
-                    onClick={() => setNewReview({ ...newReview, rating: star })}
-                  >
-                    ⭐
-                  </span>
-                ))}
-              </div>
-
-              <label>Feedback:</label>
-              <textarea
-                rows="3"
-                value={newReview.comment}
-                onChange={(e) =>
-                  setNewReview({ ...newReview, comment: e.target.value })
-                }
-                placeholder="Write your thoughts..."
-              />
-
-              <div className="modal-actions">
-                <button className="btn-secondary" onClick={() => setShowModal(false)}>
-                  Cancel
-                </button>
-                <button className="btn-primary" onClick={handleAddReview}>
-                  Submit
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </main>
+        </div>
+      )}
     </div>
   );
 }

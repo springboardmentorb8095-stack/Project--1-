@@ -1,10 +1,10 @@
 # users/serializers.py
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Profile, ProfileClient, ProfileFreelancer
+from .models import Profile, ProfileClient, ProfileFreelancer, Project  # ✅ added Project model
 
 
-# 👤 Register Serializer (Signup)
+# 👤 Register Serializer (for signup API)
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
 
@@ -25,7 +25,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["id", "username", "email"]
+        fields = ("id", "username", "email")
 
 
 # 👤 General Profile Serializer
@@ -34,16 +34,16 @@ class ProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Profile
-        fields = [
+        fields = (
             "id",
             "user",
+            "skills",
             "role",
             "portfolio",
-            "skills",
             "hourly_rate",
             "availability",
-        ]
-        read_only_fields = ["id", "user"]
+        )
+        read_only_fields = ("id", "user")
 
 
 # 🧑‍💼 Client Profile Serializer
@@ -53,7 +53,6 @@ class ProfileClientSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProfileClient
         fields = ["id", "user", "contact", "business_name", "bio"]
-        read_only_fields = ["id", "user"]
 
 
 # 🧑‍💻 Freelancer Profile Serializer
@@ -63,4 +62,23 @@ class ProfileFreelancerSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProfileFreelancer
         fields = ["id", "user", "contact", "skills", "hourly_rate", "available"]
-        read_only_fields = ["id", "user"]
+
+
+# 🧩 Project Serializer (new)
+class ProjectSerializer(serializers.ModelSerializer):
+    client = UserSerializer(read_only=True)
+
+    class Meta:
+        model = Project
+        fields = [
+            "id",
+            "client",
+            "title",
+            "budget",
+            "skills",
+            "deadline",
+            "status",
+            "description",
+            "created_at",
+        ]
+        read_only_fields = ["id", "client", "created_at"]
