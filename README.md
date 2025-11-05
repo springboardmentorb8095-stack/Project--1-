@@ -8,46 +8,34 @@ TalentLink is a robust full-stack freelancing platform engineered to streamline 
 |------------|--------------------|
 | Frontend   | React (JavaScript) |
 | Backend    | Django + DRF       |
-| Database   | SQLite (dev)       |
+| Database   | SQLite (development), PostgreSQL (production-ready)       |
 | Auth       | JWT (Token-based)  |
+| Messaging  | REST APIs with long-polling  | 
 
-## 📁 Project Structure
+---
 
-```talentlink/ ├── core/ # Django app (models, views, serializers) ├── talentlink-frontend/ # React frontend │ ├── src/ │ │ ├── pages/ # Dashboard, Login, ProjectFeed, etc. │ │ ├── components/ # Reusable UI components │ │ └── context/ # Auth and global state ├── db.sqlite3 # Development database └── manage.py # Django management script```
+## 🔧 Features
 
-## ✅ Completed Tasks
+### ✅ Task 1: Profile & Project Management
+- CRUD operations for client and freelancer profiles
+- Project posting with budget, duration, and skill filters
+- Dynamic search and filter APIs
 
-### Task 1: Backend Setup
+### ✅ Task 2: Proposal Workflow
+- Freelancers submit proposals with bid amount and timeline
+- Clients can view, accept, or reject proposals
+- Dashboard views for both roles
 
-1.User Authentication (JWT-based login/register)
-2.Profile Model: role, portfolio, skills, hourly rate, availability
-3.Project Model: budget, duration, type, description
-4.Proposal Model: bid, timeline, message, status
-5.Serializers & ViewSets for all models
-6.Role-based API endpoints for clients and freelancers
+### ✅ Task 3: Contract & Messaging
+- Auto-generation of contracts from accepted proposals
+- Role-based contract status tracking
+- Scoped messaging APIs with long-polling frontend integration
 
-### Task 2: Frontend Integration
+---
 
-1.Landing Page with gradient theme and CTA buttons
-2.Login/Register Pages with form validation
-3.Profile Setup Page (redirected after first login)
-4.Role-aware Dashboard:
-  - Freelancer: Proposal history, profile info
-  - Client: Posted projects, proposal management
-5.Project Feed with filter UI (budget, duration, keyword)
-6.Project Detail Page with proposal submission form
-7.Proposal Management (accept/reject proposals)
-  - Responsive UI with Bootstrap grid and custom styling
-  - Toast Notifications for feedback and errors
+## Learnings
 
-  ## Features Overview
-
-| Feature                     | Status |
-|----------------------------|--------|
-| Role-based routing         | ✅ Done
-| Profile creation & editing | ✅ Done
-| Project CRUD (client)      | ✅ Done
-| Proposal submission        | ✅ Done
-| Proposal review (client)   | ✅ Done
-| Filter/search API          | ✅ Done
-| Responsive design          | ✅ Done
+- Implemented nested serializers and scoped querysets
+- Designed responsive UI with conditional rendering
+- Integrated real-time feedback using toast notifications
+- Practiced Git workflows and collaborative version control

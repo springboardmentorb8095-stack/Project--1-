@@ -21,7 +21,6 @@ class Profile(models.Model):
     availability = models.CharField(max_length=20, choices=AVAILABILITY_CHOICES, default="available")
     is_client = models.BooleanField(default=False)
     is_freelancer = models.BooleanField(default=False)
-
     def __str__(self):
         return self.user_name
 
@@ -76,27 +75,39 @@ class Proposal(models.Model):
         return f"Proposal by {self.freelancer.user_name} for {self.project.title}"
 
 # -------- Contract --------
+# marketplace/models.py
+from django.db import models
+from django.utils import timezone
+
 class Contract(models.Model):
     proposal = models.OneToOneField('Proposal', on_delete=models.CASCADE, related_name='contract')
-    start_date = models.DateField(auto_now_add=True)
+    start_date = models.DateField(default=timezone.now)
     end_date = models.DateField(null=True, blank=True)
-    terms = models.TextField(default="Standard contract terms apply.")  # ✅ Added default
+
+    status = models.CharField(
+        max_length=20,
+        choices=[("active", "Active"), ("completed", "Completed")],
+        default="active"
+    )
+    terms = models.TextField(default="Standard terms apply for this project.")
 
     def __str__(self):
-        return f"Contract: {self.proposal.project.title}"
+        return f"Contract for {self.proposal.project.title} ({self.status})"
+
 
 
 
 # -------- Message --------
+# marketplace/models.py
 class Message(models.Model):
-    sender = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='sent_messages')
-    receiver = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='received_messages')
+    contract = models.ForeignKey("Contract", on_delete=models.CASCADE, related_name="messages")
+    sender = models.CharField(max_length=100)
+    receiver = models.CharField(max_length=100)
     content = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
-
+    is_read = models.BooleanField(default=False)
     def __str__(self):
-        return f"Message from {self.sender.user_name} to {self.receiver.user_name}"
-
+        return f"{self.sender} → {self.receiver}: {self.content[:30]}"
 
 # -------- Review --------
 class Review(models.Model):
@@ -108,3 +119,13 @@ class Review(models.Model):
 
     def __str__(self):
         return f"Review for {self.reviewee.user_name} on {self.project.title}"
+class Notification(models.Model):
+    user = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="notifications")
+    message = models.CharField(max_length=255)
+    link = models.CharField(max_length=255, blank=True, null=True)  # optional link (e.g., "/chat/1")
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Notification for {self.user.user_name}: {self.message[:50]}"
+

@@ -49,3 +49,23 @@
 .auth-container .link:hover {
   text-decoration: underline;
 }
+.back-btn {
+  background: #e9f2ff;
+  color: #007bff;
+  border: 1px solid #b3d4ff;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  float: left;
+  margin-top: -10px;
+  margin-bottom: 15px;
+}
+
+.back-btn:hover {
+  background: #007bff;
+  color: #fff;
+  transform: scale(1.05);
+}
+

@@ -1,168 +1,214 @@
 import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import "./Dashboard.css";
+import NotificationBox from "./NotificationBox";
+import { useNavigate } from "react-router-dom";
+
 
 export default function FreelancerDashboard() {
   const [activeTab, setActiveTab] = useState("profile");
   const [profile, setProfile] = useState({});
   const [skillsInput, setSkillsInput] = useState("");
   const [editing, setEditing] = useState(false);
+
   const [projects, setProjects] = useState([]);
   const [filteredProjects, setFilteredProjects] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loadingProjects, setLoadingProjects] = useState(false);
+
   const [proposalText, setProposalText] = useState("");
   const [proposalPrice, setProposalPrice] = useState("");
   const [selectedProject, setSelectedProject] = useState(null);
+
   const [myProposals, setMyProposals] = useState([]);
+  const [contracts, setContracts] = useState([]);
+
   const [filterSkill, setFilterSkill] = useState("");
   const [filterBudget, setFilterBudget] = useState("");
   const [filterDuration, setFilterDuration] = useState("");
+  const [reviews, setReviews] = useState([]);
+  const navigate = useNavigate();
 
-  const profileId = localStorage.getItem("profileId");
+  const profileId = localStorage.getItem("profileId"); // must be set at login/register
 
-  // ---------- Fetch Profile ----------
+  // ---------------- Fetchers ----------------
   const fetchProfile = useCallback(async () => {
+    if (!profileId) return;
     try {
       const res = await axios.get(`http://127.0.0.1:8000/api/profiles/${profileId}/`);
-      setProfile(res.data);
-
+      setProfile(res.data || {});
+      // combine possible formats
       const skillNames =
-        res.data.skills_details?.map((s) => s.name).join(", ") ||
-        res.data.skills?.join(", ") ||
-        "";
+  (Array.isArray(res.data?.skills) ? res.data.skills.map((s) => s.name).join(", ") : "") ||
+  (Array.isArray(res.data?.skill_names) ? res.data.skill_names.join(", ") : "") ||
+  "";
+
       setSkillsInput(skillNames);
     } catch (err) {
       console.error("Error fetching profile:", err);
     }
   }, [profileId]);
 
-  // ---------- Fetch Projects ----------
   const fetchProjects = useCallback(async () => {
-    setLoading(true);
+    setLoadingProjects(true);
     try {
       const res = await axios.get("http://127.0.0.1:8000/api/projects/");
-      setProjects(res.data);
-      setFilteredProjects(res.data);
+      setProjects(res.data || []);
+      setFilteredProjects(res.data || []);
     } catch (err) {
       console.error("Error fetching projects:", err);
+    } finally {
+      setLoadingProjects(false);
     }
-    setLoading(false);
   }, []);
 
-  // ---------- Fetch My Proposals ----------
   const fetchMyProposals = useCallback(async () => {
+    if (!profileId) return;
     try {
       const res = await axios.get("http://127.0.0.1:8000/api/proposals/");
-      const filtered = res.data.filter(
-        (p) => p.freelancer === parseInt(profileId)
-      );
-      setMyProposals(filtered);
+      const mine = (res.data || []).filter((p) => Number(p.freelancer) === Number(profileId));
+      setMyProposals(mine);
     } catch (err) {
       console.error("Error fetching proposals:", err);
     }
   }, [profileId]);
 
-  // ---------- useEffect ----------
+  const fetchContracts = useCallback(async () => {
+    if (!profile?.user_name) return;
+    try {
+      const res = await axios.get("http://127.0.0.1:8000/api/contracts/");
+      // match by freelancer id or name depending what API returns. Try robust checks:
+      const all = res.data || [];
+      const mine = all.filter((c) => {
+        if (c.freelancer === Number(profileId)) return true;
+        if (c.freelancer_name && profile.user_name) {
+          return c.freelancer_name.toLowerCase() === profile.user_name.toLowerCase();
+        }
+        return false;
+      });
+      setContracts(mine);
+    } catch (err) {
+      console.error("Error fetching contracts:", err);
+    }
+  }, [profile, profileId]);
+
+  // initial load
   useEffect(() => {
     fetchProfile();
     fetchProjects();
     fetchMyProposals();
+    // fetchContracts depends on profile (name), so call after profile set in another effect
   }, [fetchProfile, fetchProjects, fetchMyProposals]);
 
-  // ---------- Update Profile ----------
-  const handleProfileUpdate = async () => {
+  useEffect(() => {
+    fetchContracts();
+  }, [fetchContracts]);
+  useEffect(() => {
+  const fetchReviews = async () => {
     try {
-      const skillList = skillsInput
-        .split(",")
-        .map((s) => s.trim())
-        .filter((s) => s);
+      const res = await axios.get("http://127.0.0.1:8000/api/reviews/");
+      const storedName =
+        (localStorage.getItem("profileName") ||
+         localStorage.getItem("freelancerProfileName") ||
+         "").trim().toLowerCase();
 
-      const payload = {
-        user_name: profile.user_name,
-        email: profile.email,
-        bio: profile.bio,
-        portfolio: profile.portfolio,
-        hourly_rate: profile.hourly_rate || "500",
-        availability: profile.availability || "available",
-        is_client: false,
-        is_freelancer: true,
-        skills: skillList, // ✅ Correct key
-      };
-
-      await axios.put(
-        `http://127.0.0.1:8000/api/profiles/${profileId}/`,
-        payload,
-        { headers: { "Content-Type": "application/json" } }
+      const myReviews = res.data.filter(
+        (r) => r.reviewee_name?.toLowerCase() === storedName
       );
-
-      // ✅ Update UI instantly
-      setProfile({
-        ...profile,
-        skills_details: skillList.map((s, i) => ({ id: i, name: s })),
-      });
-
-      alert("✅ Profile updated successfully!");
-      setEditing(false);
+      setReviews(myReviews);
     } catch (err) {
-      console.error("❌ Update failed:", err.response?.data || err.message);
-      alert("❌ Failed to update profile!");
+      console.error("Error fetching reviews:", err);
     }
   };
 
-  // ---------- Submit Proposal ----------
+  fetchReviews();
+}, []);
+
+
+  // ---------------- Profile update ----------------
+  const handleProfileUpdate = async () => {
+    try {
+      const skillsList = skillsInput
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const payload = {
+        user_name: profile.user_name || "",
+        email: profile.email || "",
+        bio: profile.bio || "",
+        portfolio: profile.portfolio || "",
+        hourly_rate: profile.hourly_rate || profile.hourly_rate || "500",
+        availability: profile.availability || "available",
+        is_client: false,
+        is_freelancer: true,
+        // backend expects `skills` (list of strings) for the serializer we built earlier
+        skill_names: skillsList,
+      };
+
+      await axios.put(`http://127.0.0.1:8000/api/profiles/${profileId}/`, payload, {
+        headers: { "Content-Type": "application/json" },
+      });
+
+      // update UI immediately
+      setProfile({
+        ...profile,
+        skills_details: skillsList.map((s, i) => ({ id: i + 1, name: s })),
+      });
+
+      setEditing(false);
+      alert("✅ Profile updated.");
+    } catch (err) {
+      console.error("Error updating profile:", err);
+      alert("❌ Failed to update profile.");
+    }
+  };
+
+  // ---------------- Proposal submit ----------------
   const handleProposalSubmit = async (projectId) => {
     if (!proposalText || !proposalPrice) {
-      alert("Please fill all fields before submitting!");
+      alert("Please fill both message and price.");
       return;
     }
-
     try {
       await axios.post("http://127.0.0.1:8000/api/proposals/", {
         project: projectId,
-        freelancer: profileId,
+        freelancer: Number(profileId),
         description: proposalText,
         price: proposalPrice,
       });
-
-      alert("✅ Proposal submitted successfully!");
+      alert("✅ Proposal sent!");
       setProposalText("");
       setProposalPrice("");
       setSelectedProject(null);
       fetchMyProposals();
     } catch (err) {
-      console.error("❌ Error submitting proposal:", err);
-      alert("❌ Failed to submit proposal!");
+      console.error("Error submitting proposal:", err);
+      alert("❌ Failed to submit proposal.");
     }
   };
 
-  // ---------- Filter Logic ----------
+  // ---------------- Filters ----------------
   const handleFilter = () => {
-    let filtered = projects;
+    let results = Array.isArray(projects) ? [...projects] : [];
 
-    if (filterSkill)
-      filtered = filtered.filter(
-        (p) =>
-          Array.isArray(p.skills_required) &&
-          p.skills_required.some(
-            (s) =>
-              s.name &&
-              s.name.toLowerCase().includes(filterSkill.toLowerCase())
-          )
-      );
+    if (filterSkill.trim()) {
+      const q = filterSkill.trim().toLowerCase();
+      results = results.filter((p) => {
+        if (!Array.isArray(p.skills_required)) return false;
+        return p.skills_required.some((s) => (s?.name || "").toLowerCase().includes(q));
+      });
+    }
 
-    if (filterBudget)
-      filtered = filtered.filter(
-        (p) => p.budget && p.budget <= parseInt(filterBudget)
-      );
+    if (filterBudget.trim()) {
+      const max = parseFloat(filterBudget) || 0;
+      results = results.filter((p) => parseFloat(p.budget || 0) <= max);
+    }
 
-    if (filterDuration)
-      filtered = filtered.filter(
-        (p) =>
-          p.duration &&
-          p.duration.toLowerCase().includes(filterDuration.toLowerCase())
-      );
+    if (filterDuration.trim()) {
+      const qd = filterDuration.trim().toLowerCase();
+      results = results.filter((p) => (p.duration || "").toLowerCase().includes(qd));
+    }
 
-    setFilteredProjects(filtered);
+    setFilteredProjects(results);
   };
 
   const resetFilter = () => {
@@ -172,221 +218,244 @@ export default function FreelancerDashboard() {
     setFilteredProjects(projects);
   };
 
-  const initials = (name = "") => (name ? name[0].toUpperCase() : "F");
+  const initials = (name = "") => {
+    if (!name) return "F";
+    return name.trim().split(" ").map((n) => n[0]).join("").slice(0,2).toUpperCase();
+  };
+  // ------------------- back button ----------------
+  const handleBack = () => {
+  // 👇 Check if we’re not already on Profile tab
+  if (activeTab !== "profile" && setActiveTab) {
+    setActiveTab("profile"); // go back to profile tab
+  } else {
+    navigate("/"); // if already on profile, go to homepage
+  }
+};
 
-  // ---------- UI ----------
+
+  // ---------------- Render ----------------
   return (
-    <div className="freelancer-dashboard">
-      <h1>👩‍💻 Freelancer Dashboard</h1>
+    <div className="freelancer-dashboard-root">
+      <h1>🧑‍💻 Freelancer Dashboard</h1>
+      <button className="back-btn" onClick={handleBack}>← Back</button>
 
-      <div className="tab-buttons">
+      <NotificationBox />
+
+
+      <div className="tabs-row">
+        <button className={activeTab === "profile" ? "tab active" : "tab"} onClick={() => setActiveTab("profile")}>Profile</button>
+        <button className={activeTab === "projects" ? "tab active" : "tab"} onClick={() => setActiveTab("projects")}>Browse Projects</button>
+        <button className={activeTab === "proposals" ? "tab active" : "tab"} onClick={() => setActiveTab("proposals")}>My Proposals</button>
+        <button className={activeTab === "contracts" ? "tab active" : "tab"} onClick={() => setActiveTab("contracts")}>My Contracts</button>
         <button
-          className={activeTab === "profile" ? "active" : ""}
-          onClick={() => setActiveTab("profile")}
-        >
-          👤 Profile
-        </button>
-        <button
-          className={activeTab === "projects" ? "active" : ""}
-          onClick={() => setActiveTab("projects")}
-        >
-          📂 Browse Projects
-        </button>
-        <button
-          className={activeTab === "proposals" ? "active" : ""}
-          onClick={() => setActiveTab("proposals")}
-        >
-          💼 My Proposals
-        </button>
+  className={activeTab === "reviews" ? "tab active" : "tab"}
+  onClick={() => setActiveTab("reviews")}
+>
+  ⭐ Reviews
+</button>
+
       </div>
 
       {/* ---------- PROFILE ---------- */}
       {activeTab === "profile" && (
-        <div className="profile-section centered">
+        <div className="profile-pane">
           {!editing ? (
-            <div className="profile-card-centered">
-              <div className="avatar-large">{initials(profile.user_name)}</div>
-              <h2>{profile.user_name}</h2>
-              <p>{profile.email}</p>
-              <div className="badges">
-                <span className="badge rate">₹{profile.hourly_rate}/hr</span>
-                <span className={`badge avail ${profile.availability}`}>
-                  {profile.availability}
-                </span>
-              </div>
-              <h3>About</h3>
-              <p className="bio">{profile.bio || "No bio provided"}</p>
-              <h3>Skills</h3>
-              <div className="skills-list">
-                {profile.skills_details?.length ? (
-                  profile.skills_details.map((s) => (
-                    <span key={s.id} className="skill-tag">
-                      {s.name}
-                    </span>
-                  ))
-                ) : (
-                  <span>No skills added</span>
-                )}
-              </div>
-              <button onClick={() => setEditing(true)}>✏️ Edit Profile</button>
-            </div>
-          ) : (
-            <div className="profile-form-centered">
-              <input
-                type="text"
-                placeholder="Full Name"
-                value={profile.user_name || ""}
-                onChange={(e) =>
-                  setProfile({ ...profile, user_name: e.target.value })
-                }
-              />
-              <input
-                type="email"
-                placeholder="Email"
-                value={profile.email || ""}
-                onChange={(e) =>
-                  setProfile({ ...profile, email: e.target.value })
-                }
-              />
-              <textarea
-                placeholder="Your Bio"
-                value={profile.bio || ""}
-                onChange={(e) =>
-                  setProfile({ ...profile, bio: e.target.value })
-                }
-              />
-              <input
-                type="text"
-                placeholder="Portfolio Link"
-                value={profile.portfolio || ""}
-                onChange={(e) =>
-                  setProfile({ ...profile, portfolio: e.target.value })
-                }
-              />
-              <input
-                type="text"
-                placeholder="Skills (comma separated)"
-                value={skillsInput}
-                onChange={(e) => setSkillsInput(e.target.value)}
-              />
-              <input
-                type="number"
-                placeholder="Hourly Rate"
-                value={profile.hourly_rate || ""}
-                onChange={(e) =>
-                  setProfile({ ...profile, hourly_rate: e.target.value })
-                }
-              />
-              <select
-                value={profile.availability || "available"}
-                onChange={(e) =>
-                  setProfile({ ...profile, availability: e.target.value })
-                }
-              >
+  <div className="profile-display">
+    <div className="profile-header">
+      <div className="profile-avatar">{initials(profile.user_name)}</div>
+      <div className="profile-info">
+        <h2>{profile.user_name}</h2>
+        <p className="email">{profile.email}</p>
+        <div className="rate-status">
+          <span className="rate">💰 ₹{profile.hourly_rate || "500"}/hr</span>
+          <span className={`status ${profile.availability || "available"}`}>
+            {profile.availability || "available"}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div className="profile-content">
+      <div className="section">
+        <h3>👤 About</h3>
+        <p>{profile.bio || "Not provided yet"}</p>
+      </div>
+      <div className="section">
+  <h3>🧠 Skills</h3>
+  <div className="skills-list">
+    {profile.skills_details?.length ? (
+      profile.skills_details.map((s, i) => {
+        const name = s.name.toLowerCase();
+        let icon = "💡";
+        if (name.includes("react")) icon = "⚛️";
+        else if (name.includes("python")) icon = "🐍";
+        else if (name.includes("ai") || name.includes("ml")) icon = "🤖";
+        else if (name.includes("html")) icon = "🌐";
+        else if (name.includes("css")) icon = "🎨";
+        else if (name.includes("javascript")) icon = "⚡";
+        else if (name.includes("node")) icon = "🟩";
+        else if (name.includes("sql") || name.includes("database")) icon = "🗄️";
+
+        return (
+          <span key={i} className="skill-chip">
+            {icon} {s.name}
+          </span>
+        );
+      })
+    ) : (
+      <p className="no-skills">No skills added</p>
+    )}
+  </div>
+</div>
+
+
+      {profile.portfolio && (
+        <div className="section">
+          <h3>🌐 Portfolio</h3>
+          <a href={profile.portfolio} target="_blank" rel="noopener noreferrer" className="portfolio-link">
+            {profile.portfolio}
+          </a>
+        </div>
+      )}
+    </div>
+
+    <div className="profile-actions">
+      <button onClick={() => setEditing(true)} className="btn-edit">✏️ Edit Profile</button>
+    </div>
+  </div>
+) : (
+
+            <div className="profile-edit-card">
+              <input value={profile.user_name || ""} onChange={(e)=>setProfile({...profile, user_name: e.target.value})} placeholder="Full name"/>
+              <input value={profile.email || ""} onChange={(e)=>setProfile({...profile, email: e.target.value})} placeholder="Email"/>
+              <textarea value={profile.bio || ""} onChange={(e)=>setProfile({...profile, bio: e.target.value})} placeholder="Short bio"/>
+              <input value={profile.portfolio || ""} onChange={(e)=>setProfile({...profile, portfolio: e.target.value})} placeholder="Portfolio link"/>
+              <input value={skillsInput} onChange={(e)=>setSkillsInput(e.target.value)} placeholder="Skills (comma separated)"/>
+              <input value={profile.hourly_rate || ""} onChange={(e)=>setProfile({...profile, hourly_rate: e.target.value})} placeholder="Hourly rate"/>
+              <select value={profile.availability || "available"} onChange={(e)=>setProfile({...profile, availability: e.target.value})}>
                 <option value="available">Available</option>
-                <option value="busy">Busy</option>
                 <option value="part_time">Part-time</option>
+                <option value="busy">Busy</option>
               </select>
-              <button onClick={handleProfileUpdate}>💾 Save</button>
+
+              <div className="profile-edit-actions">
+                <button onClick={handleProfileUpdate} className="btn-save">💾 Save</button>
+                <button onClick={()=>{ setEditing(false); fetchProfile(); }} className="btn-cancel">Cancel</button>
+              </div>
             </div>
           )}
         </div>
       )}
 
-      {/* ---------- BROWSE PROJECTS ---------- */}
+      {/* ---------- PROJECTS ---------- */}
       {activeTab === "projects" && (
-        <div className="projects-section">
-          <h2>📂 Browse Projects</h2>
-          <div className="filter-section">
-            <input
-              type="text"
-              placeholder="Filter by skill..."
-              value={filterSkill}
-              onChange={(e) => setFilterSkill(e.target.value)}
-            />
-            <input
-              type="number"
-              placeholder="Max Budget (₹)"
-              value={filterBudget}
-              onChange={(e) => setFilterBudget(e.target.value)}
-            />
-            <input
-              type="text"
-              placeholder="Duration (e.g. 2 weeks)"
-              value={filterDuration}
-              onChange={(e) => setFilterDuration(e.target.value)}
-            />
-            <button className="apply-btn" onClick={handleFilter}>
-              Apply
-            </button>
-            <button className="reset-btn" onClick={resetFilter}>
-              Reset
-            </button>
+        <div className="projects-pane">
+          <h2>Browse Projects</h2>
+
+          <div className="filters">
+            <input placeholder="Skill (e.g. React)" value={filterSkill} onChange={(e)=>setFilterSkill(e.target.value)} />
+            <input placeholder="Max budget (₹)" value={filterBudget} onChange={(e)=>setFilterBudget(e.target.value)} />
+            <input placeholder="Duration (e.g. 2 weeks)" value={filterDuration} onChange={(e)=>setFilterDuration(e.target.value)} />
+            <button onClick={handleFilter} className="btn-apply">Apply</button>
+            <button onClick={resetFilter} className="btn-reset">Reset</button>
           </div>
 
-          {loading ? (
-            <p>Loading...</p>
-          ) : (
-            filteredProjects.map((proj) => (
-              <div key={proj.id} className="project-card-spaced">
-                <h3>{proj.title}</h3>
-                <p>{proj.description}</p>
-                <p>💰 Budget: ₹{proj.budget}</p>
-                <p>⏳ Duration: {proj.duration}</p>
-                <button onClick={() => setSelectedProject(proj.id)}>
-                  💬 Submit Proposal
-                </button>
+          {loadingProjects ? <p>Loading projects...</p> : (
+            filteredProjects.length ? filteredProjects.map((proj) => (
+              <div key={proj.id} className="project-card">
+                <div className="project-head">
+                  <h3>{proj.title}</h3>
+                  <div className="project-skills">
+                    {(proj.skills_required || []).map((s)=>(<span key={s.id} className="skill-pill small">{s.name}</span>))}
+                  </div>
+                </div>
+
+                <p className="project-desc">{proj.description}</p>
+                <div className="project-meta">
+                  <div>💰 <b>Budget:</b> ₹{proj.budget || "0"}</div>
+                  <div>⏳ <b>Duration:</b> {proj.duration || "—"}</div>
+                </div>
+
+                <div className="project-actions">
+                  <button onClick={()=> setSelectedProject(selectedProject===proj.id? null : proj.id)} className="btn-propose">
+                    {selectedProject === proj.id ? "Close" : "Submit Proposal"}
+                  </button>
+                </div>
 
                 {selectedProject === proj.id && (
-                  <div className="proposal-form">
-                    <textarea
-                      placeholder="Enter your proposal..."
-                      value={proposalText}
-                      onChange={(e) => setProposalText(e.target.value)}
-                    />
-                    <input
-                      type="number"
-                      placeholder="Enter your price"
-                      value={proposalPrice}
-                      onChange={(e) => setProposalPrice(e.target.value)}
-                    />
-                    <button
-                      onClick={() => handleProposalSubmit(proj.id)}
-                      className="send-btn"
-                    >
-                      Send Proposal
-                    </button>
+                  <div className="proposal-box">
+                    <textarea placeholder="Write a short proposal (what you'll deliver)" value={proposalText} onChange={(e)=>setProposalText(e.target.value)} />
+                    <input placeholder="Your price (₹)" value={proposalPrice} onChange={(e)=>setProposalPrice(e.target.value)} />
+                    <div className="proposal-buttons">
+                      <button onClick={()=> handleProposalSubmit(proj.id)} className="btn-send">Send Proposal</button>
+                      <button onClick={()=>{ setSelectedProject(null); setProposalText(""); setProposalPrice(""); }} className="btn-cancel">Cancel</button>
+                    </div>
                   </div>
                 )}
               </div>
-            ))
+            )) : <p>No projects found.</p>
           )}
         </div>
       )}
 
       {/* ---------- MY PROPOSALS ---------- */}
       {activeTab === "proposals" && (
-        <div className="my-proposals">
-          <h2>💼 My Proposals</h2>
-          {myProposals.length ? (
-            myProposals.map((p) => (
-              <div key={p.id} className={`proposal-card ${p.status}`}>
-                <h3>{p.project_title}</h3>
-                <p>
-                  <b>Status:</b>{" "}
-                  <span className={`status ${p.status}`}>{p.status}</span>
-                </p>
-                <p>
-                  <b>Price:</b> ₹{p.price}
-                </p>
-                <p>{p.description}</p>
+        <div className="proposals-pane">
+          <h2>My Proposals</h2>
+          {myProposals.length ? myProposals.map((p) => (
+            <div key={p.id} className={`my-proposal-card ${p.status || ""}`}>
+              <div className="proposal-top">
+                <h3>{p.project_title || `Project #${p.project}`}</h3>
+                <span className={`status ${p.status || "pending"}`}>{(p.status || "pending").toUpperCase()}</span>
               </div>
-            ))
-          ) : (
-            <p>No proposals yet.</p>
-          )}
+              <p className="proposal-price"><b>Price:</b> ₹{p.price}</p>
+              <p className="proposal-body">{p.description}</p>
+            </div>
+          )) : <p>No proposals submitted yet.</p>}
         </div>
       )}
+
+      {/* ---------- MY CONTRACTS ---------- */}
+      {activeTab === "contracts" && (
+        <div className="contracts-pane">
+          <h2>My Contracts</h2>
+          {contracts.length ? contracts.map((c) => (
+            <div key={c.id} className={`contract-card ${c.status || ""}`}>
+              <h3>{c.project_title || `Project #${c.proposal?.project}`}</h3>
+              <p><b>Client:</b> {c.client_name || c.client}</p>
+              <p><b>Status:</b> <span className={`status ${c.status || ""}`}>{(c.status||"").toUpperCase()}</span></p>
+              <p><b>Start:</b> {c.start_date}</p>
+              <p><b>End:</b> {c.end_date}</p>
+              <p className="contract-terms">{c.terms}</p>
+              {/* ✅ Chat Button */}
+          <a href={`/chat/${c.id}`}>
+            <button className="chat-btn">💬 Chat</button>
+          </a>
+            </div>
+          )) : <p>No contracts yet.</p>}
+        </div>
+      )}
+      {/* ---------- REVIEWS SECTION ---------- */}
+{activeTab === "reviews" && (
+  <div className="reviews-pane">
+    <h2>⭐ Client Reviews</h2>
+    {reviews.length ? (
+      reviews.map((r) => (
+        <div key={r.id} className="review-card">
+          <h3>{r.project_title}</h3>
+          <p>💬 {r.comment}</p>
+          <p>⭐ Rating: {r.rating}/5</p>
+          <p><b>From:</b> {r.reviewer_name}</p>
+        </div>
+      ))
+    ) : (
+      <p>No reviews yet.</p>
+    )}
+  </div>
+)}
+
     </div>
+            
   );
 }
+

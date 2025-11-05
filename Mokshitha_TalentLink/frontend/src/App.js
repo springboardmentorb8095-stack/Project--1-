@@ -11,7 +11,7 @@ import FreelancerDashboard from "./pages-mokshi/FreelancerDashboard";
 import ProjectFeed from "./pages-mokshi/ProjectFeed";
 import ProjectDetails from "./pages-mokshi/ProjectDetails";
 import ProposalForm from "./pages-mokshi/ProposalForm";
-
+import ChatPage from "./pages-mokshi/ChatPage";
 function App() {
   const profileId = localStorage.getItem("profileId");
 
@@ -33,6 +33,8 @@ function App() {
         <Route path="/feed" element={<ProjectFeed />} />
         <Route path="/project/:id" element={<ProjectDetails />} />
         <Route path="/project/:id/propose" element={<ProposalForm />} />
+        <Route path="/chat/:contractId" element={<ChatPage />} />
+
       </Routes>
     </Router>
   );
