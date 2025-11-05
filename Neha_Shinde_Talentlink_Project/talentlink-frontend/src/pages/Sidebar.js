@@ -8,7 +8,7 @@ const Sidebar = ({ role }) => {
     { label: 'My Projects', path: '/my-projects' },
     { label: 'Manage Proposals', path: '/projects/1' },
     { label: 'Contracts', path: '/contracts' },
-    { label: 'Reviews', path: '/reviews' },
+    { label: 'Reviews', path: '/projects/1' },
     { label: 'Messages', path: '/messages' },
   ];
 

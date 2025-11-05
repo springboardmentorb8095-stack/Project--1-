@@ -3,6 +3,8 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import DashboardLayout from './DashboardLayout';
+import NotificationBell from '../components/NotificationBell'; // adjust path if needed
+
 
 function Dashboard() {
   const [profile, setProfile] = useState(null);
@@ -77,30 +79,33 @@ function Dashboard() {
     <DashboardLayout role={profile.role}>
       <div className="fade-in container py-4">
         {/* Banner */}
-        <div className="d-flex justify-content-between align-items-center flex-wrap mb-4">
-          <div className="d-flex align-items-center">
-            <div
-              className="rounded-circle bg-white text-primary fw-bold d-flex justify-content-center align-items-center shadow-sm"
-              style={{ width: '60px', height: '60px', fontSize: '1.8rem' }}
-            >
-              {profile.user?.username?.charAt(0).toUpperCase() || 'U'}
-            </div>
-            <div className="ms-3">
-              <h3 className="mb-1 fw-semibold">
-                Welcome, {profile.user?.username || 'User'} 👋
-              </h3>
-              <small className="text-light">Here’s your personalized dashboard</small>
-            </div>
-          </div>
-          <div>
-            <button className="btn btn-light btn-sm me-2" onClick={() => window.location.reload()}>
-              <i className="bi bi-arrow-clockwise me-1"></i> Refresh
-            </button>
-            <button className="btn btn-outline-light btn-sm" onClick={() => navigate('/edit-profile')}>
-              <i className="bi bi-pencil-square me-1"></i> Edit Profile
-            </button>
-          </div>
-        </div>
+        {/* Banner */}
+<div className="d-flex justify-content-between align-items-center flex-wrap mb-4">
+  <div className="d-flex align-items-center">
+    <div
+      className="rounded-circle bg-white text-primary fw-bold d-flex justify-content-center align-items-center shadow-sm"
+      style={{ width: '60px', height: '60px', fontSize: '1.8rem' }}
+    >
+      {profile.user?.username?.charAt(0).toUpperCase() || 'U'}
+    </div>
+    <div className="ms-3">
+      <h3 className="mb-1 fw-semibold">
+        Welcome, {profile.user?.username || 'User'} 👋
+      </h3>
+      <small className="text-light">Here’s your personalized dashboard</small>
+    </div>
+  </div>
+  <div className="d-flex align-items-center gap-3">
+    <NotificationBell /> {/* ✅ Added bell here */}
+    <button className="btn btn-light btn-sm me-2" onClick={() => window.location.reload()}>
+      <i className="bi bi-arrow-clockwise me-1"></i> Refresh
+    </button>
+    <button className="btn btn-outline-light btn-sm" onClick={() => navigate('/edit-profile')}>
+      <i className="bi bi-pencil-square me-1"></i> Edit Profile
+    </button>
+  </div>
+</div>
+
 
         {/* Profile Info */}
         <div className="row g-4">

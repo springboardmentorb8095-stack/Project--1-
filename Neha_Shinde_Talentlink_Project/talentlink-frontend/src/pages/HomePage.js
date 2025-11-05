@@ -1,4 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import NotificationBell from '../components/NotificationBell';
+
+
 import { Link } from 'react-router-dom';
 import {
   FaBriefcase,
@@ -51,6 +54,7 @@ function HomePage() {
             <Link to="/about" className="tl-link">About</Link>
             <Link to="/projects" className="tl-link">Projects</Link>
             <Link to="/how-it-works" className="tl-link">How it Works</Link>
+            <NotificationBell /> {/* ✅ Add this line */}
             <Link to="/login" className="btn btn-ghost">Login</Link>
             <Link to="/register" className="btn btn-primary ms-2">Register</Link>
           </div>

@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.core.validators import URLValidator
 from django.core.exceptions import ValidationError
-from .models import Skill, Profile, Project, Proposal, Contract, Message, Review
+from .models import Skill, Profile, Project, Proposal, Contract, Message, Review, Notification
 from django.contrib.auth.models import User
 
 # 🔹 Skill
@@ -47,6 +47,7 @@ class ProjectSerializer(serializers.ModelSerializer):
 # 🔹 Proposal
 class ProposalSerializer(serializers.ModelSerializer):
     proposed_rate = serializers.DecimalField(max_digits=8, decimal_places=2)
+    freelancer_profile = serializers.PrimaryKeyRelatedField(source='freelancer', read_only=True)
 
     class Meta:
         model = Proposal
@@ -78,12 +79,15 @@ class MessageSerializer(serializers.ModelSerializer):
 
 # 🔹 Review
 class ReviewSerializer(serializers.ModelSerializer):
-    reviewer = serializers.CharField(source='reviewer.user.username', read_only=True)
-    reviewed = serializers.CharField(source='reviewed.user.username', read_only=True)
+    reviewed = serializers.PrimaryKeyRelatedField(queryset=Profile.objects.all())
+    project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all())
 
     class Meta:
         model = Review
         fields = '__all__'
+        read_only_fields = ['reviewer', 'created_at']
+
+
 
 # 🔹 Budget
 class BudgetSerializer(serializers.Serializer):
@@ -95,3 +99,8 @@ class BudgetSerializer(serializers.Serializer):
         if data['minIncome'] > data['maxIncome']:
             raise serializers.ValidationError("minIncome cannot be greater than maxIncome")
         return data
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = '__all__'
