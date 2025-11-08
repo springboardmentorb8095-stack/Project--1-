@@ -46,33 +46,6 @@ All features from the 8-week project plan were successfully implemented.
 
 ---
 
-## 🎁 Extra Features 
-
-This project includes a significant number of advanced features that were **not** part of the original PDF plan, transforming it from a simple matchmaking site into a full-fledged business platform.
-
-* **Complete Financial System:**
-    * **User Wallets:** Every user has a personal wallet to hold and manage funds.
-    * **Transaction Ledger:** All financial movements (deposits, payments, withdrawals) are tracked in a secure, immutable transaction log.
-
-* **Milestone-Based Payments:**
-    * This is the core of the financial system. Clients can break large projects into smaller, manageable **Milestones** with individual budgets and deadlines.
-    * This provides security for the client (who only pays for approved work) and clarity for the freelancer (who has a clear set of deliverables).
-
-* **PDF Invoice Generation:**
-    * The system automatically generates a formal **Invoice** for each funded milestone.
-    * Clients and freelancers can download a professional, multi-page **PDF invoice** for their records at any time.
-
-* **Project File Attachments:**
-    * Users can upload and attach files (e.g., design briefs, code samples, final deliverables) directly to their projects.
-
-* **Automated Deadline Reminders:**
-    * A backend script is included to automatically email freelancers about approaching project deadlines, helping to keep projects on track.
-
-* **"Save for Later" Feature:**
-    * Freelancers can "save" projects they are interested in to a personal list, allowing them to review and apply for them at a later time.
-
----
-
 ## ✅ Conclusion
 
 TalentLink successfully implements 100% of the core features outlined in the project requirements. Furthermore, it goes significantly beyond the original scope by designing and integrating a complete, end-to-end financial and milestone management system—a feature set explicitly excluded from the initial plan.
