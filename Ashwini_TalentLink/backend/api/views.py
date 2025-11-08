@@ -4,12 +4,16 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
 from .models import ( # Ensure all models are imported
     User, Profile, Skill, Project, Proposal, Contract, Message, Review,
-    PortfolioItem, Notification
+    PortfolioItem, Notification, SavedProject, ActivityLog, ProjectAnalytics,
+    AchievementBadge, Milestone, ProjectFile, Payment, Invoice, Wallet, Transaction
 )
 from .serializers import ( # Ensure all serializers are imported
     RegisterSerializer, UserSerializer, ProfileSerializer, SkillSerializer,
     ProjectSerializer, ProposalSerializer, ContractSerializer, MessageSerializer,
-    ReviewSerializer, PortfolioItemSerializer, NotificationSerializer
+    ReviewSerializer, PortfolioItemSerializer, NotificationSerializer,
+    SavedProjectSerializer, ActivityLogSerializer, ProjectAnalyticsSerializer,
+    AchievementBadgeSerializer, MilestoneSerializer, ProjectFileSerializer,
+    PaymentSerializer, InvoiceSerializer, WalletSerializer, TransactionSerializer
 )
 from rest_framework.decorators import action
 from rest_framework.response import Response # Ensure Response is imported
@@ -21,24 +25,18 @@ from rest_framework.exceptions import PermissionDenied, ValidationError, NotFoun
 from django.contrib.auth import get_user_model # Import User model getter
 from django.shortcuts import get_object_or_404 # Useful for getting objects or 404
 import logging # Import logging
+from django.utils import timezone
+import io
+from django.http import HttpResponse
+from django.template.loader import get_template
+from xhtml2pdf import pisa
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
 
-
-# Get the User model
 User = get_user_model()
 
-
-# --- Permission Classes ---
-# ... (IsOwnerOrReadOnly, IsClient, IsFreelancer remain the same) ...
 class IsOwnerOrReadOnly(permissions.BasePermission):
-    """
-    Custom permission to only allow owners of an object to edit it.
-    Assumes the model instance has an 'user', 'profile.user', 'client',
-    'freelancer', 'reviewer', or 'recipient' attribute.
-    Handles Proposal specific logic (only editable if pending).
-    """
     def has_object_permission(self, request, view, obj):
         if request.method in permissions.SAFE_METHODS:
             return True
@@ -181,7 +179,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         elif self.action in ['update', 'partial_update', 'destroy']:
             # Only the client owner of the project can modify/delete it
             self.permission_classes = [permissions.IsAuthenticated, IsOwnerOrReadOnly] # Checks obj.client
-        elif self.action in ['list', 'retrieve']:
+        elif self.action in ['list', 'retrieve', 'update_status']:
              # Any authenticated user can view lists/details (visibility controlled by get_queryset)
              self.permission_classes = [permissions.IsAuthenticated]
         else:
@@ -189,10 +187,26 @@ class ProjectViewSet(viewsets.ModelViewSet):
              self.permission_classes = [permissions.IsAdminUser]
         return super().get_permissions()
 
+    def get_serializer_context(self):
+        """Add request to serializer context for is_saved field."""
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+
     def perform_create(self, serializer):
         """ Automatically set the project client to the logged-in user. """
         # Permission check ensures user is a client
-        serializer.save(client=self.request.user)
+        project = serializer.save(client=self.request.user)
+        # Create analytics record for the project
+        ProjectAnalytics.objects.create(project=project)
+        # Create activity log
+        ActivityLog.objects.create(
+            user=self.request.user,
+            action='project_created',
+            description=f"Created project: {project.title}",
+            related_project=project
+        )
+        return project
 
     def get_queryset(self):
         """ Filter projects based on user role and authentication status. """
@@ -209,21 +223,69 @@ class ProjectViewSet(viewsets.ModelViewSet):
                 # Clients see only their projects
                 return queryset.filter(client=user)
             elif profile.user_type == 'freelancer':
-                # Freelancers see 'open' projects + projects they proposed on + projects they have contracts for
+                # Freelancers see 'active' projects + projects they proposed on + projects they have contracts for
                 # Optimize by fetching related project IDs once
                 proposed_project_ids = Proposal.objects.filter(freelancer=user).values_list('project_id', flat=True)
                 contracted_project_ids = Contract.objects.filter(freelancer=user).values_list('project_id', flat=True)
 
                 # Combine filters using Q objects
                 return queryset.filter(
-                    Q(status='open') | Q(id__in=proposed_project_ids) | Q(id__in=contracted_project_ids)
+                    Q(status='active') | Q(id__in=proposed_project_ids) | Q(id__in=contracted_project_ids)
                 ).distinct() # Use distinct to avoid duplicates if proposed and contracted
         # Admins see all projects
         elif user.is_staff:
             return queryset
 
-        # Fallback for authenticated users without a profile (should be rare) - show only open projects
-        return queryset.filter(status='open')
+        # Fallback for authenticated users without a profile (should be rare) - show only active projects
+        return queryset.filter(status='active')
+
+    def retrieve(self, request, *args, **kwargs):
+        """Override retrieve to increment view count and update analytics."""
+        instance = self.get_object()
+        # Increment view count
+        instance.view_count += 1
+        instance.save(update_fields=['view_count'])
+        
+        # Update analytics
+        analytics, created = ProjectAnalytics.objects.get_or_create(project=instance)
+        analytics.total_views += 1
+        if created or not analytics.last_viewed:
+            analytics.unique_views += 1
+        analytics.last_viewed = timezone.now()
+        analytics.save(update_fields=['total_views', 'unique_views', 'last_viewed'])
+        
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['patch'], url_path='update-status', permission_classes=[permissions.IsAuthenticated])
+    def update_status(self, request, pk=None):
+        """Allow client to update project status."""
+        project = self.get_object()
+        
+        # Only project owner (client) can update status
+        if project.client != request.user:
+            raise PermissionDenied("Only project owner can update status.")
+        
+        new_status = request.data.get('status')
+        if new_status not in ['active', 'in_progress', 'completed', 'cancelled']:
+            return Response({'detail': 'Invalid status.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        project.status = new_status
+        project.save(update_fields=['status'])
+        
+        # Create activity log
+        ActivityLog.objects.create(
+            user=request.user,
+            action='project_created',
+            description=f"Updated project status to {new_status}",
+            related_project=project
+        )
+        
+        serializer = self.get_serializer(project)
+        return Response(serializer.data)
+    
+    
+
 
 
 class ProposalViewSet(viewsets.ModelViewSet):
@@ -232,6 +294,25 @@ class ProposalViewSet(viewsets.ModelViewSet):
     queryset = Proposal.objects.all().select_related('project__client', 'freelancer__profile').order_by('-submitted_at') # Added profile relations
     serializer_class = ProposalSerializer
     permission_classes = [permissions.IsAuthenticated] # Base permission
+
+    @action(detail=True, methods=['patch'], url_path='rate', permission_classes=[permissions.IsAuthenticated])
+    def rate(self, request, pk=None):
+        """Allow the client to rate a proposal (1-5)."""
+        proposal = get_object_or_404(Proposal.objects.select_related('project', 'freelancer'), pk=pk)
+        # Only the client who owns the project can rate
+        if proposal.project.client != request.user:
+            raise PermissionDenied("Only the project owner can rate this proposal.")
+        rating = request.data.get('rating')
+        try:
+            rating = int(rating)
+        except (TypeError, ValueError):
+            return Response({'detail': 'Rating must be an integer between 1 and 5.'}, status=status.HTTP_400_BAD_REQUEST)
+        if rating < 1 or rating > 5:
+            return Response({'detail': 'Rating must be between 1 and 5.'}, status=status.HTTP_400_BAD_REQUEST)
+        proposal.rating = rating
+        proposal.save(update_fields=['rating'])
+        serializer = self.get_serializer(proposal)
+        return Response(serializer.data)
 
     def get_permissions(self):
         """ Set permissions based on the action. """
@@ -259,7 +340,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         user = self.request.user
 
         # Ensure project exists and is open (serializer queryset also helps)
-        if not project or project.status != 'open':
+        if not project or project.status != 'active':
              raise ValidationError("Project not found or is not open for proposals.")
 
         # Ensure client cannot propose on their own project (although IsFreelancer perm should prevent this)
@@ -271,7 +352,19 @@ class ProposalViewSet(viewsets.ModelViewSet):
              raise ValidationError("You have already submitted a proposal for this project.")
 
         # Set freelancer automatically and save
-        serializer.save(freelancer=user)
+        proposal = serializer.save(freelancer=user)
+        # Create activity log
+        ActivityLog.objects.create(
+            user=user,
+            action='proposal_submitted',
+            description=f"Submitted proposal for project: {project.title}",
+            related_project=project
+        )
+        # Update project analytics
+        analytics, created = ProjectAnalytics.objects.get_or_create(project=project)
+        analytics.proposals_count += 1
+        analytics.save(update_fields=['proposals_count'])
+        return proposal
 
     # perform_update and perform_destroy rely on IsOwnerOrReadOnly permission check
 
@@ -315,7 +408,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
              return Response({'detail': f'Proposal status is already "{proposal.status}".'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Ensure project hasn't already been assigned (edge case)
-        if new_status == 'accepted' and proposal.project.status != 'open':
+        if new_status == 'accepted' and proposal.project.status != 'active':
             return Response({'detail': f'Project status is already "{proposal.project.status}". Cannot accept proposal.'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
@@ -340,6 +433,10 @@ class ProposalViewSet(viewsets.ModelViewSet):
                         # Update project status
                         proposal.project.status = 'in_progress'
                         proposal.project.save(update_fields=['status'])
+                        
+                        # Update contract status
+                        contract.status = 'in_progress'
+                        contract.save(update_fields=['status'])
 
                         # Reject other *pending* proposals for this project
                         Proposal.objects.filter(
@@ -363,8 +460,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class ContractViewSet(viewsets.ReadOnlyModelViewSet):
-    """ Read-only ViewSet for viewing contracts. """
+class ContractViewSet(viewsets.ModelViewSet):
+    """ ViewSet for viewing and updating contracts. """
     # Optimized queryset
     queryset = Contract.objects.all().select_related('project__client__profile', 'freelancer__profile').order_by('-start_date') # Added profile relations
     serializer_class = ContractSerializer
@@ -390,6 +487,34 @@ class ContractViewSet(viewsets.ReadOnlyModelViewSet):
             return queryset
 
         return Contract.objects.none()
+
+    def get_permissions(self):
+        """Set permissions based on action."""
+        if self.action in ['update', 'partial_update']:
+            # Both client and freelancer can update contract status
+            self.permission_classes = [permissions.IsAuthenticated]
+        return super().get_permissions()
+
+    @action(detail=True, methods=['patch'], url_path='update-status', permission_classes=[permissions.IsAuthenticated])
+    def update_status(self, request, pk=None):
+        """Allow client or freelancer to update contract status."""
+        contract = self.get_object()
+        
+        # Check if user is client or freelancer for this contract
+        if contract.project.client != request.user and contract.freelancer != request.user:
+            raise PermissionDenied("Only contract parties can update status.")
+        
+        new_status = request.data.get('status')
+        if new_status not in ['active', 'in_progress', 'completed', 'cancelled']:
+            return Response({'detail': 'Invalid status.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        contract.status = new_status
+        if new_status == 'completed':
+            contract.is_completed = True
+        contract.save(update_fields=['status', 'is_completed'])
+        
+        serializer = self.get_serializer(contract)
+        return Response(serializer.data)
 
 
 class MessageViewSet(viewsets.ModelViewSet):
@@ -545,6 +670,8 @@ class NotificationViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated, IsOwnerOrReadOnly] # Checks recipient
     # Limit allowed methods: GET (list/detail), PATCH (actions), POST (mark all read), DELETE (optional)
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['read']
 
     def get_queryset(self):
         """ Return notifications only for the authenticated user. """
@@ -588,3 +715,432 @@ class NotificationViewSet(viewsets.ModelViewSet):
 
     # By default, ModelViewSet provides destroy. Permission restricts deletion to recipient.
     # No custom perform_destroy needed unless extra logic is required.
+
+
+class SavedProjectViewSet(viewsets.ModelViewSet):
+    """ViewSet for managing saved/bookmarked projects."""
+    serializer_class = SavedProjectSerializer
+    permission_classes = [permissions.IsAuthenticated, IsOwnerOrReadOnly]
+
+    def get_queryset(self):
+        """Return saved projects for the authenticated user."""
+        user = self.request.user
+        if not user.is_authenticated:
+            return SavedProject.objects.none()
+        return SavedProject.objects.filter(user=user).select_related('project', 'project__client').prefetch_related('project__skills_required').order_by('-saved_at')
+
+    def get_serializer_context(self):
+        """Add request to serializer context."""
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+
+    def perform_create(self, serializer):
+        """Save project for the current user."""
+        project_id = serializer.validated_data.get('project_id')
+        project = get_object_or_404(Project, pk=project_id)
+        saved_project, created = SavedProject.objects.get_or_create(
+            user=self.request.user,
+            project=project
+        )
+        if created:
+            # Update analytics
+            analytics, _ = ProjectAnalytics.objects.get_or_create(project=project)
+            analytics.saved_count += 1
+            analytics.save(update_fields=['saved_count'])
+        serializer.instance = saved_project
+
+    def perform_destroy(self, instance):
+        """Update analytics when unsaving."""
+        project = instance.project
+        super().perform_destroy(instance)
+        # Update analytics
+        try:
+            analytics = project.analytics
+            analytics.saved_count = max(0, analytics.saved_count - 1)
+            analytics.save(update_fields=['saved_count'])
+        except ProjectAnalytics.DoesNotExist:
+            pass
+
+
+class ActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
+    """Read-only ViewSet for activity logs."""
+    serializer_class = ActivityLogSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        """Return activities for the authenticated user and related users."""
+        user = self.request.user
+        if not user.is_authenticated:
+            return ActivityLog.objects.none()
+        # Show user's own activities and activities related to them
+        return ActivityLog.objects.filter(
+            Q(user=user) | Q(related_user=user)
+        ).select_related('user', 'related_user', 'related_project').order_by('-timestamp')[:50]  # Limit to 50 most recent
+
+
+class ProjectAnalyticsViewSet(viewsets.ReadOnlyModelViewSet):
+    """Read-only ViewSet for project analytics."""
+    serializer_class = ProjectAnalyticsSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        """Return analytics for projects the user can access."""
+        user = self.request.user
+        if not user.is_authenticated:
+            return ProjectAnalytics.objects.none()
+        profile = getattr(user, 'profile', None)
+        if profile:
+            if profile.user_type == 'client':
+                # Clients see analytics for their projects
+                return ProjectAnalytics.objects.filter(project__client=user).select_related('project')
+            elif profile.user_type == 'freelancer':
+                # Freelancers see analytics for projects they're involved with
+                proposed_project_ids = Proposal.objects.filter(freelancer=user).values_list('project_id', flat=True)
+                contracted_project_ids = Contract.objects.filter(freelancer=user).values_list('project_id', flat=True)
+                return ProjectAnalytics.objects.filter(
+                    Q(project__id__in=proposed_project_ids) | Q(project__id__in=contracted_project_ids)
+                ).select_related('project')
+        elif user.is_staff:
+            return ProjectAnalytics.objects.all().select_related('project')
+        return ProjectAnalytics.objects.none()
+
+
+class AchievementBadgeViewSet(viewsets.ReadOnlyModelViewSet):
+    """Read-only ViewSet for achievement badges."""
+    serializer_class = AchievementBadgeSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        """Return badges for the authenticated user or all if viewing others."""
+        user = self.request.user
+        if not user.is_authenticated:
+            return AchievementBadge.objects.none()
+        # Allow viewing own badges or all badges if admin
+        target_user_id = self.request.query_params.get('user_id')
+        if target_user_id and user.is_staff:
+            return AchievementBadge.objects.filter(user_id=target_user_id).select_related('user')
+        return AchievementBadge.objects.filter(user=user).select_related('user')
+
+
+class MilestoneViewSet(viewsets.ModelViewSet):
+    """ViewSet for managing project milestones."""
+    serializer_class = MilestoneSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        """Return milestones for projects the user can access."""
+        user = self.request.user
+        if not user.is_authenticated:
+            return Milestone.objects.none()
+        project_id = self.request.query_params.get('project')
+        if project_id:
+            return Milestone.objects.filter(project_id=project_id).select_related('project')
+        # Return milestones for projects user is involved with
+        profile = getattr(user, 'profile', None)
+        if profile:
+            if profile.user_type == 'client':
+                return Milestone.objects.filter(project__client=user).select_related('project')
+            elif profile.user_type == 'freelancer':
+                contracted_project_ids = Contract.objects.filter(freelancer=user).values_list('project_id', flat=True)
+                return Milestone.objects.filter(project_id__in=contracted_project_ids).select_related('project')
+        return Milestone.objects.none()
+
+    def perform_create(self, serializer):
+        """Ensure user has permission to create milestone."""
+        project = serializer.validated_data.get('project')
+        if project.client != self.request.user:
+            raise PermissionDenied("Only project owner can create milestones.")
+        serializer.save()
+
+    @transaction.atomic
+    def partial_update(self, request, *args, **kwargs):
+        """
+        Override partial_update to handle payment logic when a milestone
+        is marked as 'approved'.
+        """
+        milestone = self.get_object()
+        new_status = request.data.get('status')
+        old_status = milestone.status
+
+        # Check if this is an approval action (from 'completed' to 'approved')
+        if new_status == 'approved' and old_status == 'completed':
+            logger.info(f"Attempting to approve milestone {milestone.id} and process payment.")
+            
+            # We wrap the *entire* logic in a try/except to ensure the transaction rolls back
+            try:
+                project = milestone.project
+                client = project.client
+                amount = milestone.amount
+
+                # 1. Find the freelancer from the project's contract
+                try:
+                    contract = Contract.objects.get(project=project)
+                    freelancer = contract.freelancer
+                except Contract.DoesNotExist:
+                    logger.error(f"Payment failed for milestone {milestone.id}: No contract found for project {project.id}.")
+                    raise ValidationError("Payment failed: Cannot find a contract associated with this project.")
+
+                # 2. Get and LOCK both wallets
+                # This is the most robust way: get_or_create, then re-fetch with a lock.
+                Wallet.objects.get_or_create(user=client)
+                Wallet.objects.get_or_create(user=freelancer)
+                
+                # Lock the rows for the duration of this transaction
+                client_wallet = Wallet.objects.select_for_update().get(user=client)
+                
+                # --- FIX: Corrected 'frelancer' to 'freelancer' ---
+                freelancer_wallet = Wallet.objects.select_for_update().get(user=freelancer)
+
+                # 3. Check client's balance
+                if client_wallet.balance < amount:
+                    logger.warning(f"Payment failed for milestone {milestone.id}: Client {client.username} has insufficient funds (Balance: {client_wallet.balance}, Needed: {amount}).")
+                    raise ValidationError(f"Payment failed: Client's wallet has insufficient funds.")
+
+                # 4. Transfer funds
+                client_wallet.balance -= amount
+                freelancer_wallet.balance += amount
+
+                # 5. Create transactions for logging
+                Transaction.objects.create(
+                    wallet=client_wallet,
+                    transaction_type='payment',
+                    amount=amount,
+                    description=f"Milestone payment for '{milestone.title}' to {freelancer.username}"
+                )
+                Transaction.objects.create(
+                    wallet=freelancer_wallet,
+                    transaction_type='deposit',
+                    amount=amount,
+                    description=f"Milestone payment received for '{milestone.title}' from {client.username}"
+                )
+
+                # 6. Save wallet changes
+                client_wallet.save(update_fields=['balance'])
+                freelancer_wallet.save(update_fields=['balance'])
+
+                # --- FIX: Manually save milestone status and completed_at ---
+                milestone.completed_at = timezone.now()
+                milestone.status = new_status
+                milestone.save(update_fields=['status', 'completed_at'])
+
+                logger.info(f"Milestone {milestone.id} approved. Transferred {amount} from {client.username} to {freelancer.username}.")
+
+                # 9. Return a serialized response directly
+                serializer = self.get_serializer(milestone)
+                return Response(serializer.data)
+                # --- END FIX (Replaced super() call) ---
+
+            except Exception as e:
+                # Catch any error (insufficient funds, DB error, etc.)
+                logger.error(f"Payment processing failed for milestone {milestone.id}: {e}", exc_info=True)
+                # Re-raise the error to force the @transaction.atomic to ROLLBACK
+                if isinstance(e, ValidationError):
+                    raise e # Re-raise the specific "insufficient funds" error
+                else:
+                    raise ValidationError(f"An error occurred during payment processing: {e}")
+
+        # If the status was NOT 'approved', just run the normal update
+        return super().partial_update(request, *args, **kwargs)
+
+
+class ProjectFileViewSet(viewsets.ModelViewSet):
+    """ViewSet for managing project files."""
+    serializer_class = ProjectFileSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        """Return files for projects the user can access."""
+        user = self.request.user
+        if not user.is_authenticated:
+            return ProjectFile.objects.none()
+        project_id = self.request.query_params.get('project')
+        if project_id:
+            return ProjectFile.objects.filter(project_id=project_id).select_related('project', 'uploaded_by')
+        return ProjectFile.objects.filter(uploaded_by=user).select_related('project', 'uploaded_by')
+
+    def perform_create(self, serializer):
+        """Set uploaded_by automatically."""
+        serializer.save(uploaded_by=self.request.user)
+
+
+class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
+    """Read-only ViewSet for payments (typically created automatically)."""
+    serializer_class = PaymentSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        """Return payments for the authenticated user."""
+        user = self.request.user
+        if not user.is_authenticated:
+            return Payment.objects.none()
+        return Payment.objects.filter(
+            Q(from_user=user) | Q(to_user=user)
+        ).select_related('project', 'milestone', 'from_user', 'to_user')
+
+
+class InvoiceViewSet(viewsets.ModelViewSet):
+    """ViewSet for managing invoices."""
+    serializer_class = InvoiceSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        """Return invoices for the authenticated user."""
+        user = self.request.user
+        if not user.is_authenticated:
+            return Invoice.objects.none()
+        profile = getattr(user, 'profile', None)
+        if profile:
+            if profile.user_type == 'freelancer':
+                return Invoice.objects.filter(freelancer=user).select_related('project', 'client')
+            elif profile.user_type == 'client':
+                return Invoice.objects.filter(client=user).select_related('project', 'freelancer')
+        return Invoice.objects.none()
+
+    def perform_create(self, serializer):
+        """Set freelancer/client automatically based on user type."""
+        project = serializer.validated_data.get('project')
+        profile = getattr(self.request.user, 'profile', None)
+        if not profile:
+            raise PermissionDenied("User profile required.")
+        if profile.user_type == 'freelancer':
+            serializer.save(freelancer=self.request.user, client=project.client)
+        else:
+            raise PermissionDenied("Only freelancers can create invoices.")
+        
+    @action(detail=True, methods=['patch'], url_path='update-status', permission_classes=[permissions.IsAuthenticated])
+    def update_status(self, request, pk=None):
+        """
+        Allow the client or freelancer to update the invoice status.
+        """
+        invoice = self.get_object()
+
+        # Check if user is client or freelancer for this invoice
+        if invoice.client != request.user and invoice.freelancer != request.user:
+            raise PermissionDenied("Only the client or freelancer on this invoice can update its status.")
+
+        new_status = request.data.get('status')
+        status_choices = [choice[0] for choice in Invoice.STATUS_CHOICES]
+
+        if new_status not in status_choices:
+            return Response({'detail': f'Invalid status. Must be one of {status_choices}'}, status=status.HTTP_400_BAD_REQUEST)
+
+        invoice.status = new_status
+
+        # Set paid_at date if status is 'paid'
+        if new_status == 'paid':
+            invoice.paid_at = timezone.now()
+        else:
+            # Clear paid_at if status is changed to something else
+            invoice.paid_at = None 
+
+        invoice.save(update_fields=['status', 'paid_at'])
+
+        serializer = self.get_serializer(invoice)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['get'], url_path='download')
+    def download_invoice(self, request, pk=None):
+        """
+        Generate and return a PDF version of the invoice.
+        """
+        invoice = self.get_object()
+
+        # Check permission
+        if invoice.client != request.user and invoice.freelancer != request.user:
+            raise PermissionDenied("You do not have permission to download this invoice.")
+
+        # Get related data for the template
+        try:
+            client_profile = invoice.client.profile
+        except Profile.DoesNotExist:
+            client_profile = None
+
+        try:
+            freelancer_profile = invoice.freelancer.profile
+        except Profile.DoesNotExist:
+            freelancer_profile = None
+
+        # Calculate tax amount for the template
+        tax_amount = (invoice.amount * invoice.tax_rate) / 100
+
+        # Get the template
+        template = get_template('pdf/invoice.html')
+        context = {
+            'invoice': invoice,
+            'project_title': invoice.project.title, # Pass project title
+            'client_profile': client_profile,
+            'freelancer_profile': freelancer_profile,
+            'tax_amount': tax_amount,
+        }
+        html = template.render(context)
+
+        # Create a file-like buffer to receive PDF data
+        result = io.BytesIO()
+
+        # Convert HTML to PDF
+        pdf = pisa.pisaDocument(io.BytesIO(html.encode("UTF-8")), result)
+
+        if not pdf.err:
+            # PDF generation success
+            response = HttpResponse(result.getvalue(), content_type='application/pdf')
+            # This header tells the browser to download the file
+            response['Content-Disposition'] = f'attachment; filename="invoice-{invoice.invoice_number}.pdf"'
+            return response
+
+        # PDF generation failed
+        return Response({'detail': f'Error generating PDF: {pdf.err}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class WalletViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet for user wallet."""
+    serializer_class = WalletSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        """Return wallet for the authenticated user."""
+        user = self.request.user
+        if not user.is_authenticated:
+            return Wallet.objects.none()
+        wallet, created = Wallet.objects.get_or_create(user=user)
+        return Wallet.objects.filter(user=user)
+
+
+class TransactionViewSet(viewsets.ModelViewSet):
+    """ViewSet for wallet transactions."""
+    serializer_class = TransactionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        """Return transactions for the authenticated user's wallet."""
+        user = self.request.user
+        if not user.is_authenticated:
+            return Transaction.objects.none()
+        wallet, created = Wallet.objects.get_or_create(user=user)
+        return Transaction.objects.filter(wallet=wallet).select_related('wallet', 'related_payment')
+
+    @transaction.atomic
+    def perform_create(self, serializer):
+        """Create transaction and update wallet balance."""
+        wallet, created = Wallet.objects.get_or_create(user=self.request.user)
+        transaction_type = serializer.validated_data.get('transaction_type')
+        amount = serializer.validated_data.get('amount')
+        
+        # --- FIX: Ensure amount is a number ---
+        if amount is None or amount < 0:
+            raise ValidationError("A valid amount is required.")
+        
+        transaction = serializer.save(wallet=wallet)
+        
+        # Update wallet balance
+        if transaction_type == 'deposit':
+            wallet.balance += amount
+        elif transaction_type == 'withdrawal':
+            if wallet.balance < amount:
+                raise ValidationError("Insufficient balance.")
+            wallet.balance -= amount
+        
+        # --- FIX: Ensure update_fields is correct ---
+        wallet.save(update_fields=['balance'])
+        
+        return transaction

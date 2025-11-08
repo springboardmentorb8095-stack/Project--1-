@@ -1,0 +1,21 @@
+{% extends "emails/notification_base.html" %}
+
+{% block content %}
+  <h2 style="font-size: 20px; color: #333;">Project Deadline Reminder</h2>
+  <p style="font-size: 16px; color: #555;">
+    Hi {{ freelancer_name }},
+  </p>
+  <p style="font-size: 16px; color: #555;">
+    This is a friendly reminder that your project, <strong>"{{ project_title }}"</strong>, is due in <strong>{{ days_left }} day(s)</strong> (on {{ deadline }}).
+  </p>
+  <p style="font-size: 16px; color: #555;">
+    Please ensure all deliverables are completed and submitted to the client by the deadline.
+  </p>
+  <p style="font-size: 16px; color: #555;">
+    <a href="{{ site_url }}" class="button-link">View Project Details</a>
+  </p>
+  <p style="font-size: 16px; color: #555;">
+    Best regards,<br>
+    The TalentLink Team
+  </p>
+{% endblock %}
