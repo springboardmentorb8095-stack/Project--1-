@@ -32,7 +32,16 @@ function PublicProfile() {
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
       <div className="bg-white shadow-lg rounded-xl p-8">
-        <h1 className="text-3xl font-bold text-indigo-600 mb-4">{profile.full_name}</h1>
+        <div className="flex justify-between items-center mb-4">
+  <h1 className="text-3xl font-bold text-indigo-600">{profile.full_name}</h1>
+  {profile.avg_rating && (
+  <span className="text-3xl font-bold">⭐{profile.avg_rating}</span>)
+  
+  }
+</div>
+
+
+
         <div className="space-y-2 text-gray-700">
           <p><span className="font-semibold">Bio:</span> {profile.bio || "N/A"}</p>
           <p><span className="font-semibold">Location:</span> {profile.location || "N/A"}</p>

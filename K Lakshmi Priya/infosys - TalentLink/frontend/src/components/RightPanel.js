@@ -1,7 +1,8 @@
 // src/components/RightPanel.js
 import { useEffect, useState } from "react";
-import api from "../api/axios";
 import { useNavigate } from "react-router-dom";
+import { FaSignOutAlt, FaEdit } from "react-icons/fa";
+import api from "../api/axios";
 import NotificationsDropdown from "../pages/NotificationsDropdown";
 
 export default function RightPanel({ type, onClose }) {
@@ -12,6 +13,12 @@ export default function RightPanel({ type, onClose }) {
 
   const isLoggedIn = () => !!token;
 
+  const handleLogout = () => {
+    localStorage.clear();
+    navigate("/");
+    window.location.reload();
+  };
+
   const fetchProfile = async () => {
     try {
       const res = await api.get("profile/", {
@@ -21,12 +28,12 @@ export default function RightPanel({ type, onClose }) {
       setError(null);
     } catch (err) {
       if (err.response?.status === 401) {
-        localStorage.clear();
-        setProfile(null);
-        setError("Session expired. Please login again.");
+        setError("Session expired. Logging out...");
+        setTimeout(() => handleLogout(), 3000);
       } else {
         setError("Failed to load profile.");
       }
+      setProfile(null);
     }
   };
 
@@ -34,81 +41,102 @@ export default function RightPanel({ type, onClose }) {
     if (isLoggedIn() && type === "profile") fetchProfile();
   }, [type]);
 
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate("/");
-    window.location.reload();
-  };
-
-  return (
-    <div className="flex flex-col h-full bg-gray-50 p-4">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-4 border-b pb-2">
-        <h2 className="text-lg font-semibold text-gray-800 capitalize">
-          {type}
-        </h2>
+  // Early returns for different states
+  if (type === "profile" && error) {
+    return (
+      <div className="relative flex flex-col h-full rounded-l-xl shadow-2xl overflow-hidden p-4">
         <button
           onClick={onClose}
-          className="text-gray-500 hover:text-gray-700 text-2xl font-bold leading-none"
+          className="absolute top-2 right-2 text-2xl dark:text-gray-100 font-bold hover:rotate-90 transform transition-all duration-300 "
+        >
+          ×
+        </button>
+        <p className="text-red-600 bg-red-50 border border-red-100 rounded-md px-3 py-2 mb-4 text-sm animate-bounceIn">
+          {error}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative flex flex-col h-full rounded-l-xl shadow-2xl overflow-hidden transition-all duration-500 bg-gray-50 dark:bg-gray-900">
+      {/* Close button */}
+      <div className="flex justify-end items-center px-4 py-3 z-10">
+        <button
+          onClick={onClose}
+          className="text-2xl dark:text-gray-100 font-bold hover:rotate-90 transform transition-all duration-300"
         >
           ×
         </button>
       </div>
 
       {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto p-4 z-10">
+        {/* Profile Panel */}
         {type === "profile" && (
           <>
-            {error && <p className="text-red-500 mb-4">{error}</p>}
+            {!profile ? (
+              <div className="text-center text-gray-500 dark:text-gray-100 animate-pulse mt-10">
+                Loading profile...
+              </div>
+            ) : (
+              <div className="mt-4 space-y-6 animate-fadeIn">
+                <div className="relative bg-white/80 dark:bg-gray-800 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-indigo-100 dark:border-indigo-700 hover:shadow-xl transition-all duration-300 group">
+                  {/* Glow border */}
+                  <div className="absolute inset-0 rounded-xl border-2 border-transparent pointer-events-none group-hover:border-indigo-400 group-hover:animate-glow"></div>
 
-            {profile ? (
-              <div className="space-y-6 mt-4">
-                <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 space-y-3">
-                  <h3 className="text-xl font-bold text-indigo-600">Your Profile</h3>
+                  <h3 className="text-xl font-bold text-indigo-700 dark:text-indigo-400 mb-4 border-b border-indigo-200 dark:border-indigo-600 pb-2 flex items-center gap-2">
+                    ✨ Your Profile
+                  </h3>
 
-                  <p>
-                    <strong>Full Name:</strong> {profile.full_name || "N/A"}
-                  </p>
-                  <p>
-                    <strong>Hourly Rate:</strong> {profile.hourly_rate || "N/A"}
-                  </p>
-                  <p>
-                    <strong>Availability:</strong> {profile.availability || "N/A"}
-                  </p>
-                  {profile.phone && <p><strong>Phone:</strong> {profile.phone}</p>}
-                  {profile.location && <p><strong>Location:</strong> {profile.location}</p>}
-                  {Array.isArray(profile.skills) && profile.skills.length > 0 && (
+                  <div className="space-y-2 text-gray-900 dark:text-gray-100">
                     <p>
-                      <strong>Skills:</strong>{" "}
-                      {profile.skills.map((skill) => skill.name).join(", ")}
+                      <strong>Full Name:</strong> {profile.full_name || "N/A"}
                     </p>
-                  )}
+                    <p>
+                      <strong>Rating:</strong> ⭐ {profile.avg_rating || "N/A"}
+                    </p>
+                    <p>
+                      <strong>Hourly Rate:</strong> {profile.hourly_rate || "N/A"}
+                    </p>
+                    <p>
+                      <strong>Availability:</strong> {profile.availability || "N/A"}
+                    </p>
+                    {profile.phone && <p><strong>Phone:</strong> {profile.phone}</p>}
+                    {profile.location && <p><strong>Location:</strong> {profile.location}</p>}
+                    {profile.skills?.length > 0 && (
+                      <p>
+                        <strong>Skills:</strong>{" "}
+                        <span className="text-indigo-600 dark:text-indigo-400 font-medium">
+                          {profile.skills.map((s) => s.name).join(", ")}
+                        </span>
+                      </p>
+                    )}
+                  </div>
 
-                  <div className="mt-4 flex gap-3">
+                  <div className="mt-6 flex gap-3">
                     <button
                       onClick={() => navigate("/profile")}
-                      className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition"
+                      className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-transform transform hover:scale-105 active:scale-95 shadow-md"
                     >
-                      Edit Profile
+                      <FaEdit /> Edit Profile
                     </button>
                     <button
                       onClick={handleLogout}
-                      className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition"
+                      className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-transform transform hover:scale-105 active:scale-95 shadow-md"
                     >
-                      Logout
+                      <FaSignOutAlt /> Logout
                     </button>
                   </div>
                 </div>
-
               </div>
-            ) : !error ? (
-              <p>Loading profile...</p>
-            ) : null}
+            )}
           </>
         )}
 
+        {/* Notifications Panel */}
         {type === "notifications" && (
-          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 h-full">
+          <div className="bg-white/80 dark:bg-gray-800 backdrop-blur-sm p-2 rounded-xl shadow-md border border-indigo-100 dark:border-indigo-700 h-full animate-fadeIn">
             <NotificationsDropdown />
           </div>
         )}

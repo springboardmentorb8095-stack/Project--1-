@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { FaFolderOpen, FaFileContract, FaComments, FaUser, FaHome } from "react-icons/fa";
 
-export default function Sidebar() {
+export default function Sidebar({ className }) {
   const user = JSON.parse(localStorage.getItem("user"));
   const isClient = user?.role === "client";
   const { pathname } = useLocation();
@@ -10,19 +10,17 @@ export default function Sidebar() {
     `flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-300
      ${
        pathname === path
-         ? "bg-white/30 text-white shadow-md backdrop-blur-sm"
-         : "text-white/90 hover:bg-white/20 hover:text-white"
+         ? "bg-white/30 text-white shadow-md backdrop-blur-sm dark:bg-white/20 dark:text-gray-100"
+         : "text-white/90 hover:bg-white/20 hover:text-white dark:text-gray-200 dark:hover:bg-gray-700/50"
      }`;
 
   return (
     <aside
-      className="w-64 h-screen p-6 flex flex-col justify-between shadow-lg border-r border-white/20"
-      style={{
-        background:
-          "linear-gradient(180deg, #4f46e5 0%, #9333ea 50%, #ec4899 100%)",
-      }}
+      className={`w-64 h-screen p-6 flex flex-col justify-between shadow-lg border-r border-white/20
+                  bg-gradient-to-b from-indigo-600 via-purple-600 to-pink-600
+                  dark:from-indigo-800 dark:via-purple-800 dark:to-pink-900 transition-all duration-300 ${className}`}
     >
-      {/* ===== Brand Header ===== */}
+      {/* Brand */}
       <div>
         <Link to="/" className="flex items-center space-x-2 mb-10">
           <h1 className="text-3xl font-extrabold text-white drop-shadow-md tracking-wide">
@@ -30,7 +28,7 @@ export default function Sidebar() {
           </h1>
         </Link>
 
-        {/* ===== Navigation Links ===== */}
+        {/* Navigation */}
         <nav className="flex flex-col space-y-2 text-sm font-medium">
           <Link to="/" className={linkClass("/")}>
             <FaHome size={18} />
@@ -59,11 +57,11 @@ export default function Sidebar() {
         </nav>
       </div>
 
-      {/* ===== Footer / User Info ===== */}
+      {/* Footer / User Info */}
       {user && (
-        <div className="pt-6 border-t border-white/20 text-white/90 text-sm">
-          <p className="font-semibold text-white text-base">{user?.username || "User"}</p>
-          <p className="capitalize text-white/80">{user?.role}</p>
+        <div className="pt-6 border-t border-white/20 text-white/90 text-sm dark:text-gray-200">
+          <p className="font-semibold text-white dark:text-gray-100 text-base">{user?.username || "User"}</p>
+          <p className="capitalize text-white/80 dark:text-gray-300">{user?.role}</p>
         </div>
       )}
     </aside>
