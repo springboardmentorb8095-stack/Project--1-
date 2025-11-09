@@ -1,0 +1,14 @@
+Hi {{ freelancer_name }},
+
+Your proposal for the project, "{{ project_title }}", has been {{ status }}.
+
+{% if status == "accepted" %}
+Congratulations! A new contract has been created. Please visit your dashboard to view details.
+{% elif status == "rejected" %}
+While this proposal was not selected, we thank you for your time and encourage you to apply for other projects.
+{% endif %}
+
+View your dashboard: {{ site_url }}/dashboard
+
+Best regards,
+The TalentLink Team

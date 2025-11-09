@@ -4,12 +4,12 @@
 from django.shortcuts import render
 from rest_framework import generics, permissions, status, viewsets, filters
 from django.contrib.auth import get_user_model
-from .serializers import UserRegisterSerializer,ContractSerializer, UserSerializer, ProfileSerializer, PortfolioItemSerializer, ProjectSerializer, ProposalSerializer, MessageSerializer, NotificationSerializer
+from .serializers import UserRegisterSerializer,ContractSerializer, UserSerializer, ProfileSerializer, PortfolioItemSerializer, ProjectSerializer, ProposalSerializer, MessageSerializer, NotificationSerializer,ReviewSerializer
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.exceptions import PermissionDenied, ValidationError
-from .models import Profile, PortfolioItem, Project, Proposal, Contract, Message, Notification
+from .models import Profile, PortfolioItem, Project, Proposal, Contract, Message, Notification, Review
 from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
 
@@ -342,3 +342,62 @@ class NotificationViewSet(viewsets.ModelViewSet):
         if serializer.instance.recipient != self.request.user:
             raise permissions.PermissionDenied("Cannot update notifications for other users.")
         serializer.save()
+
+
+
+class ReviewViewSet(viewsets.ModelViewSet):
+    serializer_class = ReviewSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        queryset = Review.objects.filter(
+            Q(contract__proposal__freelancer=user) |
+            Q(contract__proposal__project__client=user) |
+            Q(reviewer=user)
+        ).select_related("contract", "reviewer")
+
+        # ✅ Optional filter by contract ID
+        contract_id = self.request.query_params.get("contract")
+        if contract_id:
+            queryset = queryset.filter(contract_id=contract_id)
+
+        return queryset
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        contract = serializer.validated_data["contract"]
+
+        # 1️⃣ Ensure contract is completed
+        if contract.status != "completed":
+            raise ValidationError("You can only review completed contracts.")
+
+        # 2️⃣ Ensure reviewer is part of the contract
+        if user not in [contract.proposal.freelancer, contract.proposal.project.client]:
+            raise PermissionDenied("You are not part of this contract.")
+
+        # 3️⃣ Prevent duplicate reviews from same user for same contract
+        if Review.objects.filter(contract=contract, reviewer=user).exists():
+            raise ValidationError("You already reviewed this contract.")
+
+        # Save review
+        review = serializer.save(reviewer=user)
+
+        # 4️⃣ Determine who should receive the notification
+        other_user = (
+            contract.proposal.project.client
+            if user == contract.proposal.freelancer
+            else contract.proposal.freelancer
+        )
+
+        # 5️⃣ Create Notification for the other user
+        Notification.objects.create(
+            recipient=other_user,
+            actor=user,
+            notif_type="review",
+            verb=f"left you a review (⭐ {review.rating})",
+            target_id=review.id,
+            target_type="Review",
+        )
+
+        return review

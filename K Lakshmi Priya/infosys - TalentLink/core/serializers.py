@@ -3,7 +3,7 @@
 
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Profile, PortfolioItem, Project, Proposal, Skill, Contract, Message, Notification
+from .models import Profile, PortfolioItem, Project, Proposal, Skill, Contract, Message, Notification, Review
 
 User = get_user_model()
 
@@ -222,3 +222,20 @@ class NotificationSerializer(serializers.ModelSerializer):
             'unread', 'timestamp'
         ]
         read_only_fields = ['actor', 'timestamp']
+
+class ReviewSerializer(serializers.ModelSerializer):
+    reviewer_name = serializers.CharField(source="reviewer.username", read_only=True)
+    reviewer_role = serializers.CharField(source="reviewer.role", read_only=True)
+    contract_title = serializers.CharField(source="contract.proposal.project.title", read_only=True)
+    client_id = serializers.IntegerField(source="contract.proposal.project.client.id", read_only=True)
+    freelancer_id = serializers.IntegerField(source="contract.proposal.freelancer.id", read_only=True)
+
+    class Meta:
+        model = Review
+        fields = [
+            "id", "contract", "rating", "comment", "reviewer",
+            "reviewer_name", "reviewer_role", "contract_title",
+            "client_id", "freelancer_id", "created_at"
+        ]
+        read_only_fields = ["reviewer", "created_at"]
+

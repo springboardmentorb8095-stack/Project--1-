@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import api from "../api/axios";
 
 function ProjectDetails({ projectId: propProjectId }) {
-  const { id: urlProjectId } = useParams(); // from /projects/:id
+  const { id: urlProjectId } = useParams();
   const navigate = useNavigate();
   const token = localStorage.getItem("access");
 
@@ -52,7 +52,6 @@ function ProjectDetails({ projectId: propProjectId }) {
       const res = await api.get(`/proposals/`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
       const userProposal = res.data.find(
         (p) => String(p.project) === String(projectId)
       );
@@ -66,7 +65,6 @@ function ProjectDetails({ projectId: propProjectId }) {
 
   const fetchProposalsForClient = async () => {
     if (!isClient) return;
-
     try {
       const res = await api.get(`/projects/${projectId}/proposals/`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -101,102 +99,127 @@ function ProjectDetails({ projectId: propProjectId }) {
 
   const canEdit = isClient && String(project?.client) === String(userId);
 
-  if (loading || proposalLoading) return <p>Loading project details...</p>;
-  if (!project) return <p>Project not found.</p>;
+  if (loading || proposalLoading)
+    return <p className="text-gray-500 text-center mt-10">Loading project details...</p>;
+  if (!project) return <p className="text-red-500 text-center mt-10">Project not found.</p>;
 
   return (
-    <div style={{ padding: "2rem" }}>
-      <h2>{project.title}</h2>
-      <p>{project.description}</p>
-      <p>
-        <strong>Budget:</strong> ${project.budget}
-      </p>
-      <p>
-        <strong>Required Skills:</strong>{" "}
-        {project.skills && project.skills.length > 0
-          ? typeof project.skills[0] === "string"
-            ? project.skills.join(", ")
-            : project.skills.map((skill) => skill.name).join(", ")
-          : "N/A"}
-      </p>
-      <p>
-        <strong>Duration:</strong> {project.duration} days
-      </p>
-      <p>
-        <strong>Status:</strong> {project.status}
-      </p>
+    <div className="max-w-4xl mx-auto p-6 space-y-6">
+      {/* Project Title */}
+      <h2 className="text-3xl font-bold text-gray-800">{project.title}</h2>
 
-      {project.status === "open" ? (
-        <>
-          {isFreelancer && (
+      {/* Project Details */}
+      <div className="bg-white shadow rounded-lg p-6 space-y-5">
+        <p>
+          <span className="font-semibold text-blue-800 bg-blue-100 px-2 py-1 rounded-md shadow-sm">
+ Description : 
+</span>{" "}
+          <span className="text-gray-600">{project.description}</span>
+        </p>
+        <p>
+          
+          <span className="font-semibold text-blue-800 bg-blue-100 px-2 py-1 rounded-md shadow-sm">
+ Budget : 
+</span>{" "}
+
+          <span className="text-gray-600">
+            ${project.budget ? Number(project.budget).toFixed(2) : "N/A"}
+          </span>
+        </p>
+        <p>
+           <span className="font-semibold text-blue-800 bg-blue-100 px-1 py-1 rounded-md shadow-sm">
+ Required Skills:
+</span>{" "}
+          <span className="text-gray-600">
+            {project.skills && project.skills.length > 0
+              ? typeof project.skills[0] === "string"
+                ? project.skills.join(", ")
+                : project.skills.map((skill) => skill.name).join(", ")
+              : "N/A"}
+          </span>
+        </p>
+        <p>
+           <span className="font-semibold text-blue-800 bg-blue-100 px-2 py-1 rounded-md shadow-sm">
+ Duration:
+</span>{" "}
+          <span className="text-gray-600">{project.duration} days</span>
+        </p>
+        
+        <p>
+           <span className="font-semibold text-blue-800 bg-blue-100 px-2 py-1 rounded-md shadow-sm">
+Status:
+</span>{" "}
+          <span className="font-semibold text-gray-700"></span>{" "}
+          <span className="text-gray-600">{project.status}</span>
+        </p>
+
+        {/* Freelancer Actions */}
+        {project.status === "open" && isFreelancer && (
+          <button
+            onClick={() =>
+              navigate(proposal ? `/proposals/edit/${proposal.id}` : `/proposals/new/${project.id}`)
+            }
+            className="mt-3 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+          >
+            {proposal ? "Update Proposal" : "Send Proposal"}
+          </button>
+        )}
+
+        {/* Client Actions */}
+        {(canEdit && project.status == "open") && (
+          <div className="mt-3 flex space-x-3">
             <button
-              onClick={() =>
-                navigate(
-                  proposal
-                    ? `/proposals/edit/${proposal.id}`
-                    : `/proposals/new/${project.id}`
-                )
-              }
-              style={{ marginTop: "1rem" }}
+              onClick={() => navigate(`/projects/edit/${project.id}`)}
+              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition"
             >
-              {proposal ? "Update Proposal" : "Send Proposal"}
+              Edit Project
             </button>
-          )}
+            <button
+              onClick={handleDelete}
+              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
+            >
+              Delete Project
+            </button>
+          </div>
+        )}
 
-          {canEdit && (
-            <div style={{ marginTop: "1rem" }}>
-              <button onClick={() => navigate(`/projects/edit/${project.id}`)}>
-                Edit Project
-              </button>
-              <button
-                onClick={handleDelete}
-                style={{ marginLeft: "1rem", color: "red" }}
-              >
-                Delete Project
-              </button>
-            </div>
-          )}
-        </>
-      ) : (
-        <>
-          {proposal && (
-            <p style={{ marginTop: "0.5rem" }}>
-              <strong>Your Proposal Status</strong> :{" "}
-              {proposal.status === "rejected"
-                ? "Not Selected"
-                : proposal.status}
-            </p>
-          )}
-          <h3>Application Closed.</h3>
-        </>
-      )}
+        {/* Closed Project */}
+        {project.status !== "open" && proposal && (
+          <p className="mt-3 text-gray-700">
+            <span className="font-semibold">Your Proposal Status:</span>{" "}
+            {proposal.status === "rejected" ? "Not Selected" : proposal.status}
+          </p>
+        )}
+        {project.status !== "open" && <h3 className="mt-2 text-xl font-semibold text-gray-800">Application Closed</h3>}
+      </div>
 
-      {/* Client Proposal List */}
+      {/* Client Proposals */}
       {canEdit && (
-        <div style={{ marginTop: "2rem" }}>
-          <h3>Proposals Received</h3>
+        <div className="bg-blue shadow rounded-lg p-6 space-y-4">
+          <h3 className="text-2xl font-bold text-gray-800">Proposals Received</h3>
           {allProposals.length === 0 ? (
-            <p>No proposals yet.</p>
+            <p className="text-gray-600">No proposals yet.</p>
           ) : (
             allProposals.map((p) => (
-              <div
-                key={p.id}
-                style={{
-                  border: "1px solid #ccc",
-                  padding: "1rem",
-                  marginBottom: "1rem",
-                }}
-              >
-                <p>
-                  <strong>Freelancer:</strong> {p.freelancer_name || "Unknown"}
-                </p>
-                <p>
-                  <strong>Budget:</strong> ${p.proposed_rate}
-                </p>
-                <p>
-                  <strong>Status:</strong> {p.status}
-                </p>
-                <button onClick={() => navigate(`/proposals/view/${p.id}`)}>
+              <div key={p.id} className="border rounded-lg p-4 bg-gray-50 flex flex-col md:flex-row md:justify-between md:items-center space-y-2 md:space-y-0">
+                <div className="space-y-1">
+                  <p>
+                    <span className="font-bold text-gray-700">Freelancer:</span>{" "}
+                    <span className="text-gray-600">{p.freelancer_name || "Unknown"}</span>
+                  </p>
+                  <p>
+                    <span className="font-bold text-gray-700">Budget:</span>{" "}
+                    <span className="text-gray-600">${p.proposed_rate}</span>
+                  </p>
+                  <p>
+                    <span className="font-bold text-gray-700">Status:</span>{" "}
+                    <span className="text-gray-600">{p.status}</span>
+                  </p>
+                </div>
+                <button
+                  onClick={() => navigate(`/proposals/view/${p.id}`)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition mt-2 md:mt-0"
+                >
                   View Proposal
                 </button>
               </div>

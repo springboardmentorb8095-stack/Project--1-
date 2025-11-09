@@ -5,7 +5,8 @@ from .views import (
     UpdateContractStatus,
     SkillViewSet, ProfileViewSet, ProjectViewSet,
     ProposalViewSet, ContractViewSet, MessageViewSet, ReviewViewSet,
-    GetOrCreateConversationView, ConversationMessagesView, MarkMessagesReadView  # ✅ Add these
+    GetOrCreateConversationView, ConversationMessagesView, MarkMessagesReadView, NotificationViewSet 
+    # ✅ Add these
 )
 
 router = DefaultRouter()
@@ -15,7 +16,9 @@ router.register(r'projects', ProjectViewSet)
 router.register(r'proposals', ProposalViewSet)
 router.register(r'contracts', ContractViewSet, basename='contract')
 router.register(r'messages', MessageViewSet)
-router.register(r'reviews', ReviewViewSet, basename='review')
+router.register(r'reviews', ReviewViewSet, basename='reviews')
+router.register(r'notifications', NotificationViewSet, basename='notifications')
+
 
 urlpatterns = [
     path('', include(router.urls)),

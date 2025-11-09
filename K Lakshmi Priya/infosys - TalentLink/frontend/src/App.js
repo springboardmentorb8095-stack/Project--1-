@@ -1,6 +1,10 @@
 // src/App.js
 
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+
+import MainLayout from "./layouts/MainLayout";
+import PublicLayout from "./layouts/PublicLayout";
+
 import Register from "./pages/Register";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
@@ -26,44 +30,58 @@ import NotificationsDropdown from "./pages/NotificationsDropdown";
 
 import ContractDetail from "./pages/ContractDetail"; // Adjust path as needed
 
+import ReviewList from "./pages/ReviewList";
+
+import YourProposals from "./pages/YourProposals.js";
+const isAuthenticated = () => !!localStorage.getItem("access");
 
 
 function App() {
+  
+  const auth = isAuthenticated();
+
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/portfolio" element={<Portfolio />} />
-        <Route path="/portfolio/add" element={<PortfolioForm />} />
+        {/* Public routes */}
+        {!auth && (
+          <Route element={<PublicLayout />}>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/" element={<Login />} /> {/* Redirect to login if needed */}
+            
+            <Route path="/dash" element={<Dashboard />} />
+            <Route path="/projects" element={<ProjectList />} />
+          </Route>
+        )}
 
-        <Route path="/projects" element={<ProjectList />} />
-        <Route path="/projects/new" element={<ProjectForm />} />
-        <Route path="/projects/:id" element={<ProjectDetails />} />
-        <Route path="/projects/edit/:id" element={<ProjectForm isEdit={true} />} />
-
-        <Route path="/proposals/new/:id" element={<ProposalForm />} />
-        <Route path="/proposals/edit/:proposalId" element={<ProposalForm />} />
-        
-        <Route path="/proposals/view/:id" element={<ProposalView />} />
-        <Route path="/users/:id/profile" element={<PublicProfile />} />
-        <Route path="/contracts" element={<Contracts />} />
-
-        
-        <Route path="/contracts/:id" element={<ContractDetail />} />
-
-        <Route path="/messages" element={<MessageInbox />} />
-        <Route path="/messages/:userId" element={<ChatThread />} />
-
-        <Route path="/noti" element={<NotificationsDropdown />} />
-
-
-
+        {/* Protected routes */}
+        {auth && (
+          <Route element={<MainLayout />}>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/dash" element={<Dashboard />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/portfolio" element={<Portfolio />} />
+            <Route path="/portfolio/add" element={<PortfolioForm />} />
+            <Route path="/projects" element={<ProjectList />} />
+            <Route path="/projects/new" element={<ProjectForm />} />
+            <Route path="/projects/:id" element={<ProjectDetails />} />
+            <Route path="/projects/edit/:id" element={<ProjectForm isEdit={true} />} />
+            <Route path="/proposals/new/:id" element={<ProposalForm />} />
+            <Route path="/proposals/edit/:proposalId" element={<ProposalForm />} />
+            <Route path="/proposals/view/:id" element={<ProposalView />} />
+            <Route path="/users/:id/profile" element={<PublicProfile />} />
+            <Route path="/contracts" element={<Contracts />} />
+            <Route path="/contracts/:id" element={<ContractDetail />} />
+            <Route path="/messages" element={<MessageInbox />} />
+            <Route path="/messages/:userId" element={<ChatThread />} />
+            <Route path="/noti" element={<NotificationsDropdown />} />
+            <Route path="/reviews" element={<ReviewList />} />
+            <Route path="/pro" element={<YourProposals />} />
+          </Route>
+        )}
       </Routes>
     </Router>
   );
 }
-
 export default App;

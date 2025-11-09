@@ -1,119 +1,459 @@
 # backend/api/serializers.py
 from rest_framework import serializers
-from .models import User, Profile, Skill, Project, Proposal, Contract, Message, Review, PortfolioItem, Notification # Added PortfolioItem, Notification
+# Make sure to import models correctly
+from .models import (
+    User, Profile, Skill, Project, Proposal, Contract, Message, Review,
+    PortfolioItem, Notification, SavedProject, ActivityLog, ProjectAnalytics,
+    AchievementBadge, Milestone, ProjectFile, Payment, Invoice, Wallet, Transaction
+)
+# Import the function to get the currently active User model
+from django.contrib.auth import get_user_model
+
+# Get the User model defined in settings (likely 'api.User')
+User = get_user_model()
+
 
 class SkillSerializer(serializers.ModelSerializer):
+    """ Serializer for Skill model. """
     class Meta:
         model = Skill
         fields = ['id', 'name']
 
 class RegisterSerializer(serializers.ModelSerializer):
-    user_type = serializers.CharField(write_only=True, required=True)
+    """ Serializer for user registration. """
+    user_type = serializers.CharField(write_only=True, required=True, help_text="User type ('freelancer' or 'client')")
+
     class Meta:
         model = User
         fields = ('username', 'password', 'email', 'user_type')
-        extra_kwargs = {'password': {'write_only': True}}
+        extra_kwargs = {
+            'password': {'write_only': True, 'style': {'input_type': 'password'}},
+            'email': {'required': True} # Ensure email is required
+        }
+
+    def validate_user_type(self, value):
+        """ Ensure user_type is valid. """
+        if value not in ['freelancer', 'client']:
+            raise serializers.ValidationError("User type must be either 'freelancer' or 'client'.")
+        return value
+
     def create(self, validated_data):
         user_type = validated_data.pop('user_type')
+        # Use create_user to handle password hashing
         user = User.objects.create_user(
             username=validated_data['username'],
             email=validated_data['email'],
             password=validated_data['password']
         )
+        # Create the associated profile
         Profile.objects.create(user=user, user_type=user_type)
         return user
 
 class UserSerializer(serializers.ModelSerializer):
+    """ Basic serializer for User model display. """
     class Meta:
         model = User
-        fields = ('id', 'username', 'email')
+        fields = ('id', 'username', 'email') # Only include fields safe for general display
 
-# New Serializer for Portfolio Items
 class PortfolioItemSerializer(serializers.ModelSerializer):
-    profile = serializers.PrimaryKeyRelatedField(read_only=True) # Should be set automatically based on logged-in user
+    """ Serializer for PortfolioItem model. """
+    profile = serializers.PrimaryKeyRelatedField(read_only=True)
+    image = serializers.ImageField(required=False, allow_null=True, use_url=True) # Ensure URL is used
 
     class Meta:
         model = PortfolioItem
         fields = ('id', 'profile', 'title', 'description', 'link', 'image', 'created_at')
         read_only_fields = ('profile', 'created_at')
 
+
 class ProfileSerializer(serializers.ModelSerializer):
+    """ Serializer for the Profile model. """
     user = serializers.StringRelatedField(read_only=True)
     skills = SkillSerializer(many=True, read_only=True)
-    skill_ids = serializers.PrimaryKeyRelatedField(
-        many=True, write_only=True, queryset=Skill.objects.all(), source='skills'
+    # Allows updating skills by providing a list of skill names
+    skill_names = serializers.ListField(
+        child=serializers.CharField(max_length=100), write_only=True, required=False
     )
-    # Include portfolio items (read-only in the main profile view)
     portfolio_items = PortfolioItemSerializer(many=True, read_only=True)
+    # Profile picture field for reading (URL). Upload handled in view.
+    profile_picture = serializers.ImageField(read_only=True, required=False, allow_null=True, use_url=True)
 
     class Meta:
         model = Profile
-        fields = ('id', 'user', 'user_type', 'headline', 'bio', 'skills', 'skill_ids',
-                  'portfolio_link', 'portfolio_items', # Added portfolio_items
-                  'hourly_rate', 'country', 'timezone', 'profile_picture')
+        fields = (
+            'id', 'user', 'user_type', 'headline', 'bio', 'skills', 'skill_names',
+            'portfolio_link', 'portfolio_items', 'hourly_rate', 'country',
+            'timezone', 'profile_picture', 'created_at', 'updated_at'
+        )
+        # Fields not typically changed via this serializer directly
+        read_only_fields = (
+            'id', 'user', 'user_type', 'skills', 'portfolio_items', 'profile_picture',
+            'created_at', 'updated_at'
+         )
+
+    def update(self, instance, validated_data):
+        skill_names = validated_data.pop('skill_names', None)
+
+        # Perform the standard update for other fields
+        instance = super().update(instance, validated_data)
+
+        # Handle skill updates if 'skill_names' was provided
+        if skill_names is not None: # Use `is not None` to allow empty list to clear skills
+            skill_objects = []
+            for name in skill_names:
+                name_stripped = name.strip()
+                if name_stripped: # Avoid creating empty skills
+                    skill, created = Skill.objects.get_or_create(
+                        name__iexact=name_stripped, # Case-insensitive lookup
+                        defaults={'name': name_stripped} # Use stripped name for creation
+                    )
+                    skill_objects.append(skill)
+            instance.skills.set(skill_objects) # `.set()` handles add/remove automatically
+
+        return instance
+
 
 class ProjectSerializer(serializers.ModelSerializer):
+    """ Serializer for Project model. """
     client = serializers.StringRelatedField(read_only=True)
     skills_required = SkillSerializer(many=True, read_only=True)
     skill_ids = serializers.PrimaryKeyRelatedField(
-        many=True, write_only=True, queryset=Skill.objects.all(), source='skills_required'
+        queryset=Skill.objects.all(), many=True, write_only=True,
+        source='skills_required', required=False
     )
+    new_skill_names = serializers.ListField(
+        child=serializers.CharField(max_length=100), write_only=True, required=False,
+        help_text="List of new skill names to create and add to project."
+    )
+    image = serializers.ImageField(required=False, allow_null=True, use_url=True)
+    is_saved = serializers.SerializerMethodField()
+    analytics = serializers.SerializerMethodField()
+
     class Meta:
         model = Project
         fields = '__all__'
-        read_only_fields = ('client', 'created_at', 'updated_at') # Ensure client isn't writable here
+        read_only_fields = ('id', 'client', 'created_at', 'updated_at', 'view_count')
+
+    def get_is_saved(self, obj):
+        """Check if the current user has saved this project."""
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return SavedProject.objects.filter(user=request.user, project=obj).exists()
+        return False
+
+    def get_analytics(self, obj):
+        """Include analytics data if available."""
+        try:
+            analytics = ProjectAnalytics.objects.get(project=obj)
+            return {
+                'total_views': analytics.total_views,
+                'unique_views': analytics.unique_views,
+                'proposals_count': analytics.proposals_count,
+                'saved_count': analytics.saved_count
+            }
+        except ProjectAnalytics.DoesNotExist:
+            return None
+
+    def create(self, validated_data):
+        new_skill_names = validated_data.pop('new_skill_names', [])
+        skills_required = validated_data.pop('skills_required', [])
+        image = validated_data.pop('image', None)
+        project = Project.objects.create(**validated_data)
+        if image:
+            project.image = image
+            project.save(update_fields=['image'])
+        if skills_required:
+            project.skills_required.set(skills_required)
+        skill_objs = []
+        for name in new_skill_names:
+            name_stripped = name.strip()
+            if name_stripped:
+                skill, _ = Skill.objects.get_or_create(
+                    name__iexact=name_stripped,
+                    defaults={'name': name_stripped}
+                )
+                skill_objs.append(skill)
+        if skill_objs:
+            project.skills_required.add(*skill_objs)
+        return project
+
+    def update(self, instance, validated_data):
+        new_skill_names = validated_data.pop('new_skill_names', [])
+        skills_required = validated_data.pop('skills_required', None)
+        image = validated_data.pop('image', None)
+        instance = super().update(instance, validated_data)
+        if image is not None:
+            instance.image = image
+            instance.save(update_fields=['image'])
+        if skills_required is not None:
+            instance.skills_required.set(skills_required)
+        skill_objs = []
+        for name in new_skill_names:
+            name_stripped = name.strip()
+            if name_stripped:
+                skill, _ = Skill.objects.get_or_create(
+                    name__iexact=name_stripped,
+                    defaults={'name': name_stripped}
+                )
+                skill_objs.append(skill)
+        if skill_objs:
+            instance.skills_required.add(*skill_objs)
+        return instance
+
 
 class ProposalSerializer(serializers.ModelSerializer):
+    """ Serializer for Proposal model. """
     freelancer = serializers.StringRelatedField(read_only=True)
     project_title = serializers.CharField(source='project.title', read_only=True)
+    # Allows associating with a project by its ID during creation
+    project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.filter(status='active')) # Only allow proposing on active projects
+    rating = serializers.IntegerField(required=False, min_value=1, max_value=5, allow_null=True)
 
     class Meta:
         model = Proposal
-        fields = ('id', 'project', 'project_title', 'freelancer', 'cover_letter', 'proposed_rate', 'status', 'submitted_at', 'time_available', 'additional_info')
-        read_only_fields = ('freelancer', 'project_title', 'submitted_at', 'status') # Status is usually changed via specific actions
+        fields = (
+            'id', 'project', 'project_title', 'freelancer', 'cover_letter',
+            'proposed_rate', 'status', 'submitted_at', 'time_available', 'additional_info', 'rating'
+        )
+        # Fields determined by the system or read-only context
+        read_only_fields = ('id', 'freelancer', 'project_title', 'submitted_at', 'status')
+
+    def validate_rating(self, value):
+        if value is not None and (value < 1 or value > 5):
+            raise serializers.ValidationError("Rating must be between 1 and 5.")
+        return value
+
 
 class ContractSerializer(serializers.ModelSerializer):
-    project = ProjectSerializer(read_only=True)
-    freelancer = UserSerializer(read_only=True)
+    """ Serializer for Contract model. """
+    project = ProjectSerializer(read_only=True) # Show nested project details
+    freelancer = UserSerializer(read_only=True) # Show nested freelancer details
 
     class Meta:
         model = Contract
-        fields = '__all__'
+        fields = '__all__' # Read all fields
+        read_only_fields = ('id', 'project', 'freelancer', 'agreed_rate', 'start_date')
+
 
 class MessageSerializer(serializers.ModelSerializer):
-    sender = serializers.StringRelatedField(read_only=True)
-    # Allow specifying receiver by username on creation
-    receiver_username = serializers.CharField(write_only=True, required=False) # Changed receiver field
-    receiver = serializers.StringRelatedField(read_only=True) # Display receiver username
+    """ Serializer for Message model. Handles reading and writing. """
+    # Read-only field showing sender's username
+    sender = serializers.SlugRelatedField(slug_field='username', read_only=True)
+    # Read-only field showing receiver's username
+    receiver = serializers.SlugRelatedField(slug_field='username', read_only=True)
+    # Write-only field accepting the receiver's username string on create
+    receiver_username = serializers.CharField(write_only=True, required=True)
 
     class Meta:
         model = Message
-        fields = ('id', 'sender', 'receiver', 'receiver_username', 'content', 'timestamp') # Added receiver_username
-        read_only_fields = ('sender', 'timestamp', 'receiver')
+        fields = ('id', 'sender', 'receiver', 'receiver_username', 'content', 'timestamp')
+        read_only_fields = ('id', 'sender', 'receiver', 'timestamp')
+
+    # --- ADDED create METHOD ---
+    def create(self, validated_data):
+        """
+        Create and return a new `Message` instance, removing the temporary
+        'receiver_username' field before calling the model manager.
+        """
+        # Remove receiver_username as it's not a model field
+        validated_data.pop('receiver_username', None)
+
+        # sender and receiver objects are automatically added to validated_data
+        # by DRF when serializer.save(sender=sender, receiver=receiver) is called.
+        message = Message.objects.create(**validated_data)
+        return message
 
 
 class ReviewSerializer(serializers.ModelSerializer):
+    """ Serializer for Review model. """
     reviewer = serializers.StringRelatedField(read_only=True)
     reviewee = serializers.StringRelatedField(read_only=True)
-    project_title = serializers.CharField(source='project.title', read_only=True) # Added project title
+    project_title = serializers.CharField(source='project.title', read_only=True)
+    # Allows associating with a project by its ID during creation
+    project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all())
 
     class Meta:
         model = Review
-        fields = ('id', 'project', 'project_title', 'reviewer', 'reviewee', 'rating', 'comment', 'created_at') # Added project_title
-        read_only_fields = ('reviewer', 'reviewee', 'created_at', 'project_title')
+        fields = (
+            'id', 'project', 'project_title', 'reviewer', 'reviewee',
+            'rating', 'comment', 'created_at'
+        )
+        read_only_fields = ('id', 'reviewer', 'reviewee', 'created_at', 'project_title')
+
+    def validate_rating(self, value):
+        """ Ensure rating is within the allowed range. """
+        if not 1 <= value <= 5:
+            raise serializers.ValidationError("Rating must be between 1 and 5.")
+        return value
 
 
-# New Serializer for Notifications
 class NotificationSerializer(serializers.ModelSerializer):
+    """ Read-only serializer for Notification model. """
     recipient = serializers.StringRelatedField(read_only=True)
-    # Optionally include links or details about related objects
-    project_id = serializers.PrimaryKeyRelatedField(source='project', read_only=True)
-    proposal_id = serializers.PrimaryKeyRelatedField(source='proposal', read_only=True)
-    message_id = serializers.PrimaryKeyRelatedField(source='related_message', read_only=True)
+    # Use PrimaryKeyRelatedField for related objects - more efficient
+    project = serializers.PrimaryKeyRelatedField(read_only=True, allow_null=True) # Allow null
+    proposal = serializers.PrimaryKeyRelatedField(read_only=True, allow_null=True) # Allow null
+    related_message = serializers.PrimaryKeyRelatedField(read_only=True, allow_null=True) # Allow null
 
     class Meta:
         model = Notification
-        fields = ('id', 'recipient', 'message', 'read', 'timestamp',
-                  'project_id', 'proposal_id', 'message_id') # Include related object IDs
-        read_only_fields = ('recipient', 'message', 'timestamp',
-                            'project_id', 'proposal_id', 'message_id') # User can only update 'read' status usually
+        # Ensure field names match the model field names
+        fields = (
+            'id', 'recipient', 'message', 'read', 'timestamp',
+            'project', 'proposal', 'related_message'
+        )
+        # Notifications are typically created by signals, so most fields are read-only
+        read_only_fields = (
+            'id', 'recipient', 'message', 'timestamp', 'project',
+            'proposal', 'related_message'
+            # 'read' status is updated via specific actions in the view
+        )
+
+
+class SavedProjectSerializer(serializers.ModelSerializer):
+    """Serializer for SavedProject model."""
+    project = serializers.SerializerMethodField()
+    project_id = serializers.IntegerField(write_only=True)
+
+    class Meta:
+        model = SavedProject
+        fields = ('id', 'project', 'project_id', 'saved_at')
+        read_only_fields = ('id', 'saved_at')
+
+    def get_project(self, obj):
+        """Return project data with proper context."""
+        request = self.context.get('request')
+        serializer = ProjectSerializer(obj.project, context={'request': request})
+        return serializer.data
+
+
+class ActivityLogSerializer(serializers.ModelSerializer):
+    """Serializer for ActivityLog model."""
+    user = serializers.StringRelatedField(read_only=True)
+    related_project = serializers.PrimaryKeyRelatedField(read_only=True)
+    related_user = serializers.StringRelatedField(read_only=True)
+
+    class Meta:
+        model = ActivityLog
+        fields = '__all__'
+      
+
+class ProjectAnalyticsSerializer(serializers.ModelSerializer):
+    """Serializer for ProjectAnalytics model."""
+    project = serializers.PrimaryKeyRelatedField(read_only=True)
+
+    class Meta:
+        model = ProjectAnalytics
+        fields = '__all__'
+        
+
+
+class AchievementBadgeSerializer(serializers.ModelSerializer):
+    """Serializer for AchievementBadge model."""
+    user = serializers.StringRelatedField(read_only=True)
+
+    class Meta:
+        model = AchievementBadge
+        fields = '__all__'
+        read_only_fields = ('id', 'user', 'earned_at')
+
+
+class MilestoneSerializer(serializers.ModelSerializer):
+    """Serializer for Milestone model."""
+    
+    # For reading (GET): show project title
+    project_title = serializers.CharField(source='project.title', read_only=True)
+    
+    # For writing (POST): accept a project ID
+    # We use Project.objects.all() here, the permission check is done in the view.
+    project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all())
+
+    class Meta:
+        model = Milestone
+        # Explicitly list fields to include the new project_title
+        fields = (
+            'id', 'project', 'project_title', 'title', 'description', 
+            'amount', 'due_date', 'status', 'completed_at', 
+            'created_at', 'updated_at'
+        )
+        read_only_fields = (
+            'id', 'project_title', 'created_at', 'updated_at', 'completed_at'
+        )
+
+
+class ProjectFileSerializer(serializers.ModelSerializer):
+    """Serializer for ProjectFile model."""
+    uploaded_by = serializers.StringRelatedField(read_only=True)
+    file = serializers.FileField(use_url=True)
+
+    class Meta:
+        model = ProjectFile
+        fields = '__all__'
+        read_only_fields = ('id', 'uploaded_by', 'uploaded_at')
+
+
+class PaymentSerializer(serializers.ModelSerializer):
+    """Serializer for Payment model."""
+    project = serializers.StringRelatedField(read_only=True)
+    milestone = serializers.StringRelatedField(read_only=True)
+    from_user = serializers.StringRelatedField(read_only=True)
+    to_user = serializers.StringRelatedField(read_only=True)
+
+    class Meta:
+        model = Payment
+        fields = '__all__'
+        read_only_fields = ('id', 'created_at', 'completed_at', 'transaction_id')
+
+
+class InvoiceSerializer(serializers.ModelSerializer):
+    """Serializer for Invoice model."""
+
+    # For READING (GET)
+    project_title = serializers.StringRelatedField(source='project', read_only=True)
+    milestone = serializers.StringRelatedField(read_only=True)
+    freelancer = serializers.StringRelatedField(read_only=True)
+    client = serializers.StringRelatedField(read_only=True)
+
+    # For WRITING (POST) - This accepts the project ID
+    project = serializers.PrimaryKeyRelatedField(
+        queryset=Project.objects.all()
+    )
+
+    # Match model migration 0015 which allows due_date to be optional
+    due_date = serializers.DateField(required=False, allow_null=True)
+
+    class Meta:
+        model = Invoice
+        # List fields explicitly
+        fields = (
+            'id', 'project', 'project_title', 'milestone', 'freelancer', 'client',
+            'invoice_number', 'amount', 'tax_rate', 'total_amount', 'status',
+            'due_date', 'description', 'created_at', 'paid_at'
+        )
+        # 'project' is now writable
+        read_only_fields = (
+            'id', 'invoice_number', 'created_at', 'paid_at',
+            'project_title', 'milestone', 'freelancer', 'client',
+            'total_amount', 'status' # Status defaults to 'draft'
+        )
+
+
+class WalletSerializer(serializers.ModelSerializer):
+    """Serializer for Wallet model."""
+    user = serializers.StringRelatedField(read_only=True)
+
+    class Meta:
+        model = Wallet
+        fields = '__all__'
+        read_only_fields = ('id', 'user', 'last_updated')
+
+
+class TransactionSerializer(serializers.ModelSerializer):
+    """Serializer for Transaction model."""
+    wallet = WalletSerializer(read_only=True)
+    related_payment = PaymentSerializer(read_only=True)
+
+    class Meta:
+        model = Transaction
+        fields = '__all__'
+        read_only_fields = ('id', 'created_at')

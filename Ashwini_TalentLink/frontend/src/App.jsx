@@ -1,80 +1,71 @@
-// frontend/src/App.jsx
-import React, { useState, useEffect, createContext, useContext, useRef } from 'react';
-import { BrowserRouter, Routes, Route, Link, useNavigate, useParams, useLocation } from 'react-router-dom';
+import React, { useState, useEffect, createContext, useContext, useRef, useCallback } from 'react';
+import { Routes, Route, Link, useNavigate, useParams, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import './App.css';
-
+import './index.css'; 
 import { Navbar, Nav, Container, Button, Form, Card, Row, Col, Alert, Spinner, Badge, ListGroup, Modal, InputGroup, Image, Dropdown, Offcanvas } from 'react-bootstrap';
-import { Briefcase, LogOut, User, DollarSign, Clock, PlusCircle, Search, Check, X, MessageSquare, Award, FileText, Bell, Edit, Trash2, Link as LinkIconLucide, Image as ImageIcon } from 'lucide-react'; // Added Bell, Edit, Trash2
+import 'react-quill/dist/quill.snow.css';
+import './pages/ProjectEditPage.css'; 
+import { Briefcase, LogOut, User, DollarSign, Clock, PlusCircle, Search, Check, X, MessageSquare, Award, FileText, Bell, Edit, Trash2, Link as LinkIconLucide, Image as ImageIcon, Send, UserPlus, Star, Activity, BarChart3, Filter, TrendingUp, Bookmark, BookmarkCheck, Shield, Trophy, Zap, Wallet as WalletIcon } from 'lucide-react';
 
-// Import new/updated pages and components
-import ProfilePage from './pages/ProfilePage'; // Assume this will be updated for Portfolio
+
+import ProfilePage from './pages/ProfilePage';
 import ContractsPage from './pages/ContractsPage';
-import MessagingPage from './pages/MessagingPage';
 import ReviewPage from './pages/ReviewPage';
-import ProjectEditPage from './pages/ProjectEditPage'; // New
-import ProposalEditPage from './pages/ProposalEditPage'; // New
-import NotificationsPage from './pages/NotificationsPage'; // New
+import ProjectEditPage from './pages/ProjectEditPage';
+import NotificationsPage from './pages/NotificationsPage';
+import WalletPage from './pages/WalletPage';
+import MilestonesPage from './pages/MilestonesPage';
+import InvoicesPage from './pages/InvoicesPage';
+import HomePage from './components/HomePage';
+import './components/HomePage.css';
 
-// Use environment variable or default
-const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'; 
+const API_URL = `${API_BASE_URL}/api`; 
 
-
-// --- Axios Interceptor for Auth ---
 const axiosInstance = axios.create({
     baseURL: API_URL,
-    timeout: 5000, // Increased timeout slightly
+    timeout: 5000, 
     headers: {
-        'Content-Type': 'application/json', // Default content type
+        'Content-Type': 'application/json',
     }
 });
-
-// --- Authentication Context ---
 const AuthContext = createContext();
 
 const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(() => localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null);
     const [tokens, setTokens] = useState(() => localStorage.getItem('authTokens') ? JSON.parse(localStorage.getItem('authTokens')) : null);
-    const [loading, setLoading] = useState(false); // For login/register process
-    const [authLoading, setAuthLoading] = useState(true); // Initial auth check
+    const [loading, setLoading] = useState(false); 
+    const [authLoading, setAuthLoading] = useState(true); 
     const navigate = useNavigate();
-    const location = useLocation(); // Get current location
-
-    // Refresh token logic reference
+    const location = useLocation(); 
     const refreshIntervalRef = useRef();
 
-    // Axios Request Interceptor
     useEffect(() => {
         const reqInterceptor = axiosInstance.interceptors.request.use(config => {
             const currentTokens = localStorage.getItem('authTokens') ? JSON.parse(localStorage.getItem('authTokens')) : null;
             if (currentTokens?.access) {
                 config.headers.Authorization = `Bearer ${currentTokens.access}`;
             }
-            // Handle multipart form data for file uploads
             if (config.data instanceof FormData) {
-                config.headers['Content-Type'] = 'multipart/form-data';
+                 delete config.headers['Content-Type'];
             } else {
                  config.headers['Content-Type'] = 'application/json';
             }
             return config;
         }, error => Promise.reject(error));
-
-        setAuthLoading(false); // Finished initial setup
-
+        setAuthLoading(false); 
         return () => {
             axiosInstance.interceptors.request.eject(reqInterceptor);
         };
     }, []);
 
-     // Axios Response Interceptor for Token Refresh (Simplified)
     useEffect(() => {
         const resInterceptor = axiosInstance.interceptors.response.use(
             response => response,
             async error => {
                 const originalRequest = error.config;
                 const currentTokens = localStorage.getItem('authTokens') ? JSON.parse(localStorage.getItem('authTokens')) : null;
-
-                // Check for 401 Unauthorized and if it's not a token refresh request itself
                 if (error.response?.status === 401 && currentTokens?.refresh && !originalRequest._retry) {
                     originalRequest._retry = true; // Mark to prevent infinite loops
                     try {
@@ -88,11 +79,10 @@ const AuthProvider = ({ children }) => {
                         axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${newTokens.access}`;
                         originalRequest.headers['Authorization'] = `Bearer ${newTokens.access}`;
                         console.log("Token refreshed successfully.");
-                        return axiosInstance(originalRequest); // Retry original request with new token
+                        return axiosInstance(originalRequest);
                     } catch (refreshError) {
-                        console.error("Token refresh failed:", refreshError);
-                        // Refresh failed, logout user
-                        logout(false); // Pass false to prevent navigation if already on login
+                        console.error("Token refresh failed:", refreshError?.response?.data || refreshError?.message || refreshError);
+                        logout(false); 
                         return Promise.reject(refreshError);
                     }
                 }
@@ -103,71 +93,114 @@ const AuthProvider = ({ children }) => {
         return () => {
             axiosInstance.interceptors.response.eject(resInterceptor);
         };
-    }, [tokens]); // Re-run if tokens change
+    }, [tokens]);
 
     const login = async (username, password) => {
         setLoading(true);
         try {
+            console.log(`Attempting login to: ${API_URL}/token/`);
             const tokenResponse = await axios.post(`${API_URL}/token/`, { username, password });
             const newTokens = tokenResponse.data;
+            
+            if (!newTokens || !newTokens.access) {
+                throw new Error('Invalid response from server: No access token received');
+            }
+            
             setTokens(newTokens);
             localStorage.setItem('authTokens', JSON.stringify(newTokens));
-            axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${newTokens.access}`; // Use common for default
-
-             // Fetch profile immediately after getting token
-             const profileConfig = { headers: { Authorization: `Bearer ${newTokens.access}` } };
-             // Use axios directly here to ensure the latest token is used before interceptor might kick in fully
-             const profileResponse = await axios.get(`${API_URL}/profiles/`, profileConfig);
-
-            // Find the profile belonging to the logged-in user (assuming username matches profile.user)
-            // Adjust this logic if the API returns only the user's profile directly
-            const userProfile = profileResponse.data.results?.find(p => p.user === username) || profileResponse.data.find(p => p.user === username);
-
+            axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${newTokens.access}`;
+             const profileResponse = await axiosInstance.get(`/profiles/`);
+            const profileData = profileResponse.data.results || profileResponse.data;
+            const userProfile = Array.isArray(profileData)
+                ? profileData.find(p => p.user === username)
+                : (profileData && profileData.user === username ? profileData : null);
             if (userProfile) {
-                const userDetails = { username: userProfile.user, user_type: userProfile.user_type, profileId: userProfile.id, profilePicture: userProfile.profile_picture };
+                 const getFullImageUrl = (url) => {
+                     if (!url) return null;
+                     if (url.startsWith('http')) return url;
+                     return `${API_BASE_URL}${url}`; 
+                 };
+                const fullProfilePicUrl = getFullImageUrl(userProfile.profile_picture);
+                const userDetails = {
+                    username: userProfile.user,
+                    user_type: userProfile.user_type,
+                    profileId: userProfile.id,
+                    profilePicture: fullProfilePicUrl 
+                 };
                 setUser(userDetails);
                 localStorage.setItem('user', JSON.stringify(userDetails));
                  console.log("Login successful, navigating to dashboard.");
                 navigate('/dashboard');
             } else {
-                 console.error("Profile not found for user:", username);
-                 alert("Login succeeded but failed to retrieve user profile.");
-                 // Log out if profile fetch fails?
+                 console.error("Profile not found for user:", username, "API response:", profileResponse.data);
+                 alert("Login succeeded but failed to retrieve user profile details.");
                  logout(false);
             }
 
         } catch (error) {
-            console.error("Login failed:", error.response?.data || error.message);
-            alert(`Login failed: ${error.response?.data?.detail || 'Invalid credentials or server error.'}`);
-            logout(false); // Clear any potentially bad state on login failure
+            console.error("Login failed:", error);
+            let errorMessage = 'Invalid credentials or server error.';
+            
+            if (error.code === 'ECONNREFUSED' || error.message.includes('Network Error')) {
+                errorMessage = `Cannot connect to backend server. Please ensure the Django server is running at ${API_BASE_URL}`;
+            } else if (error.response?.status === 401) {
+                errorMessage = 'Invalid username or password. Please check your credentials.';
+            } else if (error.response?.status === 404) {
+                errorMessage = `API endpoint not found. Please check if backend is running at ${API_BASE_URL}`;
+            } else if (error.response?.data?.detail) {
+                errorMessage = error.response.data.detail;
+            } else if (error.response?.data) {
+                errorMessage = JSON.stringify(error.response.data);
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+            
+            alert(`Login failed: ${errorMessage}`);
+            logout(false); 
         } finally {
             setLoading(false);
         }
     };
 
-    // Modified logout to accept navigateAway flag
      const logout = (navigateAway = true) => {
          console.log("Logging out...");
          setUser(null);
          setTokens(null);
-         localStorage.clear(); // Clear everything related to auth
-         delete axiosInstance.defaults.headers.common['Authorization']; // Clear default auth header
+         localStorage.clear(); 
+         delete axiosInstance.defaults.headers.common['Authorization']; 
          if (navigateAway && location.pathname !== '/login') {
               console.log("Navigating to login page.");
              navigate('/login');
          } else {
              console.log("Staying on current page or already on login page.");
          }
-         clearInterval(refreshIntervalRef.current); // Clear any scheduled refresh
+         clearInterval(refreshIntervalRef.current); 
      };
+      const updateUserContext = (updates) => {
+          setUser(prevUser => {
+              if (!prevUser) return null;
+               let finalUpdates = { ...updates };
+               if (updates.profilePicture) {
+                   const getFullImageUrl = (url) => {
+                       if (!url) return null;
+                       if (url.startsWith('http')) return url;
+                       return `${API_BASE_URL}${url}`;
+                   };
+                   finalUpdates.profilePicture = getFullImageUrl(updates.profilePicture);
+               }
+
+              const updatedUser = { ...prevUser, ...finalUpdates };
+              localStorage.setItem('user', JSON.stringify(updatedUser)); 
+              return updatedUser;
+          });
+       };
+
 
     if (authLoading) {
-        return <div className="vh-100 d-flex justify-content-center align-items-center"><Spinner animation="border" /></div>; // Full page loader
+        return <div className="vh-100 d-flex justify-content-center align-items-center"><Spinner animation="border" /></div>; 
     }
-
-
     return (
-        <AuthContext.Provider value={{ user, login, logout, loading, axiosInstance, tokens }}>
+        <AuthContext.Provider value={{ user, login, logout, loading, axiosInstance, tokens, updateUserContext }}>
             {children}
         </AuthContext.Provider>
     );
@@ -182,107 +215,139 @@ const NotificationBell = () => {
     const [unreadCount, setUnreadCount] = useState(0);
     const [showOffcanvas, setShowOffcanvas] = useState(false);
     const [loading, setLoading] = useState(false);
+    const audioRef = useRef(null);
+    useEffect(() => {
+        const unlockAudio = () => {
+            if (audioRef.current && audioRef.current.paused) {
+                audioRef.current.play().catch(() => {}); 
+                audioRef.current.pause();
+                audioRef.current.currentTime = 0; 
+            }
+            window.removeEventListener('click', unlockAudio);
+            window.removeEventListener('keydown', unlockAudio);
+        };
+        window.addEventListener('click', unlockAudio);
+        window.addEventListener('keydown', unlockAudio);
+
+        return () => {
+            window.removeEventListener('click', unlockAudio);
+            window.removeEventListener('keydown', unlockAudio);
+        };
+    }, [audioRef]); 
 
     const fetchNotifications = async () => {
         if (!user) return;
-        setLoading(true);
         try {
-            const response = await axiosInstance.get('/notifications/?read=false'); // Fetch only unread initially
+            const response = await axiosInstance.get('/notifications/?read=false');
             const unread = response.data.results || response.data;
-            setNotifications(unread);
-            setUnreadCount(unread.length);
+            const count = Array.isArray(unread) ? unread.length : (response.data.count !== undefined ? response.data.count : 0);
+            if (count > unreadCount && audioRef.current) {
+                const playPromise = audioRef.current.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(error => {
+                        console.log("Audio play failed (user may need to interact first):", error);
+                    });
+                }
+            }
+            
+            if (count !== unreadCount) {
+                setUnreadCount(count);
+            }
         } catch (error) {
-            console.error("Failed to fetch notifications:", error);
-        } finally {
-            setLoading(false);
+            console.error("Failed to fetch unread notifications count:", error);
         }
     };
-
     useEffect(() => {
-        fetchNotifications();
-        // Set up polling
-        const interval = setInterval(fetchNotifications, 30000); // Poll every 30 seconds
+        fetchNotifications(); 
+        const interval = setInterval(fetchNotifications, 30000); 
         return () => clearInterval(interval);
     }, [user, axiosInstance]);
 
+
     const handleToggleOffcanvas = async () => {
-        if (!showOffcanvas) {
-            // Fetch all notifications (including read) when opening
-             setLoading(true);
-             try {
-                 const response = await axiosInstance.get('/notifications/');
-                 setNotifications(response.data.results || response.data);
-                 setUnreadCount(response.data.results?.filter(n => !n.read).length || response.data?.filter(n => !n.read).length || 0);
-             } catch (error) {
-                 console.error("Failed to fetch all notifications:", error);
-             } finally {
-                 setLoading(false);
-             }
+        const currentlyShowing = showOffcanvas;
+        setShowOffcanvas(!currentlyShowing); 
+
+        if (!currentlyShowing) { 
+            setLoading(true); 
+            try {
+                const response = await axiosInstance.get('/notifications/');
+                const allNotifications = response.data.results || response.data;
+                setNotifications(allNotifications);
+                 setUnreadCount(allNotifications.filter(n => !n.read).length);
+            } catch (error) {
+                console.error("Failed to fetch all notifications:", error);
+                setNotifications([]); 
+            } finally {
+                setLoading(false);
+            }
         }
-        setShowOffcanvas(!showOffcanvas);
     };
 
      const markAsRead = async (id) => {
          try {
-             await axiosInstance.patch(`/notifications/${id}/mark_read/`);
-             // Optimistically update UI or refetch
+             await axiosInstance.patch(`/notifications/${id}/mark_read/`); 
              setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
-             setUnreadCount(prev => Math.max(0, prev - 1));
+             setUnreadCount(prev => Math.max(0, prev - 1)); 
          } catch (error) {
              console.error("Failed to mark notification as read:", error);
+             alert("Could not mark notification as read."); 
          }
      };
 
      const markAllRead = async () => {
          try {
-             await axiosInstance.post(`/notifications/mark-all-read/`);
+             await axiosInstance.post(`/notifications/mark-all-read/`); 
              setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-             setUnreadCount(0);
+             setUnreadCount(0); 
          } catch (error) {
              console.error("Failed to mark all as read:", error);
+              alert("Could not mark all notifications as read."); 
          }
      };
 
 
     return (
         <>
+            <audio ref={audioRef} src="/notification.wav" preload="auto" style={{ display: 'none' }} />
             <Nav.Link onClick={handleToggleOffcanvas} className="position-relative">
                 <Bell size={20} />
                 {unreadCount > 0 && (
                     <Badge pill bg="danger" className="position-absolute top-0 start-100 translate-middle" style={{ fontSize: '0.6em', padding: '0.3em 0.5em' }}>
                         {unreadCount > 9 ? '9+' : unreadCount}
+                        <span className="visually-hidden">unread notifications</span>
                     </Badge>
                 )}
             </Nav.Link>
 
-            <Offcanvas show={showOffcanvas} onHide={() => setShowOffcanvas(false)} placement="end" title="Notifications">
+            <Offcanvas show={showOffcanvas} onHide={() => setShowOffcanvas(false)} placement="end">
                 <Offcanvas.Header closeButton>
                     <Offcanvas.Title>Notifications</Offcanvas.Title>
                 </Offcanvas.Header>
                 <Offcanvas.Body>
-                    {unreadCount > 0 && <Button variant="outline-secondary" size="sm" className="mb-2 w-100" onClick={markAllRead}>Mark all as read</Button>}
-                    {loading ? <Spinner animation="border" size="sm" /> :
+                     {notifications.some(n => !n.read) && <Button variant="outline-secondary" size="sm" className="mb-2 w-100" onClick={markAllRead}>Mark all as read</Button>}
+                    {loading ? <div className="text-center"><Spinner animation="border" size="sm" /></div> :
                      notifications.length > 0 ? (
                         <ListGroup variant="flush">
                             {notifications.map(n => (
-                                <ListGroup.Item key={n.id} className={`d-flex justify-content-between align-items-start ${!n.read ? 'bg-light' : ''}`}>
+                                <ListGroup.Item key={n.id} className={`d-flex justify-content-between align-items-start ${!n.read ? 'bg-light' : ''}`} style={{ borderBottom: '1px solid #eee' }}>
                                     <div>
                                         <small className="text-muted">{new Date(n.timestamp).toLocaleString()}</small>
                                         <p className="mb-0">{n.message}</p>
                                     </div>
                                     {!n.read && (
-                                        <Button variant="link" size="sm" onClick={() => markAsRead(n.id)} title="Mark as read">
+                                        <Button variant="link" size="sm" onClick={() => markAsRead(n.id)} title="Mark as read" className="p-0">
                                             <Check size={16} />
                                         </Button>
                                     )}
                                 </ListGroup.Item>
                             ))}
-                             <ListGroup.Item className="text-center mt-2">
-                                <Link to="/notifications">View All Notifications</Link>
+                             <ListGroup.Item className="text-center mt-2 border-0">
+                                <Link to="/notifications" onClick={() => setShowOffcanvas(false)}>View All Notifications</Link>
                             </ListGroup.Item>
                         </ListGroup>
                     ) : (
-                        <p className="text-muted text-center">No new notifications.</p>
+                        <p className="text-muted text-center mt-3">No notifications.</p>
                     )}
                 </Offcanvas.Body>
             </Offcanvas>
@@ -290,14 +355,28 @@ const NotificationBell = () => {
     );
 };
 
-
 // --- Main Layout ---
 const AppNavbar = () => {
     const { user, logout } = useAuth();
+
+     
+     const getFullImageUrl = (url) => {
+         if (!url) return null;
+         if (/^https?:\/\//i.test(url)) {
+             return url;
+         }
+          if (url.startsWith('blob:')) {
+             return url;
+         }
+         return `${API_BASE_URL}${url}`;
+     };
+
+     const profilePicUrl = getFullImageUrl(user?.profilePicture) || `https://via.placeholder.com/30/ced4da/6c757d?text=${user?.username?.charAt(0).toUpperCase() || '?'}`; // Placeholder with grey colors
+
+
     return (
         <Navbar bg="white" expand="lg" className="shadow-sm sticky-top">
             <Container>
-                 {/* Updated Brand */}
                  <Navbar.Brand as={Link} to="/" className="fw-bold d-flex align-items-center">
                     <img src="/logo.png" alt="TalentLink Logo" style={{ height: '30px', marginRight: '10px' }} />
                     TalentLink
@@ -307,7 +386,13 @@ const AppNavbar = () => {
                     <Nav className="me-auto">
                         <Nav.Link as={Link} to="/projects">Find Work</Nav.Link>
                         {user?.user_type === 'client' && <Nav.Link as={Link} to="/project/new">Post a Project</Nav.Link>}
-                        {/* Add Find Freelancers later? */}
+                        {user && (
+                            <>
+                                <Nav.Link as={Link} to="/saved-projects"><Bookmark size={16} className="me-1" />Saved</Nav.Link>
+                                <Nav.Link as={Link} to="/activities"><Activity size={16} className="me-1" />Activity</Nav.Link>
+                                {user.user_type === 'client' && <Nav.Link as={Link} to="/analytics"><BarChart3 size={16} className="me-1" />Analytics</Nav.Link>}
+                            </>
+                        )}
                     </Nav>
                     <Nav className="align-items-center">
                         {user ? (
@@ -315,10 +400,10 @@ const AppNavbar = () => {
                                 {user && <NotificationBell />} {/* Add NotificationBell here */}
                                 <Nav.Link as={Link} to="/dashboard">Dashboard</Nav.Link>
                                 <Nav.Link as={Link} to="/profile" className="d-flex align-items-center">
-                                    <Image src={user.profilePicture || `https://via.placeholder.com/30/007bff/FFFFFF?text=${user.username.charAt(0).toUpperCase()}`} roundedCircle style={{ width: '30px', height: '30px', marginRight: '8px', objectFit: 'cover' }} />
+                                    <Image src={profilePicUrl} roundedCircle style={{ width: '30px', height: '30px', marginRight: '8px', objectFit: 'cover', border: '1px solid #dee2e6' }} />
                                     {user.username}
                                 </Nav.Link>
-                                <Button variant="outline-danger" size="sm" onClick={() => logout()} className="ms-2">
+                                <Button variant="outline-danger" size="sm" onClick={() => logout(true)} className="ms-2"> {/* Ensure navigateAway is true */}
                                     <LogOut size={16} className="me-1" /> Logout
                                 </Button>
                             </>
@@ -335,57 +420,7 @@ const AppNavbar = () => {
     );
 };
 
-
-// --- Page Components ---
-const HomePage = () => { /* No changes needed */
-    return (
-    <>
-        <div className="hero-section">
-            <Container>
-                <h1 className="display-4 fw-bold mb-3">Find & Hire Experts for any Job</h1>
-                <p className="lead mb-4">Unlock your potential. We connect you with top freelance talent and exciting projects.</p>
-                <div>
-                    <Button as={Link} to="/register" variant="light" size="lg" className="me-2 fw-bold">Get Started</Button>
-                    <Button as={Link} to="/projects" variant="outline-light" size="lg">Browse Projects</Button>
-                </div>
-            </Container>
-        </div>
-        <Container className="py-5">
-             <Row className="text-center feature-section">
-                <Col md={4} className="mb-4">
-                     <Card className="h-100 shadow-sm border-0">
-                         <Card.Img variant="top" src="https://images.unsplash.com/photo-1516321497487-e288fb19713f?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" alt="Collaboration" className="feature-image" style={{ height: '200px', objectFit: 'cover' }}/>
-                        <Card.Body>
-                            <h3>Connect</h3>
-                            <p>Join a vibrant community of professionals and businesses.</p>
-                        </Card.Body>
-                    </Card>
-                </Col>
-                <Col md={4} className="mb-4">
-                     <Card className="h-100 shadow-sm border-0">
-                         <Card.Img variant="top" src="https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" alt="Teamwork" className="feature-image" style={{ height: '200px', objectFit: 'cover' }}/>
-                        <Card.Body>
-                            <h3>Collaborate</h3>
-                            <p>Work together on innovative projects and achieve great results.</p>
-                        </Card.Body>
-                     </Card>
-                </Col>
-                <Col md={4} className="mb-4">
-                     <Card className="h-100 shadow-sm border-0">
-                         <Card.Img variant="top" src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" alt="Creative Work" className="feature-image" style={{ height: '200px', objectFit: 'cover' }}/>
-                        <Card.Body>
-                            <h3>Create</h3>
-                            <p>Bring your ideas to life with the help of skilled freelancers.</p>
-                         </Card.Body>
-                    </Card>
-                </Col>
-            </Row>
-        </Container>
-    </>
-    )
-};
-
-const LoginPage = () => { /* No changes needed */
+const LoginPage = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const { login, loading } = useAuth();
@@ -409,13 +444,13 @@ const LoginPage = () => { /* No changes needed */
     );
 };
 
-const RegisterPage = () => { /* No changes needed */
+const RegisterPage = () => {
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [userType, setUserType] = useState('freelancer');
-    const [loading, setLoading] = useState(false); // Added loading state
-    const [error, setError] = useState(''); // Added error state
+    const [loading, setLoading] = useState(false); 
+    const [error, setError] = useState(''); 
     const navigate = useNavigate();
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -428,13 +463,10 @@ const RegisterPage = () => { /* No changes needed */
         } catch (err) {
             let errorMsg = "Registration failed. ";
             if (err.response?.data) {
-                // Extract specific errors from Django REST Framework response
                  const errors = err.response.data;
-                 if (errors.username) errorMsg += `Username: ${errors.username.join(' ')} `;
-                 if (errors.email) errorMsg += `Email: ${errors.email.join(' ')} `;
-                 if (errors.password) errorMsg += `Password: ${errors.password.join(' ')} `;
-                 if (errors.non_field_errors) errorMsg += errors.non_field_errors.join(' ');
-                 // Add other fields if needed
+                 errorMsg += Object.entries(errors)
+                    .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(' ') : messages}`)
+                    .join('; ');
             } else {
                  errorMsg += "An unknown error occurred.";
             }
@@ -454,7 +486,7 @@ const RegisterPage = () => { /* No changes needed */
                         <Form.Group className="mb-3"><Form.Label>Username</Form.Label><Form.Control type="text" value={username} onChange={e => setUsername(e.target.value)} required /></Form.Group>
                         <Form.Group className="mb-3"><Form.Label>Email</Form.Label><Form.Control type="email" value={email} onChange={e => setEmail(e.target.value)} required /></Form.Group>
                         <Form.Group className="mb-3"><Form.Label>Password</Form.Label><Form.Control type="password" value={password} onChange={e => setPassword(e.target.value)} required /></Form.Group>
-                        <Form.Group className="mb-3"><Form.Label>I am a:</Form.Label><div><Form.Check inline label="Freelancer" name="userType" type="radio" value="freelancer" checked={userType === 'freelancer'} onChange={e => setUserType(e.target.value)} /><Form.Check inline label="Client" name="userType" type="radio" value="client" checked={userType === 'client'} onChange={e => setUserType(e.target.value)} /></div></Form.Group>
+                        <Form.Group className="mb-3"><Form.Label>I am a:</Form.Label><div><Form.Check inline label="Freelancer" name="userType" type="radio" value="freelancer" checked={userType === 'freelancer'} onChange={e => setUserType(e.target.value)} id="radio-freelancer"/><Form.Check inline label="Client" name="userType" type="radio" value="client" checked={userType === 'client'} onChange={e => setUserType(e.target.value)} id="radio-client" /></div></Form.Group>
                         <Button variant="primary" type="submit" className="w-100" disabled={loading}>
                              {loading ? <Spinner as="span" animation="border" size="sm" /> : 'Sign Up'}
                         </Button>
@@ -468,8 +500,8 @@ const RegisterPage = () => { /* No changes needed */
     );
 };
 
-// --- Proposal Submission Modal ---
-const SubmitProposalModal = ({ show, handleClose, projectId, existingProposal }) => { // Accept existingProposal
+
+const SubmitProposalModal = ({ show, handleClose, projectId, existingProposal, onProposalUpdate }) => {
     const [coverLetter, setCoverLetter] = useState('');
     const [proposedRate, setProposedRate] = useState('');
     const [timeAvailable, setTimeAvailable] = useState('');
@@ -477,23 +509,23 @@ const SubmitProposalModal = ({ show, handleClose, projectId, existingProposal })
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const { axiosInstance } = useAuth();
-    const navigate = useNavigate();
-
-    // Populate form if editing
     useEffect(() => {
-        if (existingProposal) {
-            setCoverLetter(existingProposal.cover_letter || '');
-            setProposedRate(existingProposal.proposed_rate || '');
-            setTimeAvailable(existingProposal.time_available || '');
-            setAdditionalInfo(existingProposal.additional_info || '');
-        } else {
-             // Reset form if creating new
-            setCoverLetter('');
-            setProposedRate('');
-            setTimeAvailable('');
-            setAdditionalInfo('');
+        if (show) { 
+            if (existingProposal) {
+                setCoverLetter(existingProposal.cover_letter || '');
+                setProposedRate(existingProposal.proposed_rate || '');
+                setTimeAvailable(existingProposal.time_available || '');
+                setAdditionalInfo(existingProposal.additional_info || '');
+            } else {
+                
+                setCoverLetter('');
+                setProposedRate('');
+                setTimeAvailable('');
+                setAdditionalInfo('');
+            }
+            setError(''); 
         }
-    }, [existingProposal, show]); // Re-run when modal shows or proposal changes
+    }, [existingProposal, show]); 
 
     const handleSubmit = async () => {
         if (!coverLetter || !proposedRate) {
@@ -504,28 +536,38 @@ const SubmitProposalModal = ({ show, handleClose, projectId, existingProposal })
         setError('');
         try {
             const payload = {
-                project: projectId,
+                project: projectId, 
                 cover_letter: coverLetter,
                 proposed_rate: proposedRate,
                 time_available: timeAvailable,
                 additional_info: additionalInfo,
             };
             if (existingProposal) {
-                // Update existing proposal
-                 await axiosInstance.put(`/proposals/${existingProposal.id}/`, payload);
+                 await axiosInstance.patch(`/proposals/${existingProposal.id}/`, payload);
                  alert('Proposal updated successfully!');
             } else {
-                // Create new proposal
                  await axiosInstance.post('/proposals/', payload);
                  alert('Proposal submitted successfully!');
             }
-            handleClose();
-            // Maybe refresh data on the page instead of navigating away?
-            // navigate('/dashboard'); // Or wherever appropriate
+            if(onProposalUpdate) onProposalUpdate(); 
+            handleClose(); 
         } catch (error) {
-            const errorMsg = error.response?.data?.detail || error.response?.data?.[0] || (existingProposal ? 'Failed to update proposal.' : 'Failed to submit proposal.');
+            const errorData = error.response?.data;
+            let errorMsg = existingProposal ? 'Failed to update proposal.' : 'Failed to submit proposal.';
+            if (typeof errorData === 'string') {
+                errorMsg = errorData;
+            } else if (errorData) {
+                const messages = Object.entries(errorData)
+                    .map(([field, fieldErrors]) => `${field}: ${Array.isArray(fieldErrors) ? fieldErrors.join(' ') : fieldErrors}`)
+                    .join('; ');
+                if (messages) {
+                    errorMsg = messages;
+                } else if (errorData.detail) {
+                    errorMsg = errorData.detail;
+                }
+            }
             setError(errorMsg);
-            console.error(errorMsg, error.response?.data || error.message);
+            console.error('Proposal Submit/Update Error:', errorMsg, error.response?.data || error.message);
         } finally {
             setLoading(false);
         }
@@ -540,16 +582,16 @@ const SubmitProposalModal = ({ show, handleClose, projectId, existingProposal })
                 {error && <Alert variant="danger">{error}</Alert>}
                 <Form>
                     <Form.Group className="mb-3">
-                        <Form.Label>Cover Letter</Form.Label>
+                        <Form.Label>Cover Letter *</Form.Label>
                         <Form.Control as="textarea" rows={5} value={coverLetter} onChange={e => setCoverLetter(e.target.value)} required/>
                     </Form.Group>
                     <Form.Group className="mb-3">
-                        <Form.Label>Your Proposed Rate (₹)</Form.Label>
-                        <Form.Control type="number" step="0.01" value={proposedRate} onChange={e => setProposedRate(e.target.value)} required/>
+                        <Form.Label>Your Proposed Rate (₹) *</Form.Label>
+                        <Form.Control type="number" step="0.01" value={proposedRate} onChange={e => setProposedRate(e.target.value)} required placeholder="e.g., 3000.00"/>
                     </Form.Group>
                     <Form.Group className="mb-3">
-                        <Form.Label>Time Available (e.g., hours/week, specific days)</Form.Label>
-                        <Form.Control type="text" value={timeAvailable} onChange={e => setTimeAvailable(e.target.value)} />
+                        <Form.Label>Time Available (Optional)</Form.Label>
+                        <Form.Control type="text" value={timeAvailable} onChange={e => setTimeAvailable(e.target.value)} placeholder="e.g., 20 hrs/week, Mon-Fri evenings IST" />
                     </Form.Group>
                     <Form.Group className="mb-3">
                         <Form.Label>Additional Information (Optional)</Form.Label>
@@ -568,52 +610,81 @@ const SubmitProposalModal = ({ show, handleClose, projectId, existingProposal })
 };
 
 
-const ProjectListPage = () => { /* Updated with Search */
+const ProjectListPage = () => {
     const [projects, setProjects] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    const { user, axiosInstance } = useAuth(); // Get user info
+    const [filters, setFilters] = useState({});
+    const [showFilters, setShowFilters] = useState(false);
+    const { user, axiosInstance } = useAuth();
     const [error, setError] = useState('');
 
-    useEffect(() => {
-        const fetchProjects = async () => {
-            setLoading(true);
-            setError('');
-            try {
-                // Determine endpoint based on user type
-                // Clients see their projects, Freelancers see open projects
-                 const endpoint = user?.user_type === 'client' ? '/projects/' : '/projects/?status=open';
-                 const params = { search: searchTerm };
-                const response = await axiosInstance.get(endpoint, { params });
-                setProjects(response.data.results || response.data); // Handle pagination
-            } catch (error) {
-                setError("Failed to fetch projects.");
-                console.error("Failed to fetch projects:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
+    const fetchProjects = useCallback(async () => {
+        setLoading(true);
+        setError('');
+        try {
+            const endpoint = '/projects/';
+            const params = { ...(searchTerm ? { search: searchTerm } : {}) };
+            if (filters.minBudget) params.budget__gte = filters.minBudget;
+            if (filters.maxBudget) params.budget__lte = filters.maxBudget;
+            if (filters.status) params.status = filters.status;
+            if (filters.sortBy) params.ordering = filters.sortBy;
+            const response = await axiosInstance.get(endpoint, { params });
+            setProjects(response.data.results || response.data);
+        } catch (error) {
+            setError("Failed to fetch projects.");
+            console.error("Failed to fetch projects:", error);
+        } finally {
+            setLoading(false);
+        }
+    }, [searchTerm, filters, axiosInstance]);
 
-        // Debounce search
+    useEffect(() => {
         const debounceTimer = setTimeout(() => {
             fetchProjects();
-        }, 300); // 300ms delay
+        }, 300);
+        return () => clearTimeout(debounceTimer);
+    }, [fetchProjects]);
 
-        return () => clearTimeout(debounceTimer); // Clear timer on unmount or if searchTerm changes
-
-    }, [searchTerm, user, axiosInstance]); // Re-fetch if search, user, or instance changes
-
+    const handleSaveProject = async (projectId, isSaved) => {
+        if (!user) return;
+            try {
+                if (isSaved) {
+                    const savedProjectsRes = await axiosInstance.get('/saved-projects/');
+                    const savedProjects = savedProjectsRes.data.results || savedProjectsRes.data;
+                    const saved = savedProjects.find(sp => {
+                        const projId = typeof sp.project === 'object' ? sp.project.id : sp.project;
+                        return projId === projectId;
+                    });
+                    if (saved) {
+                        await axiosInstance.delete(`/saved-projects/${saved.id}/`);
+                    }
+                } else {
+                    await axiosInstance.post('/saved-projects/', { project_id: projectId });
+                }
+                fetchProjects(); 
+            } catch (err) {
+                alert('Failed to save/unsave project.');
+                console.error(err);
+            }
+    };
 
     return (
-        <Container className="py-5">
-            <h1 className="mb-4">{user?.user_type === 'client' ? 'My Projects' : 'Open Projects'}</h1>
+        <Container className="py-5 animate-fade-in">
+            <div className="d-flex justify-content-between align-items-center mb-4">
+                <h1 className="gradient-text">Browse Projects</h1>
+                <Button variant="outline-primary" onClick={() => setShowFilters(!showFilters)}>
+                    <Filter className="me-2" size={16} /> {showFilters ? 'Hide' : 'Show'} Filters
+                </Button>
+            </div>
+            {showFilters && <AdvancedFilters onFilterChange={setFilters} />}
             <InputGroup className="mb-4">
                 <Form.Control
                     placeholder="Search by title, description..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
-                <Button variant="outline-secondary"><Search size={20} /></Button>
+                <Button variant="outline-secondary" id="button-search"><Search size={20} /></Button>
             </InputGroup>
 
             {loading ? <div className="text-center"><Spinner animation="border" /></div> :
@@ -624,39 +695,62 @@ const ProjectListPage = () => { /* Updated with Search */
                         <Col key={project.id}>
                             <Card className="h-100 shadow-sm project-card">
                                 <Card.Body className="d-flex flex-column">
-                                    <Card.Title>
-                                        <Link to={`/project/${project.id}`} className="text-decoration-none stretched-link">
-                                            {project.title}
-                                        </Link>
-                                    </Card.Title>
+                                    <div className="d-flex justify-content-between align-items-start mb-2">
+                                        <Card.Title className="flex-grow-1">
+                                            <Link to={`/project/${project.id}`} className="text-decoration-none">
+                                                {project.title}
+                                            </Link>
+                                        </Card.Title>
+                                        {user?.user_type === 'freelancer' && (
+                                            <Button
+                                                variant="link"
+                                                size="sm"
+                                                className="p-0 ms-2"
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    handleSaveProject(project.id, project.is_saved);
+                                                }}
+                                                title={project.is_saved ? 'Unsave project' : 'Save project'}
+                                            >
+                                                {project.is_saved ? <BookmarkCheck size={20} className="text-primary" /> : <Bookmark size={20} />}
+                                            </Button>
+                                        )}
+                                    </div>
                                     <Card.Subtitle className="mb-2 text-muted">
-                                         Posted by: {project.client} {user?.user_type === 'client' && <Badge bg={project.status === 'open' ? 'success' : (project.status === 'in_progress' ? 'warning' : 'secondary')} className="ms-2">{project.status.replace('_', ' ')}</Badge>}
+                                         Client: {project.client} <Badge bg={project.status === 'active' ? 'success' : (project.status === 'in_progress' ? 'warning' : project.status === 'completed' ? 'primary' : 'secondary')} className="ms-2">{project.status.replace('_', ' ')}</Badge>
                                     </Card.Subtitle>
                                     <Card.Text className="flex-grow-1">
                                         {project.description.length > 100 ? project.description.substring(0, 100) + '...' : project.description}
                                     </Card.Text>
-                                    <div className="d-flex justify-content-between align-items-center mt-auto pt-2">
+                                    <div className="d-flex justify-content-between align-items-center mt-auto pt-2 border-top">
                                         <span className="fw-bold fs-5 text-success">₹{project.budget}</span>
                                         <small className="text-muted">{new Date(project.created_at).toLocaleDateString()}</small>
                                     </div>
+                                    {project.analytics && (
+                                        <div className="mt-2 pt-2 border-top">
+                                            <small className="text-muted">
+                                                <TrendingUp size={14} className="me-1" /> {project.analytics.total_views} views • {project.analytics.proposals_count} proposals
+                                            </small>
+                                        </div>
+                                    )}
                                 </Card.Body>
                             </Card>
                         </Col>
                     ))}
                  </Row>
-             ) : <Alert variant="info">No projects found.</Alert>}
+             ) : <Alert variant="info">No projects found matching your criteria.</Alert>}
         </Container>
     );
-}
+};
 
-const ProjectDetailPage = () => { /* Updated with Edit/Delete buttons for client */
+const ProjectDetailPage = () => {
     const { id } = useParams();
     const [project, setProject] = useState(null);
     const [loading, setLoading] = useState(true);
     const { user, axiosInstance } = useAuth();
     const [showProposalModal, setShowProposalModal] = useState(false);
     const [error, setError] = useState('');
-    const navigate = useNavigate(); // For navigation after delete
+    const navigate = useNavigate(); 
 
     useEffect(() => {
         const fetchProject = async () => {
@@ -666,8 +760,8 @@ const ProjectDetailPage = () => { /* Updated with Edit/Delete buttons for client
                 const response = await axiosInstance.get(`/projects/${id}/`);
                 setProject(response.data);
             } catch (error) {
-                 setError("Failed to fetch project details.");
-                 console.error("Failed to fetch project details:", error);
+                 setError("Failed to fetch project details or you might not have permission.");
+                 console.error("Failed to fetch project details:", error?.response?.data || error?.message || error);
             }
             finally { setLoading(false); }
         };
@@ -691,8 +785,8 @@ const ProjectDetailPage = () => { /* Updated with Edit/Delete buttons for client
     };
 
     if (loading) return <Container className="text-center py-5"><Spinner animation="border" /></Container>;
-    if (error) return <Container><Alert variant="danger">{error}</Alert></Container>;
-    if (!project) return <Container><Alert variant="warning">Project not found.</Alert></Container>;
+    if (error && !project) return <Container><Alert variant="danger">{error}</Alert></Container>; // Show error only if project failed to load
+    if (!project) return <Container><Alert variant="warning">Project not found or access denied.</Alert></Container>;
 
     const isOwner = user?.username === project.client;
 
@@ -710,17 +804,57 @@ const ProjectDetailPage = () => { /* Updated with Edit/Delete buttons for client
                         </Button>
                     </div>
                 )}
+                {/* Display specific fetch error related to this page if project loaded but error exists */}
+                {error && <Alert variant="danger">{error}</Alert>}
                 <Row>
                     <Col md={8}>
                         <Card className="shadow-sm mb-4"><Card.Body>
                             <Card.Title className="display-6">{project.title}</Card.Title>
-                            <Card.Subtitle className="mb-3 text-muted">
-                                 Posted by {project.client} <Badge bg={project.status === 'open' ? 'success' : (project.status === 'in_progress' ? 'warning' : 'secondary')} className="ms-2">{project.status.replace('_', ' ')}</Badge>
+                            <Card.Subtitle className="mb-3 text-muted d-flex align-items-center justify-content-between">
+                                <div>
+                                    Posted by {project.client} <Badge bg={project.status === 'active' ? 'success' : (project.status === 'in_progress' ? 'warning' : project.status === 'completed' ? 'primary' : 'secondary')} className="ms-2">{project.status.replace('_', ' ')}</Badge>
+                                </div>
+                                {isOwner && (
+                                    <Dropdown>
+                                        <Dropdown.Toggle variant="outline-primary" size="sm" id="status-dropdown">
+                                            Update Status
+                                        </Dropdown.Toggle>
+                                        <Dropdown.Menu>
+                                            <Dropdown.Item onClick={async () => {
+                                                try {
+                                                    await axiosInstance.patch(`/projects/${id}/update-status/`, { status: 'active' });
+                                                    const response = await axiosInstance.get(`/projects/${id}/`);
+                                                    setProject(response.data);
+                                                } catch (err) {
+                                                    alert('Failed to update status.');
+                                                }
+                                            }}>Set as Active</Dropdown.Item>
+                                            <Dropdown.Item onClick={async () => {
+                                                try {
+                                                    await axiosInstance.patch(`/projects/${id}/update-status/`, { status: 'in_progress' });
+                                                    const response = await axiosInstance.get(`/projects/${id}/`);
+                                                    setProject(response.data);
+                                                } catch (err) {
+                                                    alert('Failed to update status.');
+                                                }
+                                            }}>Set as In Progress</Dropdown.Item>
+                                            <Dropdown.Item onClick={async () => {
+                                                try {
+                                                    await axiosInstance.patch(`/projects/${id}/update-status/`, { status: 'completed' });
+                                                    const response = await axiosInstance.get(`/projects/${id}/`);
+                                                    setProject(response.data);
+                                                } catch (err) {
+                                                    alert('Failed to update status.');
+                                                }
+                                            }}>Mark as Completed</Dropdown.Item>
+                                        </Dropdown.Menu>
+                                    </Dropdown>
+                                )}
                             </Card.Subtitle>
                             <h5 className="mt-4">Description</h5>
                             <p style={{ whiteSpace: 'pre-wrap' }}>{project.description}</p>
                         </Card.Body></Card>
-                         {/* Consider showing proposals list here for the client */}
+                         {/* TODO: Consider showing proposals list here for the client owner */}
                     </Col>
                     <Col md={4}>
                         <Card className="shadow-sm sticky-top" style={{ top: '80px' }}> {/* Make details sticky */}
@@ -741,30 +875,64 @@ const ProjectDetailPage = () => { /* Updated with Edit/Delete buttons for client
                                 <ListGroup.Item>
                                     <strong>Skills Required:</strong>
                                     <div className="mt-1">
-                                        {project.skills_required.length > 0 ? project.skills_required.map(skill => (
+                                        {project.skills_required?.length > 0 ? project.skills_required.map(skill => (
                                             <Badge key={skill.id} pill bg="light" text="dark" className="me-1 mb-1 border">{skill.name}</Badge>
                                         )) : <span className="text-muted">None specified</span>}
                                     </div>
                                 </ListGroup.Item>
                             </ListGroup>
-                            {/* Show Proposal button only if user is a freelancer and project is open */}
-                            {user?.user_type === 'freelancer' && project.status === 'open' && (
+                            {/* Show Proposal button only if user is a freelancer and project is active */}
+                            {user?.user_type === 'freelancer' && project.status === 'active' && (
                                 <Card.Body className="text-center">
-                                    <Button variant="primary" className="w-100" onClick={() => setShowProposalModal(true)}>
+                                    <Button variant="primary" className="w-100 mb-2" onClick={() => setShowProposalModal(true)}>
                                          <FileText size={16} className="me-1" /> Submit a Proposal
+                                    </Button>
+                                    <Button 
+                                        variant={project.is_saved ? "outline-danger" : "outline-primary"} 
+                                        className="w-100" 
+                                        onClick={async () => {
+                                            try {
+                                                if (project.is_saved) {
+                                                    const savedProjectsRes = await axiosInstance.get('/saved-projects/');
+                                                    const savedProjects = savedProjectsRes.data.results || savedProjectsRes.data;
+                                                    const saved = savedProjects.find(sp => {
+                                                        const projId = typeof sp.project === 'object' ? sp.project.id : sp.project;
+                                                        return projId === parseInt(id);
+                                                    });
+                                                    if (saved) {
+                                                        await axiosInstance.delete(`/saved-projects/${saved.id}/`);
+                                                    }
+                                                } else {
+                                                    await axiosInstance.post('/saved-projects/', { project_id: id });
+                                                }
+                                                // Refresh project data
+                                                const response = await axiosInstance.get(`/projects/${id}/`);
+                                                setProject(response.data);
+                                            } catch (err) {
+                                                alert('Failed to save/unsave project.');
+                                                console.error(err);
+                                            }
+                                        }}
+                                    >
+                                        {project.is_saved ? <><BookmarkCheck size={16} className="me-1" /> Unsave Project</> : <><Bookmark size={16} className="me-1" /> Save Project</>}
                                     </Button>
                                 </Card.Body>
                             )}
-                             {/* Link to Reviews */}
+                             {/* Link to Reviews and Milestones */}
                              <Card.Footer className="text-center">
-                                <Link to={`/review/${id}`}>View Reviews</Link>
+                                <div className="d-flex justify-content-center gap-3">
+                                    <Link to={`/review/${id}`}>View Reviews</Link>
+                                    {project.status === 'in_progress' && (
+                                        <Link to={`/project/${id}/milestones`}>View Milestones</Link>
+                                    )}
+                                </div>
                              </Card.Footer>
                         </Card>
                     </Col>
                 </Row>
             </Container>
             {/* Render modal only if needed */}
-            {user?.user_type === 'freelancer' && project.status === 'open' && (
+            {user?.user_type === 'freelancer' && project.status === 'active' && (
                  <SubmitProposalModal show={showProposalModal} handleClose={() => setShowProposalModal(false)} projectId={id} />
             )}
         </>
@@ -772,18 +940,27 @@ const ProjectDetailPage = () => { /* Updated with Edit/Delete buttons for client
 };
 
 
-const ProjectCreatePage = () => { /* No major changes needed */
+const ProjectCreatePage = () => {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
+    const [showForm, setShowForm] = useState(false);
     const [budget, setBudget] = useState('');
     const [duration, setDuration] = useState('');
-    const [skills, setSkills] = useState([]);
+    const [skills, setSkills] = useState([]); // Stores selected skill IDs
     const [availableSkills, setAvailableSkills] = useState([]);
     const [timeSlot, setTimeSlot] = useState('');
+    const [deadline, setDeadline] = useState('');
     const [loading, setLoading] = useState(false); // Loading state
     const [error, setError] = useState(''); // Error state
+    // New state for typed skill names
+    const [newSkillNames, setNewSkillNames] = useState([]);
+    const [newSkillInput, setNewSkillInput] = useState('');
+    // Image upload state
+    const [imageFile, setImageFile] = useState(null);
+    const [imagePreview, setImagePreview] = useState(null);
     const { axiosInstance } = useAuth();
     const navigate = useNavigate();
+
 
     useEffect(() => {
         const fetchSkills = async () => {
@@ -796,88 +973,183 @@ const ProjectCreatePage = () => { /* No major changes needed */
             }
         };
         fetchSkills();
+        setTimeout(() => setShowForm(true), 100); // Animate form in
     }, [axiosInstance]);
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+    const handleCreateProject = async () => {
         setLoading(true);
-        setError('');
         try {
-            await axiosInstance.post('/projects/', {
-                title,
-                description,
-                budget,
-                duration: duration || null, // Send null if empty
-                skill_ids: skills, // Send selected skill IDs
-                time_slot: timeSlot,
-            });
+            const formData = new FormData();
+            formData.append('title', title);
+            formData.append('description', description);
+            formData.append('budget', budget);
+            formData.append('duration', duration || '');
+            skills.forEach(id => formData.append('skill_ids', id));
+            newSkillNames.forEach(name => formData.append('new_skill_names', name));
+            formData.append('time_slot', timeSlot);
+            formData.append('deadline', deadline || '');
+            if (imageFile) {
+                formData.append('image', imageFile);
+            }
+            await axiosInstance.post('/projects/', formData);
             alert('Project created successfully!');
-            navigate('/dashboard'); // Redirect after creation
+            navigate('/dashboard');
         } catch (error) {
-            console.error('Failed to create project:', error.response?.data || error.message);
-            setError(`Failed to create project: ${JSON.stringify(error.response?.data) || 'Server error'}`);
+            const errorData = error.response?.data;
+            let errorMsg = 'Failed to create project.';
+            if (errorData) {
+                errorMsg += ` ${JSON.stringify(errorData)}`;
+            }
+            console.error('Failed to create project:', errorData || error.message);
+            setError(errorMsg);
         } finally {
             setLoading(false);
         }
     };
 
-    const handleSkillChange = (e) => {
-        // Convert selected options NodeList to an array of values (IDs)
-        const selectedSkills = Array.from(e.target.selectedOptions, option => parseInt(option.value, 10));
-        setSkills(selectedSkills);
-    }
-
     return (
-        <Container className="py-5">
+        <Container className="py-5 animate-fade-in" style={{ minHeight: '80vh' }}>
             <Row className="justify-content-center">
-                 <Col md={8}>
-                     <h1>Create a New Project</h1>
-                     <Card className="p-4 shadow-sm">
-                        {error && <Alert variant="danger">{error}</Alert>}
-                        <Form onSubmit={handleSubmit}>
-                            <Form.Group className="mb-3"><Form.Label>Project Title</Form.Label><Form.Control type="text" value={title} onChange={e => setTitle(e.target.value)} required /></Form.Group>
-                            <Form.Group className="mb-3"><Form.Label>Description</Form.Label><Form.Control as="textarea" rows={5} value={description} onChange={e => setDescription(e.target.value)} required placeholder="Describe the project requirements, scope, and deliverables..." /></Form.Group>
-                            <Row>
-                                <Col md={6}><Form.Group className="mb-3"><Form.Label>Budget (₹)</Form.Label><Form.Control type="number" step="0.01" value={budget} onChange={e => setBudget(e.target.value)} required placeholder="e.g., 5000.00" /></Form.Group></Col>
-                                <Col md={6}><Form.Group className="mb-3"><Form.Label>Estimated Duration (days)</Form.Label><Form.Control type="number" value={duration} onChange={e => setDuration(e.target.value)} placeholder="e.g., 30" /></Form.Group></Col>
-                            </Row>
-                            <Form.Group className="mb-3">
-                                <Form.Label>Skills Required (Select multiple)</Form.Label>
-                                <Form.Control as="select" multiple value={skills.map(String)} onChange={handleSkillChange} style={{ height: '150px' }}>
-                                    {availableSkills.map(skill => (
-                                        <option key={skill.id} value={skill.id}>{skill.name}</option>
-                                    ))}
-                                </Form.Control>
-                                 <Form.Text muted>Hold Ctrl (or Cmd on Mac) to select multiple skills.</Form.Text>
-                            </Form.Group>
-                            <Form.Group className="mb-3">
-                                <Form.Label>Preferred Time Slot (Optional)</Form.Label>
-                                <Form.Control type="text" value={timeSlot} onChange={e => setTimeSlot(e.target.value)} placeholder="e.g., Weekdays 9am-5pm IST"/>
-                            </Form.Group>
-                            <Button type="submit" variant="primary" disabled={loading}>
-                                 {loading ? <Spinner as="span" size="sm" /> : <><PlusCircle size={16} className="me-1"/> Post Project</>}
-                            </Button>
-                        </Form>
-                     </Card>
+                <Col md={8} lg={7}>
+                    <Card className="shadow-lg border-0">
+                        <Card.Body>
+                            <h2 className="mb-4 text-center gradient-text">Post a New Project</h2>
+                            {error && <Alert variant="danger">{error}</Alert>}
+                            <Form onSubmit={e => { e.preventDefault(); handleCreateProject(); }}>
+                                <Form.Group className="mb-3">
+                                    <Form.Label>Title *</Form.Label>
+                                    <Form.Control type="text" value={title} onChange={e => setTitle(e.target.value)} required placeholder="Project Title" />
+                                </Form.Group>
+                                <Form.Group className="mb-3">
+                                    <Form.Label>Description *</Form.Label>
+                                    <Form.Control as="textarea" rows={5} value={description} onChange={e => setDescription(e.target.value)} required placeholder="Describe your project..." />
+                                </Form.Group>
+                                <Form.Group className="mb-3">
+                                    <Form.Label>Budget (9) *</Form.Label>
+                                    <Form.Control type="number" step="0.01" value={budget} onChange={e => setBudget(e.target.value)} required placeholder="e.g., 5000.00" />
+                                </Form.Group>
+                                <Form.Group className="mb-3">
+                                    <Form.Label>Duration (days)</Form.Label>
+                                    <Form.Control type="number" value={duration} onChange={e => setDuration(e.target.value)} placeholder="e.g., 30" />
+                                </Form.Group>
+                                <Form.Group className="mb-3">
+                                    <Form.Label>Time Slot (Optional)</Form.Label>
+                                    <Form.Control type="text" value={timeSlot} onChange={e => setTimeSlot(e.target.value)} placeholder="e.g., Mon-Fri, 10am-6pm" />
+                                </Form.Group>
+                                <Form.Group className="mb-3">
+                                    <Form.Label>Deadline (Optional)</Form.Label>
+                                    <Form.Control type="date" value={deadline} onChange={e => setDeadline(e.target.value)} />
+                                </Form.Group>
+                                <Form.Group className="mb-3">
+                                    <Form.Label>Skills Required</Form.Label>
+                                    <div className="d-flex flex-wrap gap-2 mb-2">
+                                        {availableSkills.map(skill => (
+                                            <Badge
+                                                key={skill.id}
+                                                pill
+                                                bg={skills.includes(skill.id) ? "primary" : "light"}
+                                                text={skills.includes(skill.id) ? "light" : "dark"}
+                                                style={{ cursor: "pointer", border: "1px solid #dee2e6" }}
+                                                onClick={() => setSkills(skills.includes(skill.id) ? skills.filter(id => id !== skill.id) : [...skills, skill.id])}
+                                            >
+                                                {skill.name}
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                    <Form.Text className="text-muted">Click to select/unselect skills.</Form.Text>
+                                </Form.Group>
+                                <Form.Group className="mb-3">
+                                    <Form.Label>Type New Skills</Form.Label>
+                                    <InputGroup>
+                                        <Form.Control
+                                            type="text"
+                                            value={newSkillInput}
+                                            onChange={e => setNewSkillInput(e.target.value)}
+                                            placeholder="Type a skill and press Enter"
+                                            onKeyDown={e => {
+                                                if (e.key === 'Enter' && newSkillInput.trim()) {
+                                                    setNewSkillNames([...newSkillNames, newSkillInput.trim()]);
+                                                    setNewSkillInput('');
+                                                    e.preventDefault();
+                                                }
+                                            }}
+                                        />
+                                        <Button
+                                            variant="outline-primary"
+                                            onClick={() => {
+                                                if (newSkillInput.trim()) {
+                                                    setNewSkillNames([...newSkillNames, newSkillInput.trim()]);
+                                                    setNewSkillInput('');
+                                                }
+                                            }}
+                                        >Add</Button>
+                                    </InputGroup>
+                                    <div className="mt-2">
+                                        {newSkillNames.map((skill, idx) => (
+                                            <Badge key={idx} pill bg="info" text="light" className="me-1 mb-1">
+                                                {skill}
+                                                <span
+                                                    style={{ cursor: 'pointer', marginLeft: 6 }}
+                                                    onClick={() => setNewSkillNames(newSkillNames.filter((_, i) => i !== idx))}
+                                                >
+                                                    &times;
+                                                </span>
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                    <Form.Text className="text-muted">You can add skills not listed above.</Form.Text>
+                                </Form.Group>
+                                {/* Project Image Upload */}
+                                <Form.Group className="mb-3">
+                                    <Form.Label>Project Image (Optional)</Form.Label>
+                                    <Form.Control type="file" accept="image/*" onChange={e => {
+                                        const file = e.target.files[0];
+                                        setImageFile(file);
+                                        if (file) {
+                                            const reader = new FileReader();
+                                            reader.onloadend = () => setImagePreview(reader.result);
+                                            reader.readAsDataURL(file);
+                                        } else {
+                                            setImagePreview(null);
+                                        }
+                                    }} />
+                                    {imagePreview && (
+                                        <div className="mt-2"><img src={imagePreview} alt="Preview" style={{ maxWidth: '200px', maxHeight: '150px' }} /></div>
+                                    )}
+                                </Form.Group>
+                                <Button variant="primary" type="submit" className="w-100" disabled={loading}>
+                                    {loading ? <Spinner as="span" animation="border" size="sm" /> : 'Post Project'}
+                                </Button>
+                            </Form>
+                        </Card.Body>
+                    </Card>
                 </Col>
             </Row>
         </Container>
     );
-};
+}
 
 
-const DashboardPage = () => { /* Updated with Edit/Delete proposal buttons */
+const DashboardPage = () => {
     const { user, axiosInstance } = useAuth();
     const [proposals, setProposals] = useState([]); // Can be proposals *received* or *sent*
     const [projects, setProjects] = useState([]); // For client's projects
     const [loadingProposals, setLoadingProposals] = useState(true);
     const [loadingProjects, setLoadingProjects] = useState(true);
-    const [error, setError] = useState('');
+    const [error, setError] = useState(''); // General dashboard error
+    const [updateError, setUpdateError] = useState(''); // Specific error for status updates
     const navigate = useNavigate();
 
      // State for proposal edit modal
     const [showEditProposalModal, setShowEditProposalModal] = useState(false);
     const [proposalToEdit, setProposalToEdit] = useState(null);
+
+    // Function to construct full image URL
+     const getFullImageUrl = (url) => {
+         if (!url) return null;
+         if (url.startsWith('http') || url.startsWith('blob:')) return url;
+         return `${API_BASE_URL}${url}`;
+     };
 
     const fetchDashboardData = async () => {
         if (!user || !user.profileId) {
@@ -889,25 +1161,26 @@ const DashboardPage = () => { /* Updated with Edit/Delete proposal buttons */
         setLoadingProposals(true);
         setLoadingProjects(true);
         setError('');
+        setUpdateError(''); // Clear previous update errors on refresh
         try {
             // Fetch based on user type
             if (user.user_type === 'client') {
                  // Clients: Fetch proposals for their projects & their projects list
                  const [proposalsRes, projectsRes] = await Promise.all([
-                     axiosInstance.get('/proposals/'), // Queryset filtered by backend view
-                     axiosInstance.get(`/projects/?client=${user.profileId}`) // Explicitly filter projects
+                     axiosInstance.get('/proposals/'), // Queryset filtered by backend view based on project client
+                     axiosInstance.get(`/projects/`) // Queryset filtered by backend view based on client=user
                  ]);
                 setProposals(proposalsRes.data.results || proposalsRes.data);
                 setProjects(projectsRes.data.results || projectsRes.data);
             } else if (user.user_type === 'freelancer') {
                 // Freelancers: Fetch proposals they submitted
-                const proposalsRes = await axiosInstance.get('/proposals/'); // Queryset filtered by backend view
+                const proposalsRes = await axiosInstance.get('/proposals/'); // Queryset filtered by backend view based on freelancer=user
                 setProposals(proposalsRes.data.results || proposalsRes.data);
-                setLoadingProjects(false); // No projects needed for freelancer main dash
+                setLoadingProjects(false); // No projects needed for freelancer main dash display
             }
         } catch (error) {
             setError("Failed to fetch dashboard data.");
-            console.error("Dashboard fetch error:", error);
+            console.error("Dashboard fetch error:", error?.response?.data || error?.message || error);
         } finally {
             setLoadingProposals(false);
             setLoadingProjects(false); // Ensure this is always set
@@ -920,13 +1193,22 @@ const DashboardPage = () => { /* Updated with Edit/Delete proposal buttons */
 
 
     const handleUpdateStatus = async (id, status) => {
+        setUpdateError(''); // Clear previous update error
         try {
-            await axiosInstance.patch(`/proposals/${id}/update_status/`, { status });
+             // Correct endpoint for the custom action
+            await axiosInstance.patch(`/proposals/${id}/update-status/`, { status });
             // Refresh proposals after update
             fetchDashboardData(); // Refetch all dashboard data
         } catch (error) {
-            console.error('Failed to update proposal status:', error.response?.data || error.message);
-            alert(`Failed to update status: ${error.response?.data?.detail || 'Server error'}`);
+             const errorData = error.response?.data;
+             // Extract detailed error message
+             const errorMsg = typeof errorData === 'string' ? errorData :
+                              errorData?.detail ||
+                              (errorData && Object.values(errorData).flat().join(' ')) || // Flatten errors
+                              'Failed to update proposal status.';
+            setUpdateError(`${errorMsg}`); // Set specific error message
+            console.error('Failed to update proposal status:', errorMsg, error.response?.data || error.message);
+            // Optionally: alert(`Failed to update status: ${errorMsg}`);
         }
     };
 
@@ -943,8 +1225,9 @@ const DashboardPage = () => { /* Updated with Edit/Delete proposal buttons */
                 alert('Proposal deleted successfully.');
                 fetchDashboardData(); // Refresh list
             } catch (error) {
-                console.error('Failed to delete proposal:', error.response?.data || error.message);
-                alert(`Failed to delete proposal: ${error.response?.data?.detail || 'Server error'}`);
+                const errorMsg = error.response?.data?.detail || 'Failed to delete proposal.';
+                console.error('Failed to delete proposal:', errorMsg, error.response?.data || error.message);
+                alert(`Failed to delete proposal: ${errorMsg}`);
             }
         }
     };
@@ -952,7 +1235,7 @@ const DashboardPage = () => { /* Updated with Edit/Delete proposal buttons */
      const handleCloseEditModal = () => {
          setShowEditProposalModal(false);
          setProposalToEdit(null);
-         fetchDashboardData(); // Refresh data when modal closes
+         fetchDashboardData(); // Refresh data when modal closes, in case changes were made
      };
 
     // --- Project Delete Handler (for Client) ---
@@ -963,8 +1246,9 @@ const DashboardPage = () => { /* Updated with Edit/Delete proposal buttons */
                 alert('Project deleted successfully.');
                 fetchDashboardData(); // Refresh project list
             } catch (error) {
-                 console.error('Failed to delete project:', error.response?.data || error.message);
-                alert(`Failed to delete project: ${error.response?.data?.detail || 'Server error'}`);
+                 const errorMsg = error.response?.data?.detail || 'Failed to delete project.';
+                 console.error('Failed to delete project:', errorMsg, error.response?.data || error.message);
+                alert(`Failed to delete project: ${errorMsg}`);
             }
         }
     };
@@ -977,68 +1261,99 @@ const DashboardPage = () => { /* Updated with Edit/Delete proposal buttons */
 
     const renderClientDashboard = () => (
         <>
+             {/* Display proposal update errors prominently */}
+             {updateError && <Alert variant="danger" onClose={() => setUpdateError('')} dismissible>{updateError}</Alert>}
+
             {/* Proposals Received */}
-            <Card className="mb-4">
+            <Card className="mb-4 shadow-sm">
                 <Card.Header as="h5">Proposals Received</Card.Header>
-                {loadingProposals ? <Card.Body><Spinner size="sm"/></Card.Body> :
-                 error ? <Card.Body><Alert variant="danger">{error}</Alert></Card.Body> :
+                {loadingProposals ? <Card.Body className="text-center"><Spinner size="sm"/></Card.Body> :
+                 error && !updateError ? <Card.Body><Alert variant="danger">{error}</Alert></Card.Body> :
                  proposals.length > 0 ? (
                     <ListGroup variant="flush">
                         {proposals.map(p => (
-                            <ListGroup.Item key={p.id}>
-                                <Row className="align-items-center">
-                                    <Col md={8}>
-                                         Proposal from <strong>{p.freelancer}</strong> for <Link to={`/project/${p.project}`}>"{p.project_title}"</Link>
-                                         <br/>Rate: <strong>₹{p.proposed_rate}</strong> | Status: <Badge bg={p.status === 'pending' ? 'warning' : (p.status === 'accepted' ? 'success' : 'danger')}>{p.status}</Badge>
+                            <ListGroup.Item key={p.id} className="px-3 py-2">
+                                <Row className="align-items-center g-2">
+                                    <Col md={7}>
+                                         Proposal from <strong>{p.freelancer}</strong> for <Link to={`/project/${p.project}`} title={p.project_title}>"{p.project_title.length > 30 ? p.project_title.substring(0, 30)+'...' : p.project_title}"</Link>
+                                         <br/><small className="text-muted">Rate: ₹{p.proposed_rate}</small>
+                                         {/* Rating UI */}
+                                         <div className="mt-2">
+                                             <Form.Label className="me-2 mb-0">Rating:</Form.Label>
+                                             <Form.Select
+                                                 size="sm"
+                                                 style={{ width: '120px', display: 'inline-block' }}
+                                                 value={p.rating || ''}
+                                                 onChange={async (e) => {
+                                                     const newRating = e.target.value ? parseInt(e.target.value) : null;
+                                                     try {
+                                                         await axiosInstance.patch(`/proposals/${p.id}/rate/`, { rating: newRating });
+                                                         fetchDashboardData();
+                                                         alert('Rating updated!');
+                                                     } catch (err) {
+                                                         alert('Failed to update rating.');
+                                                     }
+                                                 }}
+                                                 disabled={user.username !== p.project_client}
+                                             >
+                                                 <option value="">Not rated</option>
+                                                 {[1,2,3,4,5].map(val => (
+                                                     <option key={val} value={val}>{val} Star{val > 1 ? 's' : ''}</option>
+                                                 ))}
+                                             </Form.Select>
+                                         </div>
                                     </Col>
-                                    <Col md={4} className="text-md-end mt-2 mt-md-0">
+                                     <Col md={2} className="text-md-center">
+                                          <Badge bg={p.status === 'pending' ? 'warning' : (p.status === 'accepted' ? 'success' : 'danger')}>{p.status}</Badge>
+                                    </Col>
+                                    <Col md={3} className="text-md-end">
                                          {p.status === 'pending' && (
-                                            <>
-                                                <Button variant="success" size="sm" className="me-2 mb-1" onClick={() => handleUpdateStatus(p.id, 'accepted')} title="Accept Proposal">
+                                            <div className="d-flex justify-content-end justify-content-md-end gap-1">
+                                                <Button variant="success" size="sm" onClick={() => handleUpdateStatus(p.id, 'accepted')} title="Accept Proposal">
                                                     <Check size={16} /> <span className="d-none d-lg-inline">Accept</span>
                                                 </Button>
-                                                <Button variant="danger" size="sm" className="mb-1" onClick={() => handleUpdateStatus(p.id, 'rejected')} title="Reject Proposal">
+                                                <Button variant="danger" size="sm" onClick={() => handleUpdateStatus(p.id, 'rejected')} title="Reject Proposal">
                                                     <X size={16} /> <span className="d-none d-lg-inline">Reject</span>
                                                 </Button>
-                                            </>
+                                            </div>
                                          )}
-                                          {p.status === 'accepted' && <Badge bg="success">Accepted</Badge>}
-                                          {p.status === 'rejected' && <Badge bg="danger">Rejected</Badge>}
                                     </Col>
                                 </Row>
                             </ListGroup.Item>
                         ))}
                     </ListGroup>
-                 ) : <Card.Body><p className="text-muted">No proposals received yet.</p></Card.Body>
+                 ) : <Card.Body><p className="text-muted mb-0">No proposals received yet.</p></Card.Body>
                 }
             </Card>
 
             {/* My Projects */}
-            <Card>
+            <Card className="shadow-sm">
                  <Card.Header as="h5">My Posted Projects</Card.Header>
-                 {loadingProjects ? <Card.Body><Spinner size="sm"/></Card.Body> :
+                 {loadingProjects ? <Card.Body className="text-center"><Spinner size="sm"/></Card.Body> :
                   error ? <Card.Body><Alert variant="danger">{error}</Alert></Card.Body> :
                   projects.length > 0 ? (
                      <ListGroup variant="flush">
                         {projects.map(proj => (
-                            <ListGroup.Item key={proj.id}>
-                                <Row className="align-items-center">
-                                     <Col md={8}>
-                                        <Link to={`/project/${proj.id}`}>{proj.title}</Link> <Badge bg={proj.status === 'open' ? 'success' : (proj.status === 'in_progress' ? 'warning' : 'secondary')} className="ms-2">{proj.status.replace('_', ' ')}</Badge>
+                            <ListGroup.Item key={proj.id} className="px-3 py-2">
+                                <Row className="align-items-center g-2">
+                                     <Col md={7}>
+                                        <Link to={`/project/${proj.id}`}>{proj.title}</Link> <Badge bg={proj.status === 'active' ? 'success' : (proj.status === 'in_progress' ? 'warning' : proj.status === 'completed' ? 'primary' : 'secondary')} className="ms-2">{proj.status.replace('_', ' ')}</Badge>
                                     </Col>
-                                     <Col md={4} className="text-md-end mt-2 mt-md-0">
-                                        <Button variant="outline-secondary" size="sm" className="me-2 mb-1" as={Link} to={`/project/${proj.id}/edit`} title="Edit Project">
-                                             <Edit size={16} /> <span className="d-none d-lg-inline">Edit</span>
-                                        </Button>
-                                         <Button variant="outline-danger" size="sm" className="mb-1" onClick={() => handleDeleteProject(proj.id)} title="Delete Project">
-                                             <Trash2 size={16} /> <span className="d-none d-lg-inline">Delete</span>
-                                        </Button>
+                                     <Col md={5} className="text-md-end">
+                                        <div className="d-flex justify-content-end justify-content-md-end gap-1">
+                                            <Button variant="outline-secondary" size="sm" as={Link} to={`/project/${proj.id}/edit`} title="Edit Project">
+                                                 <Edit size={16} /> <span className="d-none d-lg-inline">Edit</span>
+                                            </Button>
+                                             <Button variant="outline-danger" size="sm" onClick={() => handleDeleteProject(proj.id)} title="Delete Project">
+                                                 <Trash2 size={16} /> <span className="d-none d-lg-inline">Delete</span>
+                                            </Button>
+                                        </div>
                                     </Col>
                                 </Row>
                             </ListGroup.Item>
                         ))}
                     </ListGroup>
-                 ) : <Card.Body><p className="text-muted">You haven't posted any projects yet.</p></Card.Body>
+                 ) : <Card.Body><p className="text-muted mb-0">You haven't posted any projects yet. <Link to="/project/new">Post one now!</Link></p></Card.Body>
                 }
             </Card>
         </>
@@ -1049,48 +1364,57 @@ const DashboardPage = () => { /* Updated with Edit/Delete proposal buttons */
             switch (status) {
                 case 'accepted': return <Badge bg="success">Accepted</Badge>;
                 case 'rejected': return <Badge bg="danger">Rejected</Badge>;
-                default: return <Badge bg="warning">Pending</Badge>;
+                default: return <Badge bg="warning" text="dark">Pending</Badge>; // Dark text for warning
             }
         };
 
         return (
-            <Card>
+            <Card className="shadow-sm">
                 <Card.Header as="h5">My Submitted Proposals</Card.Header>
-                 {loadingProposals ? <Card.Body><Spinner size="sm"/></Card.Body> :
+                 {loadingProposals ? <Card.Body className="text-center"><Spinner size="sm"/></Card.Body> :
                   error ? <Card.Body><Alert variant="danger">{error}</Alert></Card.Body> :
                  proposals.length > 0 ? (
                     <ListGroup variant="flush">
                         {proposals.map(p => (
-                            <ListGroup.Item key={p.id}>
-                                 <Row className="align-items-center">
-                                    <Col md={8}>
-                                        Proposal for <Link to={`/project/${p.project}`}>"{p.project_title}"</Link>
+                            <ListGroup.Item key={p.id} className="px-3 py-2">
+                                 <Row className="align-items-center g-2">
+                                    <Col md={7}>
+                                        Proposal for <Link to={`/project/${p.project}`} title={p.project_title}>"{p.project_title.length > 40 ? p.project_title.substring(0, 40)+'...' : p.project_title}"</Link>
                                     </Col>
-                                     <Col md={2} className="text-md-center mt-2 mt-md-0">
+                                     <Col md={2} xs={4} className="text-md-center"> {/* Adjusted column size */}
                                          {getStatusBadge(p.status)}
                                     </Col>
-                                    <Col md={2} className="text-md-end mt-2 mt-md-0">
+                                    <Col md={3} xs={8} className="text-md-end"> {/* Adjusted column size */}
                                         {/* Allow edit/delete only if pending */}
                                         {p.status === 'pending' && (
-                                            <>
-                                                <Button variant="outline-secondary" size="sm" className="me-2 mb-1" onClick={() => handleEditProposal(p)} title="Edit Proposal">
-                                                    <Edit size={16} />
+                                            <div className="d-flex justify-content-end justify-content-md-end gap-1">
+                                                <Button variant="outline-secondary" size="sm" onClick={() => handleEditProposal(p)} title="Edit Proposal">
+                                                    <Edit size={16} /> <span className="d-none d-md-inline">Edit</span>
                                                 </Button>
-                                                <Button variant="outline-danger" size="sm" className="mb-1" onClick={() => handleDeleteProposal(p.id)} title="Delete Proposal">
-                                                    <Trash2 size={16} />
+                                                <Button variant="outline-danger" size="sm" onClick={() => handleDeleteProposal(p.id)} title="Delete Proposal">
+                                                    <Trash2 size={16} /> <span className="d-none d-md-inline">Delete</span>
                                                 </Button>
-                                            </>
+                                            </div>
+                                        )}
+                                        {/* Optionally add 'View Contract' if accepted */}
+                                        {p.status === 'accepted' && (
+                                             <Button variant="outline-info" size="sm" as={Link} to="/contracts">
+                                                 View Contract
+                                             </Button>
                                         )}
                                     </Col>
                                 </Row>
                             </ListGroup.Item>
                         ))}
                     </ListGroup>
-                 ) : <Card.Body><p className="text-muted">You have not submitted any proposals.</p></Card.Body>
+                 ) : <Card.Body><p className="text-muted mb-0">You have not submitted any proposals. <Link to="/projects">Find work!</Link></p></Card.Body>
                 }
             </Card>
         );
     };
+
+     const profilePicUrl = getFullImageUrl(user?.profilePicture) || `https://via.placeholder.com/50/ced4da/6c757d?text=${user?.username?.charAt(0).toUpperCase() || '?'}`;
+
 
     return (
         <Container className="py-5">
@@ -1105,6 +1429,11 @@ const DashboardPage = () => { /* Updated with Edit/Delete proposal buttons */
                              <ListGroup.Item action as={Link} to="/contracts"><FileText size={16} className="me-2"/> My Contracts</ListGroup.Item>
                              <ListGroup.Item action as={Link} to="/messages"><MessageSquare size={16} className="me-2"/> Messages</ListGroup.Item>
                              <ListGroup.Item action as={Link} to="/notifications"><Bell size={16} className="me-2"/> Notifications</ListGroup.Item>
+                             <ListGroup.Item action as={Link} to="/saved-projects"><Bookmark size={16} className="me-2"/> Saved Projects</ListGroup.Item>
+                             <ListGroup.Item action as={Link} to="/activities"><Activity size={16} className="me-2"/> Activity Feed</ListGroup.Item>
+                             <ListGroup.Item action as={Link} to="/wallet"><WalletIcon size={16} className="me-2"/> Wallet</ListGroup.Item>
+                             {user.user_type === 'client' && <ListGroup.Item action as={Link} to="/analytics"><BarChart3 size={16} className="me-2"/> Analytics</ListGroup.Item>}
+                             {user.user_type === 'freelancer' && <ListGroup.Item action as={Link} to="/invoices"><FileText size={16} className="me-2"/> Invoices</ListGroup.Item>}
                              {/* Add more links as needed */}
                         </ListGroup>
                     </Card>
@@ -1115,14 +1444,17 @@ const DashboardPage = () => { /* Updated with Edit/Delete proposal buttons */
                     {/* Welcome Card */}
                     <Card className="shadow-sm mb-4">
                         <Card.Body>
-                            <div className="d-flex align-items-center mb-2">
-                                 <Image src={user.profilePicture || `https://via.placeholder.com/50/007bff/FFFFFF?text=${user.username.charAt(0).toUpperCase()}`} roundedCircle style={{ width: '50px', height: '50px', marginRight: '15px', objectFit: 'cover' }} />
+                            <div className="d-flex align-items-center mb-3">
+                                 <Image src={profilePicUrl} roundedCircle style={{ width: '50px', height: '50px', marginRight: '15px', objectFit: 'cover', border: '1px solid #dee2e6' }} />
                                 <div>
                                      <Card.Title className="fs-4 mb-0">Welcome back, {user.username}!</Card.Title>
-                                     <Card.Text className="text-muted">You are logged in as a <Badge bg="info">{user.user_type}</Badge></Card.Text>
+                                     <Card.Text className="text-muted mb-0">Role: <Badge bg="info">{user.user_type}</Badge></Card.Text>
+                                     <BadgeDisplay />
                                 </div>
                             </div>
-                            {user.user_type === 'client' && <Button as={Link} to="/project/new" variant="primary"><PlusCircle size={16} className="me-1"/> Post New Project</Button>}
+                            {/* Actions */}
+                             {user.user_type === 'client' && <Button as={Link} to="/project/new" variant="primary"><PlusCircle size={16} className="me-1"/> Post New Project</Button>}
+                             {user.user_type === 'freelancer' && <Button as={Link} to="/projects" variant="primary"><Search size={16} className="me-1"/> Find Work</Button>}
                         </Card.Body>
                     </Card>
 
@@ -1134,63 +1466,730 @@ const DashboardPage = () => { /* Updated with Edit/Delete proposal buttons */
              <SubmitProposalModal
                 show={showEditProposalModal}
                 handleClose={handleCloseEditModal}
-                projectId={proposalToEdit?.project} // Pass project ID
+                projectId={proposalToEdit?.project} // Pass project ID for context, might not be needed if PUT/PATCH doesn't require it
                 existingProposal={proposalToEdit}
+                onProposalUpdate={fetchDashboardData} // Pass callback to refresh data
             />
         </Container>
     );
-}
+};
+
+// --- CORRECTED Messaging Page Component (Inline Implementation) ---
+const MessagingPage = () => {
+    const { user, axiosInstance } = useAuth();
+    // State: conversations stores messages grouped by partner username
+    const [conversations, setConversations] = useState({}); // { partnerUsername: [message1, message2], ... }
+    const [activeConversationUser, setActiveConversationUser] = useState(null); // Username of the active chat partner
+    const [newMessage, setNewMessage] = useState('');
+    const [loading, setLoading] = useState(true); // Initial load state
+    const [isSending, setIsSending] = useState(false); // Sending message state
+    const [fetchError, setFetchError] = useState(''); // Error during fetching
+    const [sendError, setSendError] = useState(''); // Error during sending
+    const [newChatUser, setNewChatUser] = useState(''); // For starting new chat
+    const [newChatError, setNewChatError] = useState(''); // Error for new chat input
+
+    const messagesEndRef = useRef(null); // Ref to scroll to the bottom of messages
+    const pollingIntervalRef = useRef(null); // Ref for the polling interval
+
+    // --- Utility: Scroll to bottom ---
+    const scrollToBottom = useCallback(() => {
+        setTimeout(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        }, 50); // Small delay allows DOM to update
+    }, []);
+
+    // --- Fetch ALL relevant messages and group them ---
+    const fetchAndGroupMessages = useCallback(async (isInitialLoad = false) => {
+        if (!user?.username) return; // Need user context
+
+        if (isInitialLoad) {
+            setLoading(true);
+            setFetchError('');
+        }
+        // Don't set loading or clear error for background polls
+
+        try {
+            // Fetch all messages involving the current user
+            const response = await axiosInstance.get('/messages/'); // Use the correct endpoint
+            const fetchedMessages = response.data.results || response.data || [];
+
+            // Group messages by conversation partner
+            const groupedConversations = fetchedMessages.reduce((acc, msg) => {
+                const senderUsername = msg.sender;
+                const receiverUsername = msg.receiver;
+
+                // Ensure message has valid sender/receiver and user context exists
+                if (!senderUsername || !receiverUsername || !user?.username) {
+                    console.warn("Skipping message due to missing sender/receiver/user:", msg);
+                    return acc;
+                }
+
+                const partnerUsername = senderUsername === user.username ? receiverUsername : senderUsername;
+
+                if (!acc[partnerUsername]) {
+                    acc[partnerUsername] = [];
+                }
+
+                // Add message only if it's not already present (handles polling overlap)
+                if (!acc[partnerUsername].some(existing => existing.id === msg.id)) {
+                    acc[partnerUsername].push(msg);
+                    // Sort messages within the conversation by timestamp
+                    acc[partnerUsername].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+                }
+
+                return acc;
+            }, {}); // Start with empty object
+
+            // Update the conversations state
+            setConversations(groupedConversations);
+
+            // Auto-select the most recent conversation partner on initial load if none selected
+            if (isInitialLoad && !activeConversationUser && Object.keys(groupedConversations).length > 0) {
+                let latestTimestamp = 0;
+                let latestUser = null;
+                Object.entries(groupedConversations).forEach(([username, msgs]) => {
+                    const lastMsg = msgs[msgs.length - 1];
+                    if (lastMsg && new Date(lastMsg.timestamp).getTime() > latestTimestamp) {
+                        latestTimestamp = new Date(lastMsg.timestamp).getTime();
+                        latestUser = username;
+                    }
+                });
+                if (latestUser) {
+                    setActiveConversationUser(latestUser);
+                }
+            }
+
+        } catch (err) {
+            if (isInitialLoad) {
+                setFetchError('Failed to fetch messages. Please try again later.');
+            }
+            console.error("Fetch messages error:", err.response?.data || err.message || err);
+        } finally {
+            if (isInitialLoad) setLoading(false);
+        }
+    }, [user, axiosInstance, activeConversationUser]); 
+
+    useEffect(() => {
+        fetchAndGroupMessages(true); 
+        if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+        }
+
+        pollingIntervalRef.current = setInterval(() => {
+            fetchAndGroupMessages(false); 
+        }, 8000); 
+
+        return () => {
+            if (pollingIntervalRef.current) {
+                clearInterval(pollingIntervalRef.current);
+            }
+        };
+    }, [fetchAndGroupMessages]); 
+
+  
+    useEffect(() => {
+        if (activeConversationUser) { 
+            scrollToBottom();
+        }
+    }, [activeConversationUser, conversations, scrollToBottom]); 
+
+    const handleSelectConversation = (username) => {
+        setActiveConversationUser(username);
+        setSendError('');
+        setNewChatError('');
+        setNewMessage(''); 
+    };
+
+    const handleSendMessage = async (e) => {
+        if (e) e.preventDefault();
+        if (!newMessage.trim() || !activeConversationUser) return;
+
+        setIsSending(true);
+        setSendError('');
+
+        try {
+            const response = await axiosInstance.post('/messages/', {
+                receiver_username: activeConversationUser, 
+                content: newMessage.trim(),
+            });
+            const sentMessage = response.data;
+            setConversations(prev => {
+                const updatedConversations = { ...prev };
+                const partner = activeConversationUser; 
+
+                if (!updatedConversations[partner]) {
+                    updatedConversations[partner] = [];
+                }
+
+                if (!updatedConversations[partner].some(msg => msg.id === sentMessage.id)) {
+                    updatedConversations[partner] = [...updatedConversations[partner], sentMessage];
+                     updatedConversations[partner].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+                }
+
+                return updatedConversations;
+            });
+
+            setNewMessage(''); 
+            scrollToBottom(); 
+
+        } catch (err) {
+            const errorData = err.response?.data;
+            let detailedError = "Failed to send message.";
+            if (errorData) {
+                if (errorData.receiver_username) detailedError = `Receiver Error: ${errorData.receiver_username.join(', ')}`;
+                else if (errorData.content) detailedError = `Message Error: ${errorData.content.join(', ')}`;
+                else if (errorData.detail) detailedError = errorData.detail;
+                 else if (typeof errorData === 'object' && Object.keys(errorData).length > 0) {
+                     detailedError = Object.entries(errorData).map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`).join('; ');
+                 }
+                else if (typeof errorData === 'string') detailedError = errorData;
+            }
+            setSendError(detailedError);
+            console.error('Send message error:', detailedError, err.response || err);
+        } finally {
+            setIsSending(false);
+        }
+    };
+
+    const handleStartNewChat = () => {
+         setNewChatError('');
+         const targetUser = newChatUser.trim();
+         if (!targetUser) {
+             setNewChatError('Please enter a username.');
+             return;
+         }
+         if (targetUser === user.username) {
+             setNewChatError('You cannot chat with yourself.');
+             return;
+         }
+
+         if (!conversations[targetUser]) {
+              setConversations(prev => ({ ...prev, [targetUser]: [] })); 
+         }
+         setActiveConversationUser(targetUser);
+         setNewChatUser('');
+     };
+
+    if (loading) {
+        return <Container className="text-center py-5"><Spinner animation="border" role="status"><span className="visually-hidden">Loading messages...</span></Spinner></Container>;
+    }
+    const conversationPartners = Object.entries(conversations)
+        .sort(([, msgsA], [, msgsB]) => {
+            const lastMsgTimeA = msgsA.length ? new Date(msgsA[msgsA.length - 1].timestamp).getTime() : 0;
+            const lastMsgTimeB = msgsB.length ? new Date(msgsB[msgsB.length - 1].timestamp).getTime() : 0;
+            return lastMsgTimeB - lastMsgTimeA; 
+        })
+        .map(([username]) => username);
+    const activeMessages = activeConversationUser ? conversations[activeConversationUser] || [] : [];
+
+
+    return (
+        <Container fluid className="py-3 vh-100 d-flex flex-column">
+            <h1 className="mb-3 h4"><MessageSquare size={20} className="me-2"/>Messages</h1>
+
+            {fetchError && !loading && <Alert variant="warning" className="mb-2">{fetchError}</Alert>}
+
+            <Row className="flex-grow-1" style={{ minHeight: 0 }}>
+
+                <Col md={4} lg={3} className="d-flex flex-column mb-3 mb-md-0 h-100">
+                    <Card className="flex-grow-1 d-flex flex-column shadow-sm">
+                        <Card.Header className="fw-bold">Conversations</Card.Header>
+                       
+                        <Card.Body className="p-2 border-bottom">
+                            <InputGroup size="sm">
+                                <Form.Control
+                                    type="text"
+                                    placeholder="Enter username to chat"
+                                    value={newChatUser}
+                                    onChange={(e) => setNewChatUser(e.target.value)}
+                                    onKeyDown={(e) => { if (e.key === 'Enter') handleStartNewChat(); }}
+                                />
+                                <Button variant="outline-secondary" onClick={handleStartNewChat}><UserPlus size={16}/></Button>
+                            </InputGroup>
+                            {newChatError && <small className="text-danger d-block mt-1 px-1">{newChatError}</small>}
+                        </Card.Body>
+                       
+                        <ListGroup variant="flush" className="flex-grow-1" style={{ overflowY: 'auto' }}>
+                            {conversationPartners.length > 0 ? (
+                                conversationPartners.map(partner => (
+                                    <ListGroup.Item
+                                        key={partner}
+                                        action
+                                        active={partner === activeConversationUser}
+                                        onClick={() => handleSelectConversation(partner)}
+                                        className="d-flex justify-content-between align-items-center text-break" // Allow long usernames to wrap
+                                    >
+                                         <span>{partner}</span>
+                                        {conversations[partner]?.length > 0 &&
+                                            <small className="text-muted ms-2 text-nowrap">
+                                                {new Date(conversations[partner][conversations[partner].length - 1].timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                                            </small>
+                                        }
+                                    </ListGroup.Item>
+                                ))
+                            ) : (
+                                <ListGroup.Item className="text-muted text-center">No active conversations.</ListGroup.Item>
+                            )}
+                        </ListGroup>
+                    </Card>
+                </Col>
+
+                <Col md={8} lg={9} className="d-flex flex-column h-100">
+                    <Card className="flex-grow-1 d-flex flex-column shadow-sm">
+                        <Card.Header>
+                            {activeConversationUser ? (
+                                <>Chat with <strong>{activeConversationUser}</strong></>
+                            ) : (
+                                'Select or start a conversation'
+                            )}
+                        </Card.Header>
+                        <Card.Body className="d-flex flex-column" style={{ overflowY: 'auto', flexGrow: 1 }}>
+                            {!activeConversationUser ? (
+                                <p className="text-muted text-center m-auto">Select a conversation from the list or start a new one.</p>
+                            ) : activeMessages.length === 0 ? (
+                                <p className="text-muted text-center m-auto">No messages yet. Send the first one!</p>
+                            ) : (
+                                <>
+                                    {activeMessages.map((message, index) => (
+                                        <div
+                                            key={message.id || `msg-${index}`} 
+                                            className={`mb-2 d-flex ${message.sender === user.username ? 'justify-content-end' : 'justify-content-start'}`}
+                                        >
+                                            <div
+                                                className={`p-2 rounded shadow-sm ${message.sender === user.username ? 'bg-primary text-white' : 'bg-light border'}`}
+                                                style={{ maxWidth: '75%', wordBreak: 'break-word' }}
+                                            >
+                                                 <div style={{ whiteSpace: 'pre-wrap' }}>{message.content}</div>
+                                                 <small className={`d-block text-end mt-1 ${message.sender === user.username ? 'text-white-50' : 'text-muted'}`} style={{ fontSize: '0.7em' }}>
+                                                      {new Date(message.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                                                  </small>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <div ref={messagesEndRef} style={{ height: '1px' }} />
+                                </>
+                            )}
+                        </Card.Body>
+
+                        {activeConversationUser && (
+                            <Card.Footer className="bg-light p-2 border-top">
+                                {sendError && <Alert variant="danger" className="mb-2 py-1 px-2 small" onClose={() => setSendError('')} dismissible>{sendError}</Alert>}
+                                <Form onSubmit={handleSendMessage}>
+                                    <InputGroup>
+                                        <Form.Control
+                                            as="textarea"
+                                            rows={1}
+                                            placeholder="Type your message..."
+                                            value={newMessage}
+                                            onChange={(e) => setNewMessage(e.target.value)}
+                                            required
+                                            disabled={isSending}
+                                            style={{ resize: 'none', overflowY: 'auto', minHeight: '40px' }} 
+                                             onKeyDown={(e) => {
+                                                 if (e.key === 'Enter' && !e.shiftKey) {
+                                                     e.preventDefault(); 
+                                                     if (!isSending && newMessage.trim()) {
+                                                         handleSendMessage();
+                                                     }
+                                                 }
+                                             }}
+                                        />
+                                        <Button type="submit" variant="primary" disabled={isSending || !newMessage.trim()}>
+                                            {isSending ? <Spinner as="span" size="sm" animation="border" /> : <Send size={18} />}
+                                        </Button>
+                                    </InputGroup>
+                                </Form>
+                            </Card.Footer>
+                        )}
+                    </Card>
+                </Col>
+            </Row>
+        </Container>
+    );
+};
+
+// --- FEATURE 1: Saved Projects Page ---
+const SavedProjectsPage = () => {
+    const { user, axiosInstance } = useAuth();
+    const [savedProjects, setSavedProjects] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        const fetchSavedProjects = async () => {
+            if (!user) return;
+            setLoading(true);
+            try {
+                const response = await axiosInstance.get('/saved-projects/');
+                setSavedProjects(response.data.results || response.data);
+            } catch (err) {
+                setError('Failed to fetch saved projects.');
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchSavedProjects();
+    }, [user, axiosInstance]);
+
+    const handleUnsave = async (projectId) => {
+        try {
+            const savedProject = savedProjects.find(sp => sp.project.id === projectId);
+            if (savedProject) {
+                await axiosInstance.delete(`/saved-projects/${savedProject.id}/`);
+                setSavedProjects(prev => prev.filter(sp => sp.id !== savedProject.id));
+            }
+        } catch (err) {
+            alert('Failed to unsave project.');
+            console.error(err);
+        }
+    };
+
+    if (loading) return <Container className="text-center py-5"><Spinner animation="border" /></Container>;
+    if (error) return <Container><Alert variant="danger">{error}</Alert></Container>;
+
+    return (
+        <Container className="py-5 animate-fade-in">
+            <div className="d-flex justify-content-between align-items-center mb-4">
+                <h1 className="gradient-text"><Bookmark className="me-2" />Saved Projects</h1>
+            </div>
+            {savedProjects.length > 0 ? (
+                <Row xs={1} md={2} lg={3} className="g-4">
+                    {savedProjects.map(sp => (
+                        <Col key={sp.id}>
+                            <Card className="h-100 shadow-sm saved-project-card project-card">
+                                <Card.Body className="d-flex flex-column">
+                                    <Card.Title>
+                                        <Link to={`/project/${sp.project.id}`} className="text-decoration-none stretched-link">
+                                            {sp.project.title}
+                                        </Link>
+                                    </Card.Title>
+                                    <Card.Text className="flex-grow-1">
+                                        {sp.project.description.length > 100 ? sp.project.description.substring(0, 100) + '...' : sp.project.description}
+                                    </Card.Text>
+                                    <div className="d-flex justify-content-between align-items-center mt-auto pt-2 border-top">
+                                        <span className="fw-bold fs-5 text-success">₹{sp.project.budget}</span>
+                                        <Button variant="outline-danger" size="sm" onClick={() => handleUnsave(sp.project.id)}>
+                                            <BookmarkCheck size={16} className="me-1" /> Unsave
+                                        </Button>
+                                    </div>
+                                </Card.Body>
+                            </Card>
+                        </Col>
+                    ))}
+                </Row>
+            ) : (
+                <Alert variant="info">You haven't saved any projects yet. Start browsing and save projects you're interested in!</Alert>
+            )}
+        </Container>
+    );
+};
+
+// --- FEATURE 2: Activity Feed Page ---
+const ActivityFeedPage = () => {
+    const { user, axiosInstance } = useAuth();
+    const [activities, setActivities] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        const fetchActivities = async () => {
+            if (!user) return;
+            setLoading(true);
+            try {
+                const response = await axiosInstance.get('/activities/');
+                setActivities(response.data.results || response.data);
+            } catch (err) {
+                setError('Failed to fetch activities.');
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchActivities();
+        const interval = setInterval(fetchActivities, 30000); 
+        return () => clearInterval(interval);
+    }, [user, axiosInstance]);
+
+    const getActivityIcon = (action) => {
+        switch (action) {
+            case 'project_created': return <Briefcase size={20} />;
+            case 'proposal_submitted': return <FileText size={20} />;
+            case 'proposal_accepted': return <Check size={20} />;
+            case 'contract_created': return <Award size={20} />;
+            case 'review_submitted': return <Star size={20} />;
+            default: return <Activity size={20} />;
+        }
+    };
+
+    if (loading) return <Container className="text-center py-5"><Spinner animation="border" /></Container>;
+    if (error) return <Container><Alert variant="danger">{error}</Alert></Container>;
+
+    return (
+        <Container className="py-5 animate-fade-in">
+            <h1 className="mb-4 gradient-text"><Activity className="me-2" />Activity Feed</h1>
+            {activities.length > 0 ? (
+                <div>
+                    {activities.map(activity => (
+                        <div key={activity.id} className="activity-item animate-slide-in">
+                            <div className="d-flex align-items-start">
+                                <div className="me-3 mt-1 text-primary">{getActivityIcon(activity.action)}</div>
+                                <div className="flex-grow-1">
+                                    <div className="d-flex justify-content-between">
+                                        <strong>{activity.user}</strong>
+                                        <small className="text-muted">{new Date(activity.timestamp).toLocaleString()}</small>
+                                    </div>
+                                    <p className="mb-0 mt-1">{activity.description}</p>
+                                    {activity.related_project && (
+                                        <Link to={`/project/${typeof activity.related_project === 'object' ? activity.related_project.id : activity.related_project}`} className="text-decoration-none">
+                                            View Project →
+                                        </Link>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <Alert variant="info">No activities to display yet.</Alert>
+            )}
+        </Container>
+    );
+};
+
+// --- FEATURE : Analytics Dashboard Page ---
+const AnalyticsPage = () => {
+    const { user, axiosInstance } = useAuth();
+    const [analytics, setAnalytics] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        const fetchAnalytics = async () => {
+            if (!user) return;
+            setLoading(true);
+            try {
+                const response = await axiosInstance.get('/analytics/');
+                setAnalytics(response.data.results || response.data);
+            } catch (err) {
+                setError('Failed to fetch analytics.');
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchAnalytics();
+    }, [user, axiosInstance]);
+
+    if (loading) return <Container className="text-center py-5"><Spinner animation="border" /></Container>;
+    if (error) return <Container><Alert variant="danger">{error}</Alert></Container>;
+
+    return (
+        <Container className="py-5 animate-fade-in">
+            <h1 className="mb-4 gradient-text"><BarChart3 className="me-2" />Project Analytics</h1>
+            {analytics.length > 0 ? (
+                <Row xs={1} md={2} lg={3} className="g-4">
+                    {analytics.map(anal => (
+                        <Col key={anal.id}>
+                            <Card className="shadow-sm">
+                                <Card.Header>
+                                    <Link to={`/project/${typeof anal.project === 'object' ? anal.project : anal.project}`} className="text-white text-decoration-none">
+                                        Project Analytics
+                                    </Link>
+                                </Card.Header>
+                                <Card.Body>
+                                    <div className="analytics-card">
+                                        <h3>{anal.total_views}</h3>
+                                        <p>Total Views</p>
+                                    </div>
+                                    <Row className="mt-3">
+                                        <Col xs={6}>
+                                            <div className="text-center">
+                                                <h4 className="text-primary">{anal.unique_views}</h4>
+                                                <small className="text-muted">Unique Views</small>
+                                            </div>
+                                        </Col>
+                                        <Col xs={6}>
+                                            <div className="text-center">
+                                                <h4 className="text-success">{anal.proposals_count}</h4>
+                                                <small className="text-muted">Proposals</small>
+                                            </div>
+                                        </Col>
+                                        <Col xs={12} className="mt-2">
+                                            <div className="text-center">
+                                                <h4 className="text-warning">{anal.saved_count}</h4>
+                                                <small className="text-muted">Saved Count</small>
+                                            </div>
+                                        </Col> </Row>  </Card.Body></Card>
+                        </Col> ))}
+                </Row> ) : (
+                <Alert variant="info">No analytics data available yet.</Alert>
+            )}
+        </Container>
+    );};
+
+// --- Feature : Advanced Filters Component (used in ProjectListPage) ---
+const AdvancedFilters = ({ onFilterChange, availableSkills }) => {
+    const defaultFilters = {
+        minBudget: '',
+        maxBudget: '',
+        status: 'active',
+        sortBy: 'created_at'
+    };
+
+    // 2. The component now manages its own state
+    const [filters, setFilters] = useState(defaultFilters);
+    const handleFilterChange = (key, value) => {
+        const newFilters = { ...filters, [key]: value };
+        setFilters(newFilters);
+        onFilterChange(newFilters); 
+    };
+
+    const handleClear = () => {
+        setFilters(defaultFilters);    
+        onFilterChange(defaultFilters); 
+    };
+
+    return (
+        <Card className="filter-panel animate-slide-in">
+            <Card.Header className="d-flex justify-content-between align-items-center">
+                <span>
+                    <Filter className="me-2" /> Advanced Filters
+                </span>
+                <Button variant="outline-danger" size="sm" onClick={handleClear}>
+                    Clear Filters
+                </Button>
+            </Card.Header>
+            <Card.Body>
+                <Row>
+                    <Col md={6}>
+                        <Form.Group className="mb-3">
+                            <Form.Label>Min Budget (₹)</Form.Label>
+                            <Form.Control type="number" value={filters.minBudget} onChange={e => handleFilterChange('minBudget', e.target.value)} placeholder="0" />
+                        </Form.Group>
+                    </Col>
+                    <Col md={6}>
+                        <Form.Group className="mb-3">
+                            <Form.Label>Max Budget (₹)</Form.Label>
+                            <Form.Control type="number" value={filters.maxBudget} onChange={e => handleFilterChange('maxBudget', e.target.value)} placeholder="100000" />
+                        </Form.Group>
+                    </Col>
+                    <Col md={6}>
+                        <Form.Group className="mb-3">
+                            <Form.Label>Status</Form.Label>
+                            <Form.Select value={filters.status} onChange={e => handleFilterChange('status', e.target.value)}>
+                                <option value="active">Active</option>
+                                <option value="in_progress">In Progress</option>
+                                <option value="completed">Completed</option>
+                            </Form.Select>
+                        </Form.Group>
+                    </Col>
+                    <Col md={6}>
+                        <Form.Group className="mb-3">
+                            <Form.Label>Sort By</Form.Label>
+                            <Form.Select value={filters.sortBy} onChange={e => handleFilterChange('sortBy', e.target.value)}>
+                                <option value="created_at">Newest</option>
+                                <option value="-budget">Budget: High to Low</option>
+                                <option value="budget">Budget: Low to High</option>
+                                <option value="-view_count">Most Viewed</option>
+                            </Form.Select>
+                        </Form.Group>
+                    </Col>
+                </Row>
+            </Card.Body>
+        </Card>
+    );
+};
+
+// --- Feature:Badge Display Component ---
+export const BadgeDisplay = ({ userId }) => {
+    const { axiosInstance } = useAuth();
+    const [badges, setBadges] = useState([]);
+    const [loading, setLoading] = useState(false);
+
+    const getBadgeIcon = (badgeType) => {
+        switch (badgeType) {
+            case 'verified': return <Shield size={16} />;
+            case 'top_freelancer': case 'top_client': return <Trophy size={16} />;
+            case 'excellent_review': return <Star size={16} />;
+            default: return <Award size={16} />;
+        }
+    };
+
+    useEffect(() => {
+        const fetchBadges = async () => {
+            setLoading(true);
+            try {
+                const url = userId ? `/badges/?user_id=${userId}` : '/badges/';
+                const response = await axiosInstance.get(url);
+                setBadges(response.data.results || response.data);
+            } catch (err) {
+                console.error('Failed to fetch badges:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchBadges();
+    }, [userId, axiosInstance]);
+
+    if (loading) return <Spinner size="sm" />;
+    if (badges.length === 0) return null;
+
+    return (
+        <div className="badge-container">
+            {badges.map(badge => (
+                <span key={badge.id} className="user-badge" title={badge.description || badge.badge_type}>
+                    {getBadgeIcon(badge.badge_type)}
+                    {badge.get_badge_type_display || badge.badge_type.replace(/_/g, ' ')}
+                </span>
+            ))}
+        </div>
+    );
+};
 
 // --- Main App Component ---
 function App() {
     return (
-         // Wrap with BrowserRouter if it's not already done in main.jsx
         <AuthProvider>
-            <div className="d-flex flex-column" style={{ minHeight: "100vh", backgroundColor: "#f8f9fa" }}>
+            <div className="d-flex flex-column" style={{ minHeight: "100vh" }}>
                 <AppNavbar />
-                <main className="flex-grow-1">
+                <main className="flex-grow-1"> 
                     <Routes>
-                        {/* Public Routes */}
                         <Route path="/" element={<HomePage />} />
                         <Route path="/login" element={<LoginPage />} />
                         <Route path="/register" element={<RegisterPage />} />
-                        <Route path="/projects" element={<ProjectListPage />} /> {/* List accessible to all logged-in */}
-                        <Route path="/project/:id" element={<ProjectDetailPage />} /> {/* Detail accessible to all logged-in */}
-                         <Route path="/review/:projectId" element={<ReviewPage />} /> {/* Reviews accessible */}
-
-
-                        {/* Protected Routes (Implicitly handled by AuthProvider context checks within components) */}
-                        <Route path="/project/new" element={<ProjectCreatePage />} />
-                        <Route path="/project/:id/edit" element={<ProjectEditPage />} /> {/* New Edit Route */}
-                        <Route path="/proposal/:id/edit" element={<ProposalEditPage />} /> {/* New Edit Route */}
+                        <Route path="/notifications" element={<NotificationsPage />} />
                         <Route path="/dashboard" element={<DashboardPage />} />
                         <Route path="/profile" element={<ProfilePage />} />
+                        <Route path="/review/:projectId" element={<ReviewPage />} />
+                        <Route path="/project/:id" element={<ProjectDetailPage />} />
+                        <Route path="/projects" element={<ProjectListPage />} />
                         <Route path="/contracts" element={<ContractsPage />} />
                         <Route path="/messages" element={<MessagingPage />} />
-                        <Route path="/notifications" element={<NotificationsPage />} /> {/* New Notifications Route */}
-
-
-                        {/* Add 404 Not Found Route later */}
+                        <Route path="/project/new" element={<ProjectCreatePage />} />
+                        <Route path="/project/:id/edit" element={<ProjectEditPage />} />
+                        <Route path="/saved-projects" element={<SavedProjectsPage />} />
+                        <Route path="/activities" element={<ActivityFeedPage />} />
+                        <Route path="/analytics" element={<AnalyticsPage />} />
+                        <Route path="/wallet" element={<WalletPage />} />
+                        <Route path="/project/:id/milestones" element={<MilestonesPage />} />
+                        <Route path="/invoices" element={<InvoicesPage />} />
+                        <Route path="*" element={
+                            <Container className="py-5 text-center">
+                                <h2>404 Not Found</h2>
+                                <p>The page you requested does not exist.</p>
+                                <Link to="/">Go Home</Link>
+                            </Container>
+                        } />
                     </Routes>
                 </main>
-                 {/* Optional Footer */}
-                 <footer className="bg-light text-center text-muted py-3 mt-auto">
+                <footer className="bg-light text-center text-muted py-3 mt-auto border-top">
                     <Container>
-                         &copy; {new Date().getFullYear()} TalentLink. All rights reserved.
+                        &copy; {new Date().getFullYear()} TalentLink. All rights reserved.
                     </Container>
                 </footer>
             </div>
         </AuthProvider>
     );
 }
-
-export default App; // Assuming BrowserRouter is in main.jsx
-//Need to wrap AuthProvider with BrowserRouter if not done elsewhere
-// For standalone testing:
- /*const RootApp = () => (
-     <BrowserRouter>
-         <App />
-     </BrowserRouter>
- );
-
- export default RootApp;*/
+export default App;

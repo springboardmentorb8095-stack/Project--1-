@@ -1,4 +1,3 @@
-// MessageInbox.js
 import { useEffect, useState } from "react";
 import api from "../api/axios";
 import { useNavigate } from "react-router-dom";
@@ -24,25 +23,33 @@ function MessageInbox() {
   }, [token]);
 
   return (
-    <div style={{ padding: "2rem" }}>
-      <h2>Your Messages</h2>
-      {conversations.map((conv) => (
-        <div
-          key={conv.user_id}
-          onClick={() => navigate(`/messages/${conv.user_id}`)}
-          style={{
-            border: "1px solid #ccc",
-            padding: "1rem",
-            marginBottom: "1rem",
-            cursor: "pointer",
-            borderRadius: "8px",
-          }}
-        >
-          <strong>{conv.username}</strong>
-          <p>{conv.last_message}</p>
-          <small>{new Date(conv.timestamp).toLocaleString()}</small>
-        </div>
-      ))}
+    <div className="p-10">
+      <h2 className="text-2xl font-semibold mb-4">Your Messages</h2>
+      {conversations.length === 0 && (
+        <p className="text-gray-500">No conversations yet.</p>
+      )}
+      <div className="space-y-3">
+        {conversations.map((conv) => (
+          <div
+            key={conv.user_id}
+            onClick={() => navigate(`/messages/${conv.user_id}`)}
+            className="p-4 bg-white border border-gray-200 rounded-lg shadow-sm cursor-pointer hover:bg-gray-50 transition flex justify-between items-center"
+          >
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-gray-900 truncate">{conv.username.charAt(0).toUpperCase() + conv.username.slice(1)}</p>
+              <p className="text-gray-600 text-sm truncate">{conv.last_message}</p>
+            </div>
+            <div className="text-xs text-gray-400 ml-2 whitespace-nowrap">
+              {new Date(conv.timestamp).toLocaleString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+                month: "short",
+                day: "numeric",
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

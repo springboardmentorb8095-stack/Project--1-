@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import api from "../api/axios";
 
 function ProposalForm() {
-  const { id, proposalId } = useParams(); // projectId and proposalId
+  const { id, proposalId } = useParams();
   const isEdit = Boolean(proposalId);
 
   const [coverLetter, setCoverLetter] = useState("");
@@ -39,34 +39,39 @@ function ProposalForm() {
   }, [isEdit, proposalId, token]);
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+  e.preventDefault();
+  setLoading(true);
 
-    try {
-      if (isEdit) {
-        await api.patch(
-          `/proposals/${proposalId}/`,
-          { cover_letter: coverLetter, proposed_rate: rate },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        alert("Proposal updated successfully!");
-      } else {
-        await api.post(
-          "/proposals/",
-          { project: id, cover_letter: coverLetter, proposed_rate: rate },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        alert("Proposal submitted successfully!");
-      }
+  try {
+    let res; // declare here so it's available after the if/else
 
-      navigate("/projects");
-    } catch (err) {
-      console.error("Error submitting proposal", err);
-      alert("Failed to submit proposal");
-    } finally {
-      setLoading(false);
+    if (isEdit) {
+      res = await api.patch(
+        `/proposals/${proposalId}/`,
+        { cover_letter: coverLetter, proposed_rate: rate },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      alert("Proposal updated successfully!");
+    } else {
+      res = await api.post(
+        "/proposals/",
+        { project: id, cover_letter: coverLetter, proposed_rate: rate },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      alert("Proposal submitted successfully!");
     }
-  };
+
+    // ✅ Now you can safely access res.data
+    const projectId = res?.data?.project_id || id;
+    navigate(`/projects/${projectId}`);
+  } catch (err) {
+    console.error("Error submitting proposal", err);
+    alert("Failed to submit proposal");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const handleDelete = async () => {
     if (!window.confirm("Are you sure you want to delete this proposal?")) return;
@@ -86,53 +91,77 @@ function ProposalForm() {
     }
   };
 
-  if (loading) return <p>Loading...</p>;
+  if (loading)
+    return <p className="text-gray-500 text-center mt-6">Loading...</p>;
 
   return (
-    <div style={{ padding: "7rem" }}>
-      <h2>{isEdit ? "Update Proposal" : "Submit Proposal"}</h2>
-      <form onSubmit={handleSubmit}>
-        <textarea
-          rows={10}
-          placeholder="Cover Letter"
-          value={coverLetter}
-          onChange={(e) => setCoverLetter(e.target.value)}
-          style={{ width: "100%", marginBottom: "1rem" }}
-          required
-        />
-        <input
-          type="number"
-          placeholder="Proposed Rate ($)"
-          value={rate}
-          onChange={(e) => setRate(e.target.value)}
-          style={{ width: "100%", marginBottom: "1rem" }}
-          required
-          min={0}
-          step={0.01}
-        />
+    <div className="max-w-2xl mx-auto p-6 bg-white shadow-md rounded-lg mt-8">
+      <h2 className="text-2xl font-bold mb-6 text-gray-800">
+        {isEdit ? "Update Proposal" : "Submit Proposal"}
+      </h2>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-gray-700 font-medium mb-2">Cover Letter</label>
+          <textarea
+            rows={10}
+            placeholder="Cover Letter"
+            value={coverLetter}
+            onChange={(e) => setCoverLetter(e.target.value)}
+            required
+            className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-400"
+          />
+        </div>
+
+        <div>
+          <label className="block text-gray-700 font-medium mb-2">Proposed Rate ($)</label>
+          <input
+            type="number"
+            placeholder="Proposed Rate ($)"
+            value={rate}
+            onChange={(e) => setRate(e.target.value)}
+            required
+            min={0}
+            step={0.01}
+            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-400"
+          />
+        </div>
+
         {isEdit && (
-          <p>
+          <p className="text-gray-700">
             <strong>Status:</strong> {status || "N/A"}
           </p>
         )}
+
         {status === "accepted" || status === "rejected" ? (
-          <p>Your proposal is {status}.</p>
+          <p className="text-gray-700 font-medium">
+            Your proposal is <span className="capitalize">{status}</span>.
+          </p>
         ) : (
-          <>
-            <button type="submit" disabled={loading}>
+          <div className="flex items-center space-x-4 mt-4">
+            <button
+              type="submit"
+              disabled={loading}
+              className={`px-6 py-2 rounded-md text-white font-medium transition ${
+                loading
+                  ? "bg-indigo-300 cursor-not-allowed"
+                  : "bg-indigo-600 hover:bg-indigo-700"
+              }`}
+            >
               {isEdit ? "Update Proposal" : "Submit Proposal"}
             </button>
+
             {isEdit && (
               <button
                 type="button"
                 onClick={handleDelete}
                 disabled={loading}
-                style={{ marginLeft: "1rem", backgroundColor: "red", color: "white" }}
+                className="px-6 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 transition"
               >
                 Delete Proposal
               </button>
             )}
-          </>
+          </div>
         )}
       </form>
     </div>

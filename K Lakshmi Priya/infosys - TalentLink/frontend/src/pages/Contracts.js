@@ -1,8 +1,8 @@
+// src/pages/ContractDashboard.js
 import { useEffect, useState } from "react";
 import api from "../api/axios";
 import { useNavigate } from "react-router-dom";
-
-import { FaUserCircle } from "react-icons/fa";
+import { FaUserCircle, FaFolderOpen, FaCalendarAlt } from "react-icons/fa";
 
 function ContractDashboard() {
   const token = localStorage.getItem("access");
@@ -52,75 +52,105 @@ function ContractDashboard() {
     fetchContracts();
   }, [token]);
 
-  if (loading) return <p>Loading contracts...</p>;
+  if (loading)
+    return (
+      <div className="flex justify-center items-center h-screen text-indigo-600 text-lg font-medium">
+        Loading contracts...
+      </div>
+    );
 
   return (
-    <div style={{ padding: "2rem" }}>
-      <h2>Your Contracts</h2>
+    <div
+      className="max-w-6xl mx-auto p-16"
+      style={{
+        background:
+          "linear-gradient(135deg, #f8f9ff 0%, #eef2ff 100%)",
+        minHeight: "100vh",
+      }}
+    >
+      <h2 className="text-3xl font-bold text-indigo-700 mb-8 text-center">
+        Your Contracts
+      </h2>
 
       {contracts.length === 0 ? (
-        <p>No contracts found.</p>
+        <p className="text-center text-gray-600 text-lg">
+          No contracts found.
+        </p>
       ) : (
-        contracts.map((contract) => (
-          <div
-            key={contract.id}
-            style={{
-              border: "1px solid #ccc",
-              padding: "1rem",
-              marginBottom: "1rem",
-              borderRadius: "8px",
-            }}
-          >
-            <div style={{
-              display : "grid",
-              gridTemplateColumns : "3fr 1fr",
-              gap : "8px"
-              }
-            }>
-              <div>
-              <p>
-                <strong>Project Title:</strong> {contract.proposal?.project_title || "N/A"}
+        <div className="grid gap-6 md:grid-cols-2">
+          {contracts.map((contract) => (
+            <div
+              key={contract.id}
+              className="bg-white shadow-md rounded-lg border border-gray-200 hover:shadow-lg transition transform hover:-translate-y-1 p-6"
+            >
+              <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center space-x-2 text-indigo-700 font-semibold">
+                  <FaFolderOpen />
+                  <p>{contract.proposal?.project_title || "N/A"}</p>
+                </div>
+
+                <div className="flex items-center space-x-2 cursor-pointer">
+                  <FaUserCircle
+                    size={24}
+                    className="text-gray-600 hover:text-indigo-500"
+                  />
+                  {isClient && (
+                    <span
+                      onClick={() =>
+                        navigate(`/users/${contract.freelancer_id}/profile`)
+                      }
+                      className="text-indigo-600 font-medium hover:underline"
+                    >
+                      {contract.freelancer_name}
+                    </span>
+                  )}
+                  {isFreelancer && (
+                    <span
+                      onClick={() =>
+                        navigate(`/users/${contract.client_id}/profile`)
+                      }
+                      className="text-indigo-600 font-medium hover:underline"
+                    >
+                      {contract.client_name}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <p className="text-gray-700 mb-1">
+                <strong className="text-gray-900">Status:</strong>{" "}
+                <span
+                  className={`font-medium ${
+                    contract.status === "completed"
+                      ? "text-green-600"
+                      : contract.status === "in_progress"
+                      ? "text-yellow-600"
+                      : "text-gray-600"
+                  }`}
+                >
+                  {contract.status}
+                </span>
               </p>
-              </div>
-              <div>                
-                {isClient && (
 
-                    <p
-                          onClick={() => navigate(`/users/${contract.freelancer_id}/profile`)}
-                          style={{ cursor: "pointer", display: "flex", alignItems: "center" }}
-                        >
-                          <FaUserCircle size={24} style={{ marginRight: "8px" }} />
-                          {contract.freelancer_name}
-                    </p>
-                )}
-                {isFreelancer && (
-                    <p
-                          onClick={() => navigate(`/users/${contract.client_id}/profile`)}
-                          style={{ cursor: "pointer", display: "flex", alignItems: "center" }}
-                        >
-                          <FaUserCircle size={24} style={{ marginRight: "8px" }} />
-                          {contract.client_name}
-                    </p>
-                )}
-              </div>
+              <p className="flex items-center text-gray-700">
+                <FaCalendarAlt className="text-indigo-500 mr-2" />
+                <span>
+                  <strong>Start:</strong>{" "}
+                  {new Date(contract.start_date).toLocaleDateString()}{" "}
+                  <strong>– End:</strong>{" "}
+                  {new Date(contract.end_date).toLocaleDateString()}
+                </span>
+              </p>
+
+              <button
+                onClick={() => navigate(`/contracts/${contract.id}`)}
+                className="mt-4 w-full py-2 text-white font-medium rounded-md bg-indigo-600 hover:bg-indigo-700 transition"
+              >
+                View Contract
+              </button>
             </div>
-            <p>
-              <strong>Status:</strong> {contract.status}
-            </p>
-            <p>
-              <strong>Start:</strong>{" "}
-              {new Date(contract.start_date).toLocaleDateString()}
-              <strong> - End:</strong>{" "}
-              {new Date(contract.end_date).toLocaleDateString()}
-            </p>
-
-
-
-            <p onClick={() => navigate(`/contracts/${contract.id}`)} style={{ cursor: "pointer", textDecoration: "underline" }}>
-                View
-            </p>
-          </div>
-        ))
+          ))}
+        </div>
       )}
     </div>
   );

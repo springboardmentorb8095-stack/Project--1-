@@ -1,0 +1,8 @@
+Hi {{ user_name }},
+
+You have received a new message from {{ sender_name }}.
+
+Please log in to your account to read and reply: {{ site_url }}/messages
+
+Thanks,
+The TalentLink Team

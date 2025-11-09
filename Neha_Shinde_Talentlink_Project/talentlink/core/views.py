@@ -8,11 +8,11 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.db.models import Q
 from django.utils import timezone
 
-from .models import Skill, Profile, Project, Proposal, Contract, Message, Review, Conversation
+from .models import Skill, Profile, Project, Proposal, Contract, Message, Review, Conversation, Notification
 from .serializers import (
     SkillSerializer, ProfileSerializer, ProjectSerializer,
     ProposalSerializer, ContractSerializer, MessageSerializer,
-    ReviewSerializer, BudgetSerializer
+    ReviewSerializer, BudgetSerializer, NotificationSerializer
 )
 
 # 🔹 Skill ViewSet
@@ -72,7 +72,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         except Profile.DoesNotExist:
             raise serializers.ValidationError("Client profile not found.")
 
-# 🔹 Proposal ViewSet
+
 class ProposalViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     serializer_class = ProposalSerializer
@@ -110,16 +110,23 @@ class ProposalViewSet(viewsets.ModelViewSet):
         # ✅ Auto-create contract if status becomes 'accepted'
         if old_status != 'accepted' and new_status == 'accepted':
             Contract.objects.get_or_create(
-            proposal=instance,
-            client=instance.project.client,
-            freelancer=instance.freelancer,
-            defaults={
-              'status': 'draft',
-              'start_date': timezone.now().date()  # ✅ Fix: provide required field
-            }
-        )
+                proposal=instance,
+                client=instance.project.client,
+                freelancer=instance.freelancer,
+                defaults={
+                    'status': 'draft',
+                    'start_date': timezone.now().date()
+                }
+            )
+
+            # ✅ Create notification for freelancer
+            Notification.objects.create(
+                user=instance.freelancer.user,
+                message=f"Your proposal for project '{instance.project.title}' was accepted."
+            )
 
         return Response(serializer.data)
+
 
 
 # 🔹 Contract ViewSet
@@ -160,19 +167,18 @@ class MessageViewSet(viewsets.ModelViewSet):
      serializer.save(sender=self.request.user)
 
 
-# 🔹 Review ViewSet
 class ReviewViewSet(viewsets.ModelViewSet):
-    queryset = Review.objects.none()  # Static fallback for DRF introspection
     serializer_class = ReviewSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        try:
-            profile = Profile.objects.get(user=self.request.user)
-            return Review.objects.filter(Q(reviewer=profile) | Q(reviewed=profile))
-        except Profile.DoesNotExist:
-            return Review.objects.none()
-        
+        return Review.objects.filter(reviewer__user=self.request.user)
+
+    def perform_create(self, serializer):
+        profile = Profile.objects.get(user=self.request.user)
+        serializer.save(reviewer=profile)
+
+
 class UserListView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -255,7 +261,12 @@ class MarkMessagesReadView(APIView):
         except Conversation.DoesNotExist:
             return Response({'error': 'Conversation not found'}, status=404)
 
+class NotificationViewSet(viewsets.ModelViewSet):
+    serializer_class = NotificationSerializer
+    permission_classes = [IsAuthenticated]
 
+    def get_queryset(self):
+        return Notification.objects.filter(user=self.request.user).order_by('-created_at')
 
 # 🔹 Budget Filter Endpoint
 @api_view(['POST'])
