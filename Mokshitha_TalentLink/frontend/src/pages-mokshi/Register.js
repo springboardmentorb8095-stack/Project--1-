@@ -35,33 +35,51 @@ export default function Register() {
   };
 
   return (
-    <div className="auth-container">
-      <h2>Register</h2>
+  <div className="login-wrapper-light">
+    <div className="login-card-light">
+      <h2>Create Account ✨</h2>
+
       <form onSubmit={handleRegister}>
-        <input
-          type="text"
-          placeholder="Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          required
-        />
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-        <button type="submit">Register</button>
+        <div className="input-box-light">
+          <input
+            type="text"
+            placeholder="Username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            required
+          />
+        </div>
+
+        <div className="input-box-light">
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+        </div>
+
+        <div className="input-box-light">
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </div>
+
+        <button type="submit" className="light-btn">
+          Register
+        </button>
       </form>
-      <a className="link" href="/login">Already have an account? Login</a>
+
+      <a className="switch-link-light" href="/login">
+        Already have an account? <span>Login</span>
+      </a>
     </div>
-  );
+  </div>
+);
 }
+    

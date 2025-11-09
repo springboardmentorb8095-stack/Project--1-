@@ -49,6 +49,7 @@ export default function Login() {
       // ✅ Step 3: Store correct user details
       localStorage.setItem("profileId", profile.id);
       localStorage.setItem("profileName", profile.user_name);
+    
 
       // ✅ Step 4: Role-specific storage (to avoid confusion in chat)
       if (profile.is_freelancer) {
@@ -71,34 +72,44 @@ export default function Login() {
   };
 
   return (
-    <div className="auth-container">
-        <button className="back-btn" onClick={handleBack}>←🏠 Back</button>
+  <div className="login-wrapper-light">
+    <div className="login-card-light">
+      <h2>Welcome Back 👋</h2>
 
-      <h2>Login</h2>
       {loading ? (
         <p>⏳ Checking your profile...</p>
       ) : (
         <form onSubmit={handleLogin}>
-          <input
-            type="text"
-            placeholder="Username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-          <button type="submit">Login</button>
+          <div className="input-box-light">
+            <input
+              type="text"
+              placeholder="Username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="input-box-light">
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+
+          <button type="submit" className="light-btn">
+            Login
+          </button>
         </form>
       )}
-      <a className="link" href="/register">
-        Don’t have an account? Register
+
+      <a className="switch-link-light" href="/register">
+        Don’t have an account? <span>Register</span>
       </a>
     </div>
-  );
+  </div>
+);
 }
