@@ -17,7 +17,8 @@ SECRET_KEY = 'django-insecure-w&!c0h^g@6gqdp3(5lnc0*z5jwiag1-s=i-wj01lh47_8g_g48
 DEBUG = True
 
 # Allow local development hosts
-ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
+ALLOWED_HOSTS = ["127.0.0.1", "localhost", "*"]
+
 APPEND_SLASH = False
 
 
@@ -120,3 +121,25 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
 }
+# ===============================
+# ✅ STATIC FILES (Render)
+# ===============================
+import os
+
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# Whitenoise
+if "django.middleware.security.SecurityMiddleware" in MIDDLEWARE:
+    sec_index = MIDDLEWARE.index("django.middleware.security.SecurityMiddleware")
+    MIDDLEWARE.insert(sec_index + 1, "whitenoise.middleware.WhiteNoiseMiddleware")
+
+# ===============================
+# ✅ DATABASE — optional for Render
+# ===============================
+import dj_database_url
+
+db_from_env = dj_database_url.config(conn_max_age=600, ssl_require=False)
+DATABASES['default'].update(db_from_env)
+
+
