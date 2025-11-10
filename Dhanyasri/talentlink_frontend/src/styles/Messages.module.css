@@ -1,0 +1,278 @@
+/* ============================================
+   🌐 Messages Page Styling (keeps original class names)
+   ============================================ */
+
+.dashboardContainer {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: flex-start;
+  font-family: "Poppins", sans-serif;
+  background: url("https://img.freepik.com/free-vector/futuristic-technology-background_23-2148503793.jpg?semt=ais_hybrid")
+    center/cover no-repeat fixed;
+  color: #fff;
+  padding: 2rem;
+  box-sizing: border-box;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 230px;
+  height: 90vh;
+  position: sticky;
+  top: 2rem;
+  border-radius: 20px;
+  background: transparent;
+  padding: 1.5rem 1rem;
+}
+
+/* Main Content */
+.content {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(12px);
+  border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  margin-left: 2rem;
+  margin-top: 2rem;
+  padding: 2rem;
+  max-width: 900px;   
+  margin-right: 2rem;
+  animation: fadeIn 0.6s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.content h1 {
+  text-align: center;
+  color: #fff;
+  margin-bottom: 0.6rem;
+  font-size: 1.8rem;
+  letter-spacing: 0.6px;
+}
+
+/* Card Styling (contract card) */
+.card {
+  background: rgba(250,250,250,0.95);
+  color: #111;
+  border-radius: 14px;
+  padding: 16px 18px;
+  margin-top: 1.2rem;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.18);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 14px 30px rgba(0,0,0,0.22);
+}
+
+/* 💬 Pastel Chat UI – Soft, Colorful & Elegant */
+
+/* 💖 Chat Box – Light, Colorful & Polished */
+
+.messageSection {
+  margin-top: 1.5rem;
+  background: linear-gradient(135deg, #b877d9, #f07b8e);
+  border-radius: 22px;
+  padding: 1.5rem;
+  color: #fff;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(12px);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Heading */
+.messageSection h4 {
+  font-size: 1.3rem;
+  color: #fff;
+  margin-bottom: 1rem;
+  font-weight: 800;
+  text-align: center;
+  letter-spacing: 0.7px;
+  text-shadow: 0 0 6px rgba(255, 255, 255, 0.5);
+}
+
+/* Chat Area */
+.messageList {
+  max-height: 300px;
+  overflow-y: auto;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.1));
+  border-radius: 16px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Message Bubbles */
+.messageList p {
+  padding: 12px 16px;
+  max-width: 78%;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  word-wrap: break-word;
+  position: relative;
+}
+
+/* Receiver – Left (light warm tones) */
+.messageList p:nth-child(odd) {
+  align-self: flex-start;
+  background: linear-gradient(135deg, #ffe4b8, #78a0c5);
+  color: #1b1b1b;
+  border-radius: 18px 18px 18px 6px;
+  box-shadow: 0 3px 10px rgba(255, 228, 184, 0.4);
+  border: 2px solid rgba(255, 255, 255, 0.25);
+}
+
+/* Sender – Right (light cool tones) */
+.messageList p:nth-child(even) {
+  align-self: flex-end;
+  background: linear-gradient(135deg, #a7f3e6, #c8d5f3);
+  color: #082032;
+  border-radius: 18px 18px 6px 18px;
+  box-shadow: 0 3px 10px rgba(167, 243, 230, 0.35);
+  border: 2px solid rgba(255, 255, 255, 0.25);
+}
+
+/* Hover soft lift */
+.messageList p:hover {
+  transform: scale(1.02);
+  transition: all 0.15s ease-in-out;
+}
+
+/* Emoji timestamp */
+.messageList p::after {
+  content: "🕓";
+  position: absolute;
+  bottom: -16px;
+  right: 10px;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* Controls Row */
+.messageSection .controlsRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 1rem;
+  background: linear-gradient(90deg, #70d6ff, #b8f2e6);
+  padding: 1rem;
+  border-radius: 14px;
+  box-shadow: 0 5px 12px rgba(112, 214, 255, 0.3);
+}
+
+/* Input Box */
+.messageSection input {
+  flex: 1;
+  padding: 0.9rem 1rem;
+  border-radius: 14px;
+  border: none;
+  font-size: 1rem;
+  background: rgba(255, 255, 255, 0.9);
+  color: #111;
+  outline: none;
+  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.08);
+}
+
+.messageSection input::placeholder {
+  color: #666;
+}
+
+/* Emoji Button */
+.messageSection button[aria-emoji="true"] {
+  background: linear-gradient(135deg, #ffed99, #ffa3a3);
+  border: none;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  font-size: 1.3rem;
+  cursor: pointer;
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(255, 163, 163, 0.35);
+  transition: transform 0.2s ease;
+}
+
+.messageSection button[aria-emoji="true"]:hover {
+  transform: scale(1.1);
+  box-shadow: 0 7px 18px rgba(255, 163, 163, 0.5);
+}
+
+/* Send Button */
+.messageSection button[aria-send="true"] {
+  background: linear-gradient(135deg, #7cf6a0, #6ca8ff);
+  color: #fff;
+  border: none;
+  padding: 0.9rem 1.5rem;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 700;
+  box-shadow: 0 6px 16px rgba(108, 168, 255, 0.35);
+  transition: all 0.25s ease;
+}
+
+.messageSection button[aria-send="true"]:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgba(124, 246, 160, 0.45);
+}
+
+/* Scrollbar */
+.messageList {
+  scrollbar-width: thin;
+  scrollbar-color: #ff8fa3 #333;
+}
+
+/* Responsive */
+@media (max-width: 880px) {
+  .messageList {
+    max-height: 220px;
+  }
+  .messageSection .controlsRow {
+    flex-direction: column;
+  }
+  .messageSection input {
+    width: 100%;
+  }
+}
+
+.sendBtn {
+  background: linear-gradient(135deg, #a77bff, #7b5cff);
+  color: #fff;
+  border: none;
+  padding: 0.8rem 1.6rem;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(123, 92, 255, 0.5);
+  margin-top: 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sendBtn:hover {
+  background: linear-gradient(135deg, #7b5cff, #5c3dff);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 6px 16px rgba(123, 92, 255, 0.7);
+}
+
+.sendBtn:active {
+  transform: scale(0.98);
+  box-shadow: 0 3px 8px rgba(123, 92, 255, 0.4);
+}
+
+.sendBtn:disabled {
+  background: #8e8e8e;
+  cursor: not-allowed;
+  box-shadow: none;
+  opacity: 0.7;
+}

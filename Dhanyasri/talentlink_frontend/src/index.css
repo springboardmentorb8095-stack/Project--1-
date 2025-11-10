@@ -1,0 +1,134 @@
+/* ==============================
+   Light Mode Variables
+   ============================== */
+:root {
+  --bg: #ffffff;               /* page background */
+  --surface: #f7f7fb;          /* card, sidebar, etc. */
+  --text: #0f172a;             /* main text */
+  --muted: #6b7280;            /* secondary text */
+  --primary: #2563eb;          /* headers / highlights */
+  --accent: #f59e0b;           /* optional accent color */
+  --card-shadow: 0 4px 10px rgba(0,0,0,0.05);
+  --transition: 0.3s ease;
+
+  /* Sidebar-specific */
+  --navbar-bg: linear-gradient(180deg, #e0f7fa, #b2ebf2);
+  --navbar-title: #f8fdfd;
+  
+  /* Card-specific */
+  --card-bg: linear-gradient(135deg, #a1c4fd, #c2e9fb);
+  --formcard-bg: linear-gradient(135deg, #fddb92, #d1fdff);
+  --projectcard-bg: linear-gradient(135deg, #ffe29f, #ff7e5f);
+  --proposal-bg: linear-gradient(135deg, #d4fc79, #96e6a1);
+  --profile-bg: linear-gradient(135deg, #ffecd2, #fcb69f);
+}
+
+/* ==============================
+   Dark Mode Variables
+   ============================== */
+[data-theme="dark"] {
+  --bg: #0f172a;
+  --surface: #1e293b;
+  --text: #e2e8f0;
+  --muted: #94a3b8;
+  --primary: #60a5fa;
+  --accent: #fbbf24;
+  --card-shadow: 0 4px 10px rgba(255,255,255,0.05);
+
+  /* Sidebar-specific */
+  --navbar-bg: #1e293b;       
+  --navbar-title: #60a5fa;
+
+  /* Card-specific */
+  --card-bg: linear-gradient(135deg, #2c3e50, #34495e);
+  --formcard-bg: linear-gradient(135deg, #34495e, #3b4a5a);
+  --projectcard-bg: linear-gradient(135deg, #2e3b4c, #3a4b5c);
+  --proposal-bg: linear-gradient(135deg, #3a4b5c, #2e3b4c);
+  --profile-bg: linear-gradient(135deg, #1f2a38, #2e3b4c);
+}
+
+/* ==============================
+   Global Base Styles
+   ============================== */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  transition: background var(--transition), color var(--transition);
+}
+
+/* Links */
+a {
+  color: var(--primary);
+  text-decoration: none;
+  transition: color var(--transition);
+}
+
+/* Buttons default */
+button {
+  font-family: inherit;
+  cursor: pointer;
+  transition: all var(--transition);
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--text);
+  border-radius: 8px;
+  padding: 6px 12px;
+}
+
+/* ==============================
+   Cards
+   ============================== */
+.card {
+  background: var(--card-bg);
+  color: var(--text);
+  box-shadow: var(--card-shadow);
+  border-radius: 12px;
+  padding: 16px;
+  transition: background var(--transition), color var(--transition), box-shadow var(--transition);
+}
+
+.formCard {
+  background: var(--formcard-bg);
+  color: var(--text);
+  box-shadow: var(--card-shadow);
+  border-radius: 12px;
+  padding: 16px;
+  transition: background var(--transition), color var(--transition);
+}
+
+.projectCard {
+  background: var(--projectcard-bg);
+  color: var(--text);
+  box-shadow: var(--card-shadow);
+  border-radius: 12px;
+  padding: 16px;
+  transition: background var(--transition), color var(--transition);
+}
+
+.proposalItem {
+  background: var(--proposal-bg);
+  color: var(--text);
+  border-radius: 12px;
+  padding: 12px;
+  margin-top: 8px;
+  transition: background var(--transition), color var(--transition);
+}
+
+.profileCard {
+  background: var(--profile-bg);
+  color: var(--text);
+  border-radius: 15px;
+  padding: 1.5rem;
+  box-shadow: var(--card-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: center;
+  text-align: center;
+  margin-top: 8rem;
+  transition: background var(--transition), color var(--transition), box-shadow var(--transition);
+}

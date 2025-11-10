@@ -1,0 +1,331 @@
+/* ==============================
+   Page Wrapper (Sidebar + Content)
+   ============================== */
+.pageWrapper {
+  min-height: 100vh;
+  background: url("https://img.freepik.com/free-vector/futuristic-background-design_23-2148503793.jpg?semt=ais_hybrid&w=740&q=80")
+    center/cover no-repeat fixed;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: center;
+  font-family: "Poppins", sans-serif;
+  color: #fff;
+  padding: 2rem;
+  box-sizing: border-box;
+}
+
+/* ==============================
+   Sidebar Navigation Bar
+   ============================== */
+nav {
+  width: 220px;
+  height: 90vh;
+  background: transparent;
+  border-radius: 20px;
+  padding: 2rem 1.2rem;
+  position: sticky;
+  top: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 2rem;
+  animation: slideIn 0.6s ease-in-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+nav h2 {
+  font-size: 1.4rem;
+  color: #fff;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 1rem;
+}
+
+.navLinks {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  text-align: center;
+}
+
+.navLinks a {
+  color: #fff;
+  font-weight: 500;
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 0.7rem 1rem;
+  border-radius: 10px;
+  transition: all 0.3s ease;
+}
+
+.navLinks a:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+}
+
+/* ==============================
+   Main Content Container
+   ============================== */
+.content {
+  width: 100%;
+  max-width: 750px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(12px);
+  border-radius: 20px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+  padding: 2.8rem;
+  text-align: center;
+  animation: fadeIn 0.6s ease-in;
+  margin-left: 3rem;
+  margin-top: 4rem;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ==============================
+   Card Styles
+   ============================== */
+.card {
+  background: linear-gradient(135deg, #a1c4fd, #c2e9fb);
+  color: #222;
+  border-radius: 15px;
+  padding: 2rem;
+  margin-top: 2rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  transition: all 0.4s ease;
+}
+
+.card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+}
+
+/* ==============================
+   Buttons
+   ============================== */
+button {
+  margin-top: 1.5rem;
+  padding: 0.9rem 1.8rem;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: #fff;
+}
+
+button[type="submit"] {
+  background: linear-gradient(135deg, #42e695, #3bb2b8);
+}
+
+button[type="submit"]:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+}
+
+
+
+/* ==============================
+   Loading Text
+   ============================== */
+.loading {
+  text-align: center;
+  font-size: 1.2rem;
+  color: #fff;
+  margin-top: 5rem;
+  animation: glow 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+  from {
+    text-shadow: 0 0 8px #b388ff, 0 0 16px #7c4dff;
+  }
+  to {
+    text-shadow: 0 0 18px #e1bee7, 0 0 25px #ba68c8;
+  }
+}
+
+/* ==============================
+   Responsive
+   ============================== */
+@media (max-width: 992px) {
+  .pageWrapper {
+    flex-direction: column;
+    align-items: center;
+    padding: 1rem;
+  }
+
+  nav {
+    width: 90%;
+    height: auto;
+    flex-direction: row;
+    justify-content: space-around;
+    border-radius: 15px;
+    margin-bottom: 1.5rem;
+  }
+
+  .navLinks {
+    flex-direction: row;
+    gap: 1rem;
+  }
+
+  .content {
+    margin-left: 0;
+    width: 95%;
+    margin-top: 2rem;
+    padding: 2rem;
+  }
+}
+
+/* ==============================
+   Complete Button Styles
+   ============================== */
+.completeBtn {
+  background: linear-gradient(135deg, #2ecc71, #27ae60);
+  color: #fff;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 3px 6px rgba(46, 204, 113, 0.3);
+  margin-top: 10px;
+}
+
+.completeBtn:hover {
+  background: linear-gradient(135deg, #27ae60, #1e8449);
+  box-shadow: 0 4px 10px rgba(39, 174, 96, 0.5);
+  transform: translateY(-2px);
+}
+
+.completeBtn:active {
+  transform: scale(0.97);
+  box-shadow: 0 2px 5px rgba(39, 174, 96, 0.4);
+}
+
+.completeBtn:disabled {
+  background: #bdc3c7;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+/* ==============================
+   Review & Rating Section
+   ============================== */
+.reviewSection {
+  margin-top: 1.8rem;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 15px;
+  padding: 1.5rem;
+  backdrop-filter: blur(10px);
+  color: #222;
+  text-align: left;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+}
+
+.reviewSection:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
+}
+
+.reviewSection h4 {
+  color: #fff;
+  font-size: 1.2rem;
+  margin-bottom: 0.8rem;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+}
+
+.ratingInput {
+  width: 100%;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  border: none;
+  font-size: 1rem;
+  background: rgba(255, 255, 255, 0.9);
+  margin-bottom: 0.8rem;
+  transition: all 0.3s ease;
+}
+
+.ratingInput:focus {
+  outline: none;
+  box-shadow: 0 0 10px rgba(46, 204, 113, 0.6);
+}
+
+.reviewInput {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  border-radius: 10px;
+  border: none;
+  font-size: 0.95rem;
+  background: rgba(255, 255, 255, 0.9);
+  resize: none;
+  margin-bottom: 1rem;
+  transition: all 0.3s ease;
+}
+
+.reviewInput:focus {
+  outline: none;
+  box-shadow: 0 0 10px rgba(63, 94, 251, 0.6);
+}
+
+.submitBtn {
+  background: linear-gradient(135deg, #4facfe, #00f2fe);
+  border: none;
+  color: #fff;
+  font-weight: 600;
+  font-size: 1rem;
+  padding: 0.8rem 1.5rem;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 3px 10px rgba(0, 242, 254, 0.4);
+}
+
+.submitBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(0, 242, 254, 0.6);
+}
+
+.submitBtn:active {
+  transform: scale(0.98);
+  box-shadow: 0 3px 8px rgba(0, 242, 254, 0.4);
+}
+
+.existingReview {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
+  padding: 1rem;
+  color: #222;
+  margin-top: 1rem;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+}

@@ -1,0 +1,132 @@
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  background: url("https://img.freepik.com/free-vector/futuristic-background-design_23-2148503793.jpg?semt=ais_hybrid&w=740&q=80") center/cover no-repeat fixed;
+  font-family: "Poppins", sans-serif;
+  padding: 2rem;
+}
+
+.mainSection {
+  display: flex;
+  width: 100%;
+  max-width: 1300px;
+  gap: 2rem;
+}
+
+.sidebar {
+  width: 220px;
+}
+
+.content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  align-items: center;
+}
+
+h1 {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #fff;
+  padding: 0.8rem 1.8rem;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #ff6a00, #ee0979);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+  letter-spacing: 1px;
+}
+
+h2 {
+  font-size: 1.8rem;
+  color: #fff;
+  letter-spacing: 1px;
+  text-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  margin: 0 auto 1rem auto;
+  padding: 0.4rem 1rem;
+  background: linear-gradient(90deg, #42a5f5, #1e88e5);
+  border-radius: 12px;
+  display: block;
+  text-align: center;
+}
+
+/* Cards */
+.card {
+  background: linear-gradient(135deg, #a1c4fd, #c2e9fb);
+  padding: 2rem;
+  border-radius: 1rem;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  max-width: 800px;
+}
+
+/* Filter Form */
+.filterForm input,
+.filterForm select {
+  display: block;
+  width: 100%;
+  padding: 0.8rem 1rem;
+  margin-bottom: 1rem;
+  border-radius: 10px;
+  border: none;
+  background: #ffffffcc;
+  transition: box-shadow 0.3s ease;
+}
+
+.filterForm input:focus,
+.filterForm select:focus {
+  box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+}
+
+/* Buttons */
+button {
+  padding: 0.6rem 1.3rem;
+  border-radius: 10px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  background: linear-gradient(135deg, #42e695, #3bb2b8);
+  color: #fff;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+button:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 8px 18px rgba(0,0,0,0.3);
+}
+
+/* Project Grid */
+.projectGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.projectCard {
+  background: rgba(255,255,255,0.9);
+  border-radius: 1rem;
+  padding: 1.2rem;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.projectCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.25);
+}
+
+@media (max-width: 992px) {
+  .mainSection {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .sidebar {
+    width: 100%;
+  }
+
+  .content {
+    align-items: center;
+  }
+}

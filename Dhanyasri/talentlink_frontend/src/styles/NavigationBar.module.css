@@ -1,0 +1,218 @@
+/* ==============================
+   Sidebar Navigation Bar
+   ============================== */
+.navbar {
+  width: 220px;
+  height: 90vh;
+  padding: 2rem 1.2rem;
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 2rem;
+  position: sticky;
+  top: 2rem;
+  box-sizing: border-box;
+  background: var(--navbar-bg, linear-gradient(180deg, #e0f7fa, #b2ebf2)); /* theme-aware */
+  color: var(--text, #004d40);
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+.navbar h2 {
+  font-size: 1.4rem;
+  color: var(--navbar-title, #f8fdfd); /* theme-aware title */
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 1rem;
+}
+
+.navLinks {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  text-align: center;
+}
+
+.navLink {
+  color: #004d40; /* keep original color */
+  font-weight: 500;
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.6);
+  padding: 0.7rem 1rem;
+  border-radius: 10px;
+  transition: all 0.3s ease;
+}
+
+.navLink:hover {
+  background: rgba(255, 255, 255, 0.8);
+  transform: scale(1.05);
+}
+
+/* ==============================
+   Buttons (keep original gradients)
+   ============================== */
+.dashboardBtn {
+  background: linear-gradient(135deg, #4fc3f7, #29b6f6);
+  color: #fff;
+  align-items: center;
+}
+
+.dashboardBtn:hover {
+  background: linear-gradient(135deg, #5ed1ff, #34c0ff);
+  transform: translateY(-3px);
+  box-shadow: 0 4px 10px rgba(41, 182, 246, 0.4);
+}
+
+.profileBtn {
+  background: linear-gradient(135deg, #81c784, #66bb6a);
+  color: #fff;
+  align-items: center;
+}
+
+.profileBtn:hover {
+  background: linear-gradient(135deg, #91d88e, #74c977);
+  transform: translateY(-3px);
+  box-shadow: 0 4px 10px rgba(102, 187, 106, 0.4);
+}
+
+.findProjectsBtn {
+  background: linear-gradient(135deg, #ffb74d, #ffa726);
+  color: #fff;
+  align-items: center;
+}
+
+.findProjectsBtn:hover {
+  background: linear-gradient(135deg, #ffc766, #ffb13f);
+  transform: translateY(-3px);
+  box-shadow: 0 4px 10px rgba(255, 183, 77, 0.4);
+}
+
+.contractsBtn {
+  background: linear-gradient(135deg, #ba68c8, #ab47bc);
+  color: #fff;
+  align-items: center;
+}
+
+.contractsBtn:hover {
+  background: linear-gradient(135deg, #c980d4, #b85ec8);
+  transform: translateY(-3px);
+  box-shadow: 0 4px 10px rgba(171, 71, 188, 0.4);
+}
+
+.messagesBtn {
+  background: linear-gradient(135deg, #4db6ac, #26a69a);
+  color: #fff;
+  align-items: center;
+}
+
+.messagesBtn:hover {
+  background: linear-gradient(135deg, #5fc3b8, #2bb6a9);
+  transform: translateY(-3px);
+  box-shadow: 0 4px 10px rgba(38, 166, 154, 0.4);
+}
+
+.logoutBtn {
+  background: linear-gradient(135deg, #e57373, #ef5350);
+  color: #fff;
+  align-items: center;
+}
+
+.dashboardBtn:hover,
+.profileBtn:hover,
+.findProjectsBtn:hover,
+.contractsBtn:hover,
+.messagesBtn:hover,
+.logoutBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+}
+
+/* ==============================
+   Right section (Theme Toggle + Logout)
+   ============================== */
+.navRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Theme Toggle Button */
+.theme-toggle {
+  font-size: 0.85rem;
+  padding: 4px 8px;
+  background: var(--surface, #ffffff);
+  color: var(--text, #004d40);
+  border: 1px solid var(--text, #004d40);
+  border-radius: 8px;
+  transition: background 0.3s ease, color 0.3s ease, transform 0.2s ease;
+}
+
+.theme-toggle:hover {
+  transform: scale(1.05);
+}
+
+/* ==============================
+   Responsive
+   ============================== */
+@media (max-width: 992px) {
+  .navbar {
+    width: 90%;
+    height: auto;
+    flex-direction: row;
+    justify-content: space-around;
+    border-radius: 15px;
+    margin-bottom: 1.5rem;
+    background: var(--navbar-bg, linear-gradient(90deg, #e0f7fa, #b2ebf2));
+  }
+
+  .navLinks {
+    flex-direction: row;
+    gap: 1rem;
+    align-items: center;
+  }
+}
+
+/* 🔔 Notifications Button */
+.notificationsBtn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #00c6ff, #0072ff);
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  box-shadow: 0 0 8px rgba(0, 198, 255, 0.4);
+}
+
+.notificationsBtn:hover {
+  background: linear-gradient(135deg, #5fc3b8, #2bb6a9);
+  transform: translateY(-3px);
+  box-shadow: 0 0 8px rgba(0, 198, 255, 0.4);
+}
+
+/* 🔴 Unread Badge */
+.unreadBadge {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  background: #ff3b3b;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  border-radius: 50%;
+  padding: 4px 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 6px rgba(255, 0, 0, 0.5);
+}
+
+

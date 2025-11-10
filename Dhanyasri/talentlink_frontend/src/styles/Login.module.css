@@ -1,0 +1,202 @@
+/* ==============================
+   Light & Dark Mode Variables
+   ============================== */
+:root {
+  --container-bg: rgba(225, 199, 221, 0.85);
+  --container-border: rgba(255, 255, 255, 0.3);
+  --container-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+
+  --input-bg: rgba(255, 255, 255, 0.8);
+  --input-color: #1e1b4b;
+  --input-placeholder: rgba(30, 27, 75, 0.6);
+  --input-border: rgba(0, 0, 0, 0.2);
+
+  --label-color: #050408;
+  --title-color: #5b21b6;
+  --subtitle-color: #5b21b6;
+
+  --overlay-color: rgba(255, 255, 255, 0.2);
+}
+
+[data-theme="dark"] {
+  --container-bg: rgba(30, 30, 50, 0.85);
+  --container-border: rgba(255, 255, 255, 0.1);
+  --container-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+
+  --input-bg: rgba(30, 30, 50, 0.85);
+  --input-color: #e2e8f0;
+  --input-placeholder: rgba(200, 200, 200, 0.5);
+  --input-border: rgba(255, 255, 255, 0.3);
+
+  --label-color: #ffffff;
+  --title-color: #d8b4fe;
+  --subtitle-color: #c084fc;
+
+  --overlay-color: rgba(0, 0, 0, 0.5);
+}
+
+/* ==============================
+   Page Setup
+   ============================== */
+.page {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 60%;
+  background: url("https://png.pngtree.com/thumb_back/fh260/background/20220427/pngtree-home-office-banner-freelance-work-image_1091574.jpg")
+    no-repeat center center/cover;
+  font-family: "Poppins", sans-serif;
+  margin: 0;
+  transition: all 0.3s ease;
+}
+
+.page::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: var(--overlay-color);
+  mix-blend-mode: multiply;
+  pointer-events: none;
+  z-index: 0;
+  transition: background 0.3s ease;
+}
+
+/* ==============================
+   Glass-Style Card
+   ============================== */
+.container {
+  position: relative;
+  max-width: 600px;
+  text-align: center;
+  background: var(--container-bg);
+  border: 1px solid var(--container-border);
+  padding: 3rem;
+  border-radius: 1.2rem;
+  box-shadow: var(--container-shadow);
+  backdrop-filter: blur(10px);
+  color: var(--input-color);
+  z-index: 1;
+  transition: all 0.3s ease;
+}
+
+.container:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.35);
+}
+
+/* ==============================
+   Title & Subtitle
+   ============================== */
+h2 {
+  margin-bottom: 2rem;
+  color: var(--title-color);
+}
+
+p {
+  margin-top: 1rem;
+  color: var(--subtitle-color);
+}
+
+/* ==============================
+   Form Groups & Labels
+   ============================== */
+.form-group {
+  margin-bottom: 1rem;
+  text-align: left;
+}
+
+.inputLabel {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: var(--label-color);
+  transition: color 0.3s ease;
+}
+
+/* ==============================
+   Inputs
+   ============================== */
+input, select {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  border-radius: 0.8rem;
+  border: 1px solid var(--input-border);
+  font-size: 1rem;
+  outline: none;
+  transition: all 0.3s ease;
+  background: var(--input-bg);
+  color: var(--input-color);
+}
+
+input::placeholder {
+  color: var(--input-placeholder);
+}
+
+input:focus,
+select:focus {
+  border-color: #7c3aed;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.25);
+  background: var(--input-bg);
+}
+
+/* ==============================
+   Buttons
+   ============================== */
+.btn {
+  width: 100%;
+  padding: 0.9rem 2rem;
+  border-radius: 0.8rem;
+  border: none;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  font-size: 1rem;
+  letter-spacing: 0.3px;
+  margin-top: 1rem;
+  transition: all 0.4s ease;
+  background: #3b82f6;
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.25);
+}
+
+.btn:hover {
+  background: #1e40af;
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 8px 25px rgba(30, 64, 175, 0.45);
+}
+
+.btn:active {
+  transform: translateY(1px) scale(0.98);
+  box-shadow: 0 3px 12px rgba(30, 64, 175, 0.3);
+}
+
+/* ==============================
+   Error Message
+   ============================== */
+.error {
+  color: red;
+  font-weight: 500;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+/* ==============================
+   Responsive
+   ============================== */
+@media (max-width: 768px) {
+  .page {
+    justify-content: center;
+    padding-right: 0;
+  }
+
+  .container {
+    width: 90%;
+    padding: 2rem;
+  }
+
+  h2 {
+    font-size: 1.8rem;
+  }
+}
