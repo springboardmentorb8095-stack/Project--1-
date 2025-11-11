@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import { FaUserCircle, FaProjectDiagram, FaEdit, FaEye } from "react-icons/fa";
@@ -11,24 +11,26 @@ export default function YourProposals() {
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("user"));
 
-  const fetchProposals = async () => {
-    setLoading(true);
-    try {
-      const res = await api.get("/proposals/", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setProposals(res.data); // <-- Set proposals here
-    } catch (err) {
-      console.error(err);
-      setError("Failed to fetch proposals.");
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  useEffect(() => {
-    fetchProposals();
-  }, []);
+const fetchProposals = useCallback(async () => {
+  setLoading(true);
+  try {
+    const res = await api.get("/proposals/", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    setProposals(res.data); // <-- Set proposals here
+  } catch (err) {
+    console.error(err);
+    setError("Failed to fetch proposals.");
+  } finally {
+    setLoading(false);
+  }
+}, [token]); // Add any dependencies (like token) here
+
+useEffect(() => {
+  fetchProposals();
+}, [fetchProposals]);
+
 
   if (loading)
     return <p className="text-center mt-20 text-gray-500">Loading proposals...</p>;

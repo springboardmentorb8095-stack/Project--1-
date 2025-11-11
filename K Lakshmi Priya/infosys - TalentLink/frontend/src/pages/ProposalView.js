@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback} from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../api/axios";
-import { FaUserCircle, FaArrowLeft, FaProjectDiagram } from "react-icons/fa";
+import { FaUserCircle, FaProjectDiagram } from "react-icons/fa";
 
 export default function ProposalView() {
   const { id } = useParams(); // proposal ID
@@ -12,19 +12,24 @@ export default function ProposalView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const fetchProposal = async () => {
-    try {
-      const res = await api.get(`/proposals/${id}/`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setProposal(res.data);
-    } catch (err) {
-      console.error(err);
-      setError("Failed to fetch proposal");
-    } finally {
-      setLoading(false);
-    }
-  };
+const fetchProposal = useCallback(async () => {
+  try {
+    const res = await api.get(`/proposals/${id}/`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    setProposal(res.data);
+  } catch (err) {
+    console.error(err);
+    setError("Failed to fetch proposal");
+  } finally {
+    setLoading(false);
+  }
+}, [id, token]);  // Memoize the function to avoid unnecessary re-creation
+
+useEffect(() => {
+  fetchProposal();
+}, [id, fetchProposal]);  // Now fetchProposal is stable, so no warning
+
 
   const updateStatus = async (status) => {
     try {
@@ -41,9 +46,6 @@ export default function ProposalView() {
     }
   };
 
-  useEffect(() => {
-    fetchProposal();
-  }, [id]);
 
   if (loading)
     return (

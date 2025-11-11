@@ -3,7 +3,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from .views import RegisterView, ContractViewSet, UserDetailView, ProfileView, PortfolioItemViewSet, ProjectViewSet, ProposalViewSet, SkillViewSet, CustomLoginView, PublicProfileView, PublicPortfolioView, NotificationViewSet, MessageViewSet, ReviewViewSet
+from .views import RegisterView, ContractViewSet, UserDetailView, ProfileView, PortfolioItemViewSet, ProjectViewSet, ProposalViewSet, SkillViewSet, CustomLoginView, PublicProfileView, PublicPortfolioView, NotificationViewSet, MessageViewSet, ReviewViewSet, client_dashboard, freelancer_dashboard
 
 
 router = DefaultRouter()
@@ -35,6 +35,8 @@ urlpatterns = [
     path('users/<int:user_id>/portfolio/', PublicPortfolioView.as_view(), name='public-portfolio'),
 
 
+    path("dashboard/client/", client_dashboard, name="client-dashboard"),
+    path("dashboard/freelancer/", freelancer_dashboard, name="freelancer-dashboard"),
 
     path('', include(router.urls)),
 ]
