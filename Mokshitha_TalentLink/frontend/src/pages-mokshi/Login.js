@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import "./Auth.css";
+import BASE_URL from "../apiConfig";
+
 
 export default function Login() {
   const [username, setUsername] = useState("");
@@ -25,7 +27,8 @@ export default function Login() {
       setLoading(true);
 
       // ✅ Step 1: Authenticate
-      const res = await axios.post("http://127.0.0.1:8000/api/login/", {
+      const res = await axios.post(`${BASE_URL}/api/login/`, {
+
         username,
         password,
       });
@@ -35,7 +38,8 @@ export default function Login() {
       localStorage.setItem("loggedUser", username);
 
       // ✅ Step 2: Fetch profile details
-      const profileRes = await axios.get("http://127.0.0.1:8000/api/profiles/");
+      const profileRes = await axios.get(`${BASE_URL}/api/profiles/`);
+
       const profile = profileRes.data.find((p) => p.user_name === username);
 
       setLoading(false);

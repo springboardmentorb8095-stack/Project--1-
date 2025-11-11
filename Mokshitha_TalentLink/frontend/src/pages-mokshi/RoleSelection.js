@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import "./Auth.css";
+import BASE_URL from "../apiConfig";
 
 export default function RoleSelection() {
   const [role, setRole] = useState("");
@@ -15,7 +16,7 @@ export default function RoleSelection() {
     }
 
     try {
-      const response = await axios.post("http://127.0.0.1:8000/api/set-role/", {
+      const response = await axios.post(`${BASE_URL}/api/set-role/`, {
         username,
         role,
       });
