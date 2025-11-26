@@ -1,4 +1,3 @@
-// src/layouts/MainLayout.js
 import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
@@ -20,9 +19,9 @@ export default function MainLayout() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen overflow-hidden bg-gray-100 dark:bg-gray-900 transition-colors duration-300">
       {/* Sidebar */}
-      <Sidebar className="w-64 bg-gray-800 text-white" />
+      <Sidebar className="w-64" />
 
       {/* Main + Right Panel container */}
       <div className="flex-1 flex flex-col">
@@ -32,15 +31,13 @@ export default function MainLayout() {
         {/* Content + Right Panel */}
         <div className="flex flex-1 overflow-hidden">
           {/* Main content area */}
-          <main
-            className={`p-6 bg-gray-100 flex-1 overflow-auto transition-all duration-300 `}
-          >
+          <main className="p-6 flex-1 overflow-auto transition-colors duration-300">
             <Outlet />
           </main>
 
-          {/* Persistent right-side space */}
+          {/* Right Panel */}
           <div
-            className={`bg-white border-l border-gray-200 shadow-inner transition-all duration-300 overflow-y-auto ${
+            className={`bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 shadow-inner transition-all duration-300 overflow-y-auto ${
               isPanelOpen ? "w-80" : "w-0"
             }`}
           >

@@ -102,12 +102,7 @@ function Contract() {
         minHeight: "100vh",
       }}
     >
-      <button
-        onClick={() => navigate(-1)}
-        className="text-indigo-600 font-medium hover:underline mb-4"
-      >
-        ← Back
-      </button>
+      
 
       <div className="bg-white shadow-md rounded-lg border border-gray-200 p-8 w-full">
         <div className="flex items-center space-x-3 mb-6 text-indigo-700 font-bold text-2xl">

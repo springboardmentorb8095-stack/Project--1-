@@ -4,7 +4,7 @@
 from django.shortcuts import render
 from rest_framework import generics, permissions, status, viewsets, filters
 from django.contrib.auth import get_user_model
-from .serializers import UserRegisterSerializer,ContractSerializer, UserSerializer, ProfileSerializer, PortfolioItemSerializer, ProjectSerializer, ProposalSerializer, MessageSerializer, NotificationSerializer,ReviewSerializer
+from .serializers import UserRegisterSerializer,ContractSerializer, UserSerializer, ProfileSerializer, PortfolioItemSerializer, ProjectSerializer, ProposalSerializer, MessageSerializer, NotificationSerializer,ReviewSerializer, ClientDashboardSerializer,FreelancerDashboardSerializer, DashboardProjectSummarySerializer, DashboardContractSummarySerializer
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
@@ -12,6 +12,9 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from .models import Profile, PortfolioItem, Project, Proposal, Contract, Message, Notification, Review
 from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+
 
 from django.db.models import Q
 
@@ -401,3 +404,70 @@ class ReviewViewSet(viewsets.ModelViewSet):
         )
 
         return review
+
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def client_dashboard(request):
+    user = request.user
+    if user.role != "client":
+        raise PermissionDenied("Only clients can access this dashboard.")
+
+    projects = Project.objects.filter(client=user)
+    proposals = Proposal.objects.filter(project__client=user)
+    contracts = Contract.objects.filter(proposal__project__client=user)
+
+    active_projects = projects.filter(status__in=["open"]).count()
+    completed_projects = projects.filter(status="completed").count()
+    new_proposals = proposals.filter(status="pending").count()
+    active_contracts = contracts.filter(status="active").count()
+    total_contracts = contracts.count()
+    recent_projects = projects.order_by("-created_at")[:5]
+
+    data = {
+        "user": user.username,
+        "active_projects": active_projects,
+        "completed_projects": completed_projects,
+        "new_proposals_received": new_proposals,
+        "active_contracts": active_contracts,
+        "recent_projects": recent_projects,
+        "total_contracts": total_contracts,
+    }
+
+    serializer = ClientDashboardSerializer(data)
+    return Response(serializer.data)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def freelancer_dashboard(request):
+    user = request.user
+    if user.role != "freelancer":
+        raise PermissionDenied("Only freelancers can access this dashboard.")
+
+    proposals = Proposal.objects.filter(freelancer=user)
+    contracts = Contract.objects.filter(proposal__freelancer=user)
+    reviews = Review.objects.filter(contract__proposal__freelancer=user)
+
+    proposals_submitted = proposals.count()
+    proposals_accepted = proposals.filter(status="accepted").count()
+    proposals_pending = proposals.filter(status="pending").count()
+    active_contracts = contracts.filter(status="active").count()
+    completed_contracts = contracts.filter(status="completed").count()
+
+    recent_contracts = contracts.order_by("-start_date")[:5]
+
+    data = {
+        "user": user.username,
+        "proposals_submitted": proposals_submitted,
+        "proposals_accepted": proposals_accepted,
+        "active_contracts": active_contracts,
+        "completed_contracts": completed_contracts,
+        "recent_contracts": recent_contracts,
+        "proposals_pending": proposals_pending,
+    }
+
+    serializer = FreelancerDashboardSerializer(data)
+    return Response(serializer.data)
+

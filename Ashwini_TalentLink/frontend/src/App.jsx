@@ -1,87 +1,71 @@
-// frontend/src/App.jsx
 import React, { useState, useEffect, createContext, useContext, useRef, useCallback } from 'react';
-// Correct import if BrowserRouter is used here instead of main.jsx
-// import { BrowserRouter, Routes, Route, Link, useNavigate, useParams, useLocation } from 'react-router-dom';
-// Use this import if BrowserRouter is in main.jsx (as is standard)
 import { Routes, Route, Link, useNavigate, useParams, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import './App.css';
-import './index.css'; // Make sure index.css is imported if App.css doesn't cover everything
-
+import './index.css'; 
 import { Navbar, Nav, Container, Button, Form, Card, Row, Col, Alert, Spinner, Badge, ListGroup, Modal, InputGroup, Image, Dropdown, Offcanvas } from 'react-bootstrap';
-import { Briefcase, LogOut, User, DollarSign, Clock, PlusCircle, Search, Check, X, MessageSquare, Award, FileText, Bell, Edit, Trash2, Link as LinkIconLucide, Image as ImageIcon, Send, UserPlus } from 'lucide-react'; // Added Bell, Edit, Trash2, Send, UserPlus
+import 'react-quill/dist/quill.snow.css';
+import './pages/ProjectEditPage.css'; 
+import { Briefcase, LogOut, User, DollarSign, Clock, PlusCircle, Search, Check, X, MessageSquare, Award, FileText, Bell, Edit, Trash2, Link as LinkIconLucide, Image as ImageIcon, Send, UserPlus, Star, Activity, BarChart3, Filter, TrendingUp, Bookmark, BookmarkCheck, Shield, Trophy, Zap, Wallet as WalletIcon } from 'lucide-react';
 
-// Import new/updated pages and components
+
 import ProfilePage from './pages/ProfilePage';
 import ContractsPage from './pages/ContractsPage';
 import ReviewPage from './pages/ReviewPage';
 import ProjectEditPage from './pages/ProjectEditPage';
-// import ProposalEditPage from './pages/ProposalEditPage'; // Keep commented if using modal primarily
 import NotificationsPage from './pages/NotificationsPage';
+import WalletPage from './pages/WalletPage';
+import MilestonesPage from './pages/MilestonesPage';
+import InvoicesPage from './pages/InvoicesPage';
+import HomePage from './components/HomePage';
+import './components/HomePage.css';
 
-// Use environment variable or default
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'; // Base URL (for media)
-const API_URL = `${API_BASE_URL}/api`; // API endpoint
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'; 
+const API_URL = `${API_BASE_URL}/api`; 
 
-
-// --- Axios Interceptor for Auth ---
 const axiosInstance = axios.create({
     baseURL: API_URL,
-    timeout: 5000, // Increased timeout slightly
+    timeout: 5000, 
     headers: {
-        // Default content type - will be overridden for FormData
         'Content-Type': 'application/json',
     }
 });
-
-// --- Authentication Context ---
 const AuthContext = createContext();
 
 const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(() => localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null);
     const [tokens, setTokens] = useState(() => localStorage.getItem('authTokens') ? JSON.parse(localStorage.getItem('authTokens')) : null);
-    const [loading, setLoading] = useState(false); // For login/register process
-    const [authLoading, setAuthLoading] = useState(true); // Initial auth check
+    const [loading, setLoading] = useState(false); 
+    const [authLoading, setAuthLoading] = useState(true); 
     const navigate = useNavigate();
-    const location = useLocation(); // Get current location
-
-    // Refresh token logic reference
+    const location = useLocation(); 
     const refreshIntervalRef = useRef();
 
-    // Axios Request Interceptor
     useEffect(() => {
         const reqInterceptor = axiosInstance.interceptors.request.use(config => {
             const currentTokens = localStorage.getItem('authTokens') ? JSON.parse(localStorage.getItem('authTokens')) : null;
             if (currentTokens?.access) {
                 config.headers.Authorization = `Bearer ${currentTokens.access}`;
             }
-            // Handle multipart form data for file uploads
             if (config.data instanceof FormData) {
-                // Let the browser set the Content-Type header with the boundary
                  delete config.headers['Content-Type'];
             } else {
-                 // Set JSON content type for other requests
                  config.headers['Content-Type'] = 'application/json';
             }
             return config;
         }, error => Promise.reject(error));
-
-        setAuthLoading(false); // Finished initial setup
-
+        setAuthLoading(false); 
         return () => {
             axiosInstance.interceptors.request.eject(reqInterceptor);
         };
     }, []);
 
-     // Axios Response Interceptor for Token Refresh
     useEffect(() => {
         const resInterceptor = axiosInstance.interceptors.response.use(
             response => response,
             async error => {
                 const originalRequest = error.config;
                 const currentTokens = localStorage.getItem('authTokens') ? JSON.parse(localStorage.getItem('authTokens')) : null;
-
-                // Check for 401 Unauthorized and if it's not a token refresh request itself
                 if (error.response?.status === 401 && currentTokens?.refresh && !originalRequest._retry) {
                     originalRequest._retry = true; // Mark to prevent infinite loops
                     try {
@@ -92,62 +76,56 @@ const AuthProvider = ({ children }) => {
                         const newTokens = { ...currentTokens, access: refreshResponse.data.access };
                         setTokens(newTokens);
                         localStorage.setItem('authTokens', JSON.stringify(newTokens));
-                        // Update default header for subsequent requests by THIS instance
                         axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${newTokens.access}`;
-                         // Update header for the original request before retrying
                         originalRequest.headers['Authorization'] = `Bearer ${newTokens.access}`;
                         console.log("Token refreshed successfully.");
-                        return axiosInstance(originalRequest); // Retry original request with new token
+                        return axiosInstance(originalRequest);
                     } catch (refreshError) {
                         console.error("Token refresh failed:", refreshError?.response?.data || refreshError?.message || refreshError);
-                        // Refresh failed, logout user
-                        logout(false); // Pass false to prevent navigation if already on login
+                        logout(false); 
                         return Promise.reject(refreshError);
                     }
                 }
-                // For other errors, just reject the promise
                 return Promise.reject(error);
             }
         );
 
         return () => {
-            // Clean up the interceptor when the component unmounts or tokens change
             axiosInstance.interceptors.response.eject(resInterceptor);
         };
-    }, [tokens]); // Re-run the effect if tokens change (to capture new refresh token if applicable)
+    }, [tokens]);
 
     const login = async (username, password) => {
         setLoading(true);
         try {
+            console.log(`Attempting login to: ${API_URL}/token/`);
             const tokenResponse = await axios.post(`${API_URL}/token/`, { username, password });
             const newTokens = tokenResponse.data;
+            
+            if (!newTokens || !newTokens.access) {
+                throw new Error('Invalid response from server: No access token received');
+            }
+            
             setTokens(newTokens);
             localStorage.setItem('authTokens', JSON.stringify(newTokens));
-            // Apply token immediately for the subsequent profile request
             axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${newTokens.access}`;
-
              const profileResponse = await axiosInstance.get(`/profiles/`);
-
             const profileData = profileResponse.data.results || profileResponse.data;
             const userProfile = Array.isArray(profileData)
                 ? profileData.find(p => p.user === username)
                 : (profileData && profileData.user === username ? profileData : null);
-
-
             if (userProfile) {
-
                  const getFullImageUrl = (url) => {
                      if (!url) return null;
                      if (url.startsWith('http')) return url;
-                     return `${API_BASE_URL}${url}`; // Prepend base URL
+                     return `${API_BASE_URL}${url}`; 
                  };
                 const fullProfilePicUrl = getFullImageUrl(userProfile.profile_picture);
-
                 const userDetails = {
                     username: userProfile.user,
                     user_type: userProfile.user_type,
                     profileId: userProfile.id,
-                    profilePicture: fullProfilePicUrl // Store the full URL
+                    profilePicture: fullProfilePicUrl 
                  };
                 setUser(userDetails);
                 localStorage.setItem('user', JSON.stringify(userDetails));
@@ -160,35 +138,47 @@ const AuthProvider = ({ children }) => {
             }
 
         } catch (error) {
-            console.error("Login failed:", error.response?.data || error.message);
-            alert(`Login failed: ${error.response?.data?.detail || 'Invalid credentials or server error.'}`);
-            logout(false); // Clear any potentially bad state on login failure
+            console.error("Login failed:", error);
+            let errorMessage = 'Invalid credentials or server error.';
+            
+            if (error.code === 'ECONNREFUSED' || error.message.includes('Network Error')) {
+                errorMessage = `Cannot connect to backend server. Please ensure the Django server is running at ${API_BASE_URL}`;
+            } else if (error.response?.status === 401) {
+                errorMessage = 'Invalid username or password. Please check your credentials.';
+            } else if (error.response?.status === 404) {
+                errorMessage = `API endpoint not found. Please check if backend is running at ${API_BASE_URL}`;
+            } else if (error.response?.data?.detail) {
+                errorMessage = error.response.data.detail;
+            } else if (error.response?.data) {
+                errorMessage = JSON.stringify(error.response.data);
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+            
+            alert(`Login failed: ${errorMessage}`);
+            logout(false); 
         } finally {
             setLoading(false);
         }
     };
 
-    // Modified logout to accept navigateAway flag
      const logout = (navigateAway = true) => {
          console.log("Logging out...");
          setUser(null);
          setTokens(null);
-         localStorage.clear(); // Clear everything related to auth
-         delete axiosInstance.defaults.headers.common['Authorization']; // Clear default auth header
+         localStorage.clear(); 
+         delete axiosInstance.defaults.headers.common['Authorization']; 
          if (navigateAway && location.pathname !== '/login') {
               console.log("Navigating to login page.");
              navigate('/login');
          } else {
              console.log("Staying on current page or already on login page.");
          }
-         clearInterval(refreshIntervalRef.current); // Clear any scheduled refresh
+         clearInterval(refreshIntervalRef.current); 
      };
-
-     // Function to update user context (e.g., after profile picture update)
       const updateUserContext = (updates) => {
           setUser(prevUser => {
               if (!prevUser) return null;
-               // Construct full URL for profilePicture if it's being updated
                let finalUpdates = { ...updates };
                if (updates.profilePicture) {
                    const getFullImageUrl = (url) => {
@@ -200,19 +190,16 @@ const AuthProvider = ({ children }) => {
                }
 
               const updatedUser = { ...prevUser, ...finalUpdates };
-              localStorage.setItem('user', JSON.stringify(updatedUser)); // Update local storage too
+              localStorage.setItem('user', JSON.stringify(updatedUser)); 
               return updatedUser;
           });
        };
 
 
     if (authLoading) {
-        return <div className="vh-100 d-flex justify-content-center align-items-center"><Spinner animation="border" /></div>; // Full page loader
+        return <div className="vh-100 d-flex justify-content-center align-items-center"><Spinner animation="border" /></div>; 
     }
-
-
     return (
-        // Pass updateUserContext down
         <AuthContext.Provider value={{ user, login, logout, loading, axiosInstance, tokens, updateUserContext }}>
             {children}
         </AuthContext.Provider>
@@ -228,52 +215,69 @@ const NotificationBell = () => {
     const [unreadCount, setUnreadCount] = useState(0);
     const [showOffcanvas, setShowOffcanvas] = useState(false);
     const [loading, setLoading] = useState(false);
+    const audioRef = useRef(null);
+    useEffect(() => {
+        const unlockAudio = () => {
+            if (audioRef.current && audioRef.current.paused) {
+                audioRef.current.play().catch(() => {}); 
+                audioRef.current.pause();
+                audioRef.current.currentTime = 0; 
+            }
+            window.removeEventListener('click', unlockAudio);
+            window.removeEventListener('keydown', unlockAudio);
+        };
+        window.addEventListener('click', unlockAudio);
+        window.addEventListener('keydown', unlockAudio);
+
+        return () => {
+            window.removeEventListener('click', unlockAudio);
+            window.removeEventListener('keydown', unlockAudio);
+        };
+    }, [audioRef]); 
 
     const fetchNotifications = async () => {
         if (!user) return;
-        // Don't set loading true for background polls to avoid UI flicker
-        // setLoading(true);
         try {
-            // Fetch only unread count for the badge initially or during polls
-            const response = await axiosInstance.get('/notifications/?read=false'); // Adjust if backend doesn't support this filter
+            const response = await axiosInstance.get('/notifications/?read=false');
             const unread = response.data.results || response.data;
-            const count = Array.isArray(unread) ? unread.length : (response.data.count !== undefined ? response.data.count : 0); // Handle direct count or list length
-
-            // Only update state if the count actually changed
+            const count = Array.isArray(unread) ? unread.length : (response.data.count !== undefined ? response.data.count : 0);
+            if (count > unreadCount && audioRef.current) {
+                const playPromise = audioRef.current.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(error => {
+                        console.log("Audio play failed (user may need to interact first):", error);
+                    });
+                }
+            }
+            
             if (count !== unreadCount) {
                 setUnreadCount(count);
             }
         } catch (error) {
             console.error("Failed to fetch unread notifications count:", error);
-        } finally {
-            // setLoading(false);
         }
     };
-
     useEffect(() => {
-        fetchNotifications(); // Initial fetch
-        // Set up polling
-        const interval = setInterval(fetchNotifications, 30000); // Poll every 30 seconds
-        return () => clearInterval(interval); // Cleanup on unmount
-    }, [user, axiosInstance]); // Rerun if user or axiosInstance changes
+        fetchNotifications(); 
+        const interval = setInterval(fetchNotifications, 30000); 
+        return () => clearInterval(interval);
+    }, [user, axiosInstance]);
 
 
     const handleToggleOffcanvas = async () => {
         const currentlyShowing = showOffcanvas;
-        setShowOffcanvas(!currentlyShowing); // Toggle state immediately
+        setShowOffcanvas(!currentlyShowing); 
 
-        if (!currentlyShowing) { // If opening the offcanvas
-            setLoading(true); // Show spinner inside offcanvas
+        if (!currentlyShowing) { 
+            setLoading(true); 
             try {
-                // Fetch all notifications (read and unread) for the panel
                 const response = await axiosInstance.get('/notifications/');
                 const allNotifications = response.data.results || response.data;
                 setNotifications(allNotifications);
-                // Update unread count based on the full list fetched
                  setUnreadCount(allNotifications.filter(n => !n.read).length);
             } catch (error) {
                 console.error("Failed to fetch all notifications:", error);
-                setNotifications([]); // Clear notifications on error maybe?
+                setNotifications([]); 
             } finally {
                 setLoading(false);
             }
@@ -282,31 +286,30 @@ const NotificationBell = () => {
 
      const markAsRead = async (id) => {
          try {
-             await axiosInstance.patch(`/notifications/${id}/mark-read/`); // Corrected path
-             // Optimistically update UI
+             await axiosInstance.patch(`/notifications/${id}/mark_read/`); 
              setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
-             setUnreadCount(prev => Math.max(0, prev - 1)); // Decrement unread count
+             setUnreadCount(prev => Math.max(0, prev - 1)); 
          } catch (error) {
              console.error("Failed to mark notification as read:", error);
-             alert("Could not mark notification as read."); // Inform user
+             alert("Could not mark notification as read."); 
          }
      };
 
      const markAllRead = async () => {
          try {
-             await axiosInstance.post(`/notifications/mark-all-read/`); // Corrected path
-             // Optimistically update UI
+             await axiosInstance.post(`/notifications/mark-all-read/`); 
              setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-             setUnreadCount(0); // Set count to 0
+             setUnreadCount(0); 
          } catch (error) {
              console.error("Failed to mark all as read:", error);
-              alert("Could not mark all notifications as read."); // Inform user
+              alert("Could not mark all notifications as read."); 
          }
      };
 
 
     return (
         <>
+            <audio ref={audioRef} src="/notification.wav" preload="auto" style={{ display: 'none' }} />
             <Nav.Link onClick={handleToggleOffcanvas} className="position-relative">
                 <Bell size={20} />
                 {unreadCount > 0 && (
@@ -322,9 +325,7 @@ const NotificationBell = () => {
                     <Offcanvas.Title>Notifications</Offcanvas.Title>
                 </Offcanvas.Header>
                 <Offcanvas.Body>
-
                      {notifications.some(n => !n.read) && <Button variant="outline-secondary" size="sm" className="mb-2 w-100" onClick={markAllRead}>Mark all as read</Button>}
-
                     {loading ? <div className="text-center"><Spinner animation="border" size="sm" /></div> :
                      notifications.length > 0 ? (
                         <ListGroup variant="flush">
@@ -341,7 +342,6 @@ const NotificationBell = () => {
                                     )}
                                 </ListGroup.Item>
                             ))}
-                             {/* Link to full page */}
                              <ListGroup.Item className="text-center mt-2 border-0">
                                 <Link to="/notifications" onClick={() => setShowOffcanvas(false)}>View All Notifications</Link>
                             </ListGroup.Item>
@@ -355,23 +355,19 @@ const NotificationBell = () => {
     );
 };
 
-
 // --- Main Layout ---
 const AppNavbar = () => {
     const { user, logout } = useAuth();
 
-     // Function to construct full image URL
+     
      const getFullImageUrl = (url) => {
          if (!url) return null;
-         // Check if it's already an absolute URL (starts with http or https)
          if (/^https?:\/\//i.test(url)) {
              return url;
          }
-         // Check if it's a blob URL (for previews)
           if (url.startsWith('blob:')) {
              return url;
          }
-         // Otherwise, prepend the base URL
          return `${API_BASE_URL}${url}`;
      };
 
@@ -381,7 +377,6 @@ const AppNavbar = () => {
     return (
         <Navbar bg="white" expand="lg" className="shadow-sm sticky-top">
             <Container>
-                 {/* Updated Brand */}
                  <Navbar.Brand as={Link} to="/" className="fw-bold d-flex align-items-center">
                     <img src="/logo.png" alt="TalentLink Logo" style={{ height: '30px', marginRight: '10px' }} />
                     TalentLink
@@ -391,7 +386,13 @@ const AppNavbar = () => {
                     <Nav className="me-auto">
                         <Nav.Link as={Link} to="/projects">Find Work</Nav.Link>
                         {user?.user_type === 'client' && <Nav.Link as={Link} to="/project/new">Post a Project</Nav.Link>}
-                        {/* Add Find Freelancers later? */}
+                        {user && (
+                            <>
+                                <Nav.Link as={Link} to="/saved-projects"><Bookmark size={16} className="me-1" />Saved</Nav.Link>
+                                <Nav.Link as={Link} to="/activities"><Activity size={16} className="me-1" />Activity</Nav.Link>
+                                {user.user_type === 'client' && <Nav.Link as={Link} to="/analytics"><BarChart3 size={16} className="me-1" />Analytics</Nav.Link>}
+                            </>
+                        )}
                     </Nav>
                     <Nav className="align-items-center">
                         {user ? (
@@ -417,56 +418,6 @@ const AppNavbar = () => {
             </Container>
         </Navbar>
     );
-};
-
-
-// --- Page Components (Keep implementations as previously corrected) ---
-const HomePage = () => {
-    return (
-    <>
-        <div className="hero-section">
-            <Container>
-                <h1 className="display-4 fw-bold mb-3">Find & Hire Experts for any Job</h1>
-                <p className="lead mb-4">Unlock your potential. We connect you with top freelance talent and exciting projects.</p>
-                <div>
-                    <Button as={Link} to="/register" variant="light" size="lg" className="me-2 fw-bold">Get Started</Button>
-                    <Button as={Link} to="/projects" variant="outline-light" size="lg">Browse Projects</Button>
-                </div>
-            </Container>
-        </div>
-        <Container className="py-5">
-             <Row className="text-center feature-section g-4"> {/* Added g-4 for gap */}
-                <Col md={4} className="mb-4">
-                     <Card className="h-100 shadow-sm border-0">
-                         <Card.Img variant="top" src="https://images.unsplash.com/photo-1516321497487-e288fb19713f?q=80&w=1000&auto=format&fit=crop" alt="Collaboration" className="feature-image" style={{ height: '200px', objectFit: 'cover' }}/>
-                        <Card.Body>
-                            <h3>Connect</h3>
-                            <p>Join a vibrant community of professionals and businesses.</p>
-                        </Card.Body>
-                    </Card>
-                </Col>
-                <Col md={4} className="mb-4">
-                     <Card className="h-100 shadow-sm border-0">
-                         <Card.Img variant="top" src="https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=1000&auto=format&fit=crop" alt="Teamwork" className="feature-image" style={{ height: '200px', objectFit: 'cover' }}/>
-                        <Card.Body>
-                            <h3>Collaborate</h3>
-                            <p>Work together on innovative projects and achieve great results.</p>
-                        </Card.Body>
-                     </Card>
-                </Col>
-                <Col md={4} className="mb-4">
-                     <Card className="h-100 shadow-sm border-0">
-                         <Card.Img variant="top" src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=1000&auto=format&fit=crop" alt="Creative Work" className="feature-image" style={{ height: '200px', objectFit: 'cover' }}/>
-                        <Card.Body>
-                            <h3>Create</h3>
-                            <p>Bring your ideas to life with the help of skilled freelancers.</p>
-                         </Card.Body>
-                    </Card>
-                </Col>
-            </Row>
-        </Container>
-    </>
-    )
 };
 
 const LoginPage = () => {
@@ -498,8 +449,8 @@ const RegisterPage = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [userType, setUserType] = useState('freelancer');
-    const [loading, setLoading] = useState(false); // Added loading state
-    const [error, setError] = useState(''); // Added error state
+    const [loading, setLoading] = useState(false); 
+    const [error, setError] = useState(''); 
     const navigate = useNavigate();
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -512,7 +463,6 @@ const RegisterPage = () => {
         } catch (err) {
             let errorMsg = "Registration failed. ";
             if (err.response?.data) {
-                // Extract specific errors from Django REST Framework response
                  const errors = err.response.data;
                  errorMsg += Object.entries(errors)
                     .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(' ') : messages}`)
@@ -550,7 +500,7 @@ const RegisterPage = () => {
     );
 };
 
-// --- Proposal Submission Modal ---
+
 const SubmitProposalModal = ({ show, handleClose, projectId, existingProposal, onProposalUpdate }) => {
     const [coverLetter, setCoverLetter] = useState('');
     const [proposedRate, setProposedRate] = useState('');
@@ -559,25 +509,23 @@ const SubmitProposalModal = ({ show, handleClose, projectId, existingProposal, o
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const { axiosInstance } = useAuth();
-
-    // Populate form if editing or clear if new/modal reopens
     useEffect(() => {
-        if (show) { // Only run when modal is shown
+        if (show) { 
             if (existingProposal) {
                 setCoverLetter(existingProposal.cover_letter || '');
                 setProposedRate(existingProposal.proposed_rate || '');
                 setTimeAvailable(existingProposal.time_available || '');
                 setAdditionalInfo(existingProposal.additional_info || '');
             } else {
-                 // Reset form for new proposal
+                
                 setCoverLetter('');
                 setProposedRate('');
                 setTimeAvailable('');
                 setAdditionalInfo('');
             }
-            setError(''); // Clear error when modal opens
+            setError(''); 
         }
-    }, [existingProposal, show]); // Re-run when modal shows or proposal changes
+    }, [existingProposal, show]); 
 
     const handleSubmit = async () => {
         if (!coverLetter || !proposedRate) {
@@ -588,32 +536,27 @@ const SubmitProposalModal = ({ show, handleClose, projectId, existingProposal, o
         setError('');
         try {
             const payload = {
-                // project field is required by serializer for POST, maybe not for PUT/PATCH if URL includes ID
-                project: projectId, // Ensure projectId is passed for creation
+                project: projectId, 
                 cover_letter: coverLetter,
                 proposed_rate: proposedRate,
                 time_available: timeAvailable,
                 additional_info: additionalInfo,
             };
             if (existingProposal) {
-                // Update existing proposal (PATCH is often preferred over PUT)
                  await axiosInstance.patch(`/proposals/${existingProposal.id}/`, payload);
                  alert('Proposal updated successfully!');
             } else {
-                // Create new proposal
                  await axiosInstance.post('/proposals/', payload);
                  alert('Proposal submitted successfully!');
             }
-            if(onProposalUpdate) onProposalUpdate(); // Call callback to refresh parent data
-            handleClose(); // Close modal on success
+            if(onProposalUpdate) onProposalUpdate(); 
+            handleClose(); 
         } catch (error) {
             const errorData = error.response?.data;
-            // Handle different error structures from DRF
             let errorMsg = existingProposal ? 'Failed to update proposal.' : 'Failed to submit proposal.';
             if (typeof errorData === 'string') {
                 errorMsg = errorData;
             } else if (errorData) {
-                // Try to extract specific field errors or detail
                 const messages = Object.entries(errorData)
                     .map(([field, fieldErrors]) => `${field}: ${Array.isArray(fieldErrors) ? fieldErrors.join(' ') : fieldErrors}`)
                     .join('; ');
@@ -671,41 +614,70 @@ const ProjectListPage = () => {
     const [projects, setProjects] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    const { user, axiosInstance } = useAuth(); // Get user info
+    const [filters, setFilters] = useState({});
+    const [showFilters, setShowFilters] = useState(false);
+    const { user, axiosInstance } = useAuth();
     const [error, setError] = useState('');
 
-    useEffect(() => {
-        const fetchProjects = async () => {
-            setLoading(true);
-            setError('');
-            try {
-                // Backend queryset filtering handles visibility based on user type/auth status
-                 const endpoint = '/projects/';
-                 const params = searchTerm ? { search: searchTerm } : {};
-                const response = await axiosInstance.get(endpoint, { params });
-                setProjects(response.data.results || response.data); // Handle pagination
-            } catch (error) {
-                setError("Failed to fetch projects.");
-                console.error("Failed to fetch projects:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
+    const fetchProjects = useCallback(async () => {
+        setLoading(true);
+        setError('');
+        try {
+            const endpoint = '/projects/';
+            const params = { ...(searchTerm ? { search: searchTerm } : {}) };
+            if (filters.minBudget) params.budget__gte = filters.minBudget;
+            if (filters.maxBudget) params.budget__lte = filters.maxBudget;
+            if (filters.status) params.status = filters.status;
+            if (filters.sortBy) params.ordering = filters.sortBy;
+            const response = await axiosInstance.get(endpoint, { params });
+            setProjects(response.data.results || response.data);
+        } catch (error) {
+            setError("Failed to fetch projects.");
+            console.error("Failed to fetch projects:", error);
+        } finally {
+            setLoading(false);
+        }
+    }, [searchTerm, filters, axiosInstance]);
 
-        // Debounce search
+    useEffect(() => {
         const debounceTimer = setTimeout(() => {
             fetchProjects();
-        }, 300); // 300ms delay
+        }, 300);
+        return () => clearTimeout(debounceTimer);
+    }, [fetchProjects]);
 
-        return () => clearTimeout(debounceTimer); // Clear timer on unmount or if searchTerm changes
-
-    }, [searchTerm, user, axiosInstance]); // Re-fetch if search, user, or instance changes
-
+    const handleSaveProject = async (projectId, isSaved) => {
+        if (!user) return;
+            try {
+                if (isSaved) {
+                    const savedProjectsRes = await axiosInstance.get('/saved-projects/');
+                    const savedProjects = savedProjectsRes.data.results || savedProjectsRes.data;
+                    const saved = savedProjects.find(sp => {
+                        const projId = typeof sp.project === 'object' ? sp.project.id : sp.project;
+                        return projId === projectId;
+                    });
+                    if (saved) {
+                        await axiosInstance.delete(`/saved-projects/${saved.id}/`);
+                    }
+                } else {
+                    await axiosInstance.post('/saved-projects/', { project_id: projectId });
+                }
+                fetchProjects(); 
+            } catch (err) {
+                alert('Failed to save/unsave project.');
+                console.error(err);
+            }
+    };
 
     return (
-        <Container className="py-5">
-             {/* Adjust title dynamically if needed, or keep generic */}
-             <h1 className="mb-4">Browse Projects</h1>
+        <Container className="py-5 animate-fade-in">
+            <div className="d-flex justify-content-between align-items-center mb-4">
+                <h1 className="gradient-text">Browse Projects</h1>
+                <Button variant="outline-primary" onClick={() => setShowFilters(!showFilters)}>
+                    <Filter className="me-2" size={16} /> {showFilters ? 'Hide' : 'Show'} Filters
+                </Button>
+            </div>
+            {showFilters && <AdvancedFilters onFilterChange={setFilters} />}
             <InputGroup className="mb-4">
                 <Form.Control
                     placeholder="Search by title, description..."
@@ -723,21 +695,44 @@ const ProjectListPage = () => {
                         <Col key={project.id}>
                             <Card className="h-100 shadow-sm project-card">
                                 <Card.Body className="d-flex flex-column">
-                                    <Card.Title>
-                                        <Link to={`/project/${project.id}`} className="text-decoration-none stretched-link">
-                                            {project.title}
-                                        </Link>
-                                    </Card.Title>
+                                    <div className="d-flex justify-content-between align-items-start mb-2">
+                                        <Card.Title className="flex-grow-1">
+                                            <Link to={`/project/${project.id}`} className="text-decoration-none">
+                                                {project.title}
+                                            </Link>
+                                        </Card.Title>
+                                        {user?.user_type === 'freelancer' && (
+                                            <Button
+                                                variant="link"
+                                                size="sm"
+                                                className="p-0 ms-2"
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    handleSaveProject(project.id, project.is_saved);
+                                                }}
+                                                title={project.is_saved ? 'Unsave project' : 'Save project'}
+                                            >
+                                                {project.is_saved ? <BookmarkCheck size={20} className="text-primary" /> : <Bookmark size={20} />}
+                                            </Button>
+                                        )}
+                                    </div>
                                     <Card.Subtitle className="mb-2 text-muted">
-                                         Client: {project.client} <Badge bg={project.status === 'open' ? 'success' : (project.status === 'in_progress' ? 'warning' : 'secondary')} className="ms-2">{project.status.replace('_', ' ')}</Badge>
+                                         Client: {project.client} <Badge bg={project.status === 'active' ? 'success' : (project.status === 'in_progress' ? 'warning' : project.status === 'completed' ? 'primary' : 'secondary')} className="ms-2">{project.status.replace('_', ' ')}</Badge>
                                     </Card.Subtitle>
                                     <Card.Text className="flex-grow-1">
                                         {project.description.length > 100 ? project.description.substring(0, 100) + '...' : project.description}
                                     </Card.Text>
-                                    <div className="d-flex justify-content-between align-items-center mt-auto pt-2 border-top"> {/* Added border-top */}
+                                    <div className="d-flex justify-content-between align-items-center mt-auto pt-2 border-top">
                                         <span className="fw-bold fs-5 text-success">₹{project.budget}</span>
                                         <small className="text-muted">{new Date(project.created_at).toLocaleDateString()}</small>
                                     </div>
+                                    {project.analytics && (
+                                        <div className="mt-2 pt-2 border-top">
+                                            <small className="text-muted">
+                                                <TrendingUp size={14} className="me-1" /> {project.analytics.total_views} views • {project.analytics.proposals_count} proposals
+                                            </small>
+                                        </div>
+                                    )}
                                 </Card.Body>
                             </Card>
                         </Col>
@@ -755,7 +750,7 @@ const ProjectDetailPage = () => {
     const { user, axiosInstance } = useAuth();
     const [showProposalModal, setShowProposalModal] = useState(false);
     const [error, setError] = useState('');
-    const navigate = useNavigate(); // For navigation after delete
+    const navigate = useNavigate(); 
 
     useEffect(() => {
         const fetchProject = async () => {
@@ -815,8 +810,46 @@ const ProjectDetailPage = () => {
                     <Col md={8}>
                         <Card className="shadow-sm mb-4"><Card.Body>
                             <Card.Title className="display-6">{project.title}</Card.Title>
-                            <Card.Subtitle className="mb-3 text-muted">
-                                 Posted by {project.client} <Badge bg={project.status === 'open' ? 'success' : (project.status === 'in_progress' ? 'warning' : 'secondary')} className="ms-2">{project.status.replace('_', ' ')}</Badge>
+                            <Card.Subtitle className="mb-3 text-muted d-flex align-items-center justify-content-between">
+                                <div>
+                                    Posted by {project.client} <Badge bg={project.status === 'active' ? 'success' : (project.status === 'in_progress' ? 'warning' : project.status === 'completed' ? 'primary' : 'secondary')} className="ms-2">{project.status.replace('_', ' ')}</Badge>
+                                </div>
+                                {isOwner && (
+                                    <Dropdown>
+                                        <Dropdown.Toggle variant="outline-primary" size="sm" id="status-dropdown">
+                                            Update Status
+                                        </Dropdown.Toggle>
+                                        <Dropdown.Menu>
+                                            <Dropdown.Item onClick={async () => {
+                                                try {
+                                                    await axiosInstance.patch(`/projects/${id}/update-status/`, { status: 'active' });
+                                                    const response = await axiosInstance.get(`/projects/${id}/`);
+                                                    setProject(response.data);
+                                                } catch (err) {
+                                                    alert('Failed to update status.');
+                                                }
+                                            }}>Set as Active</Dropdown.Item>
+                                            <Dropdown.Item onClick={async () => {
+                                                try {
+                                                    await axiosInstance.patch(`/projects/${id}/update-status/`, { status: 'in_progress' });
+                                                    const response = await axiosInstance.get(`/projects/${id}/`);
+                                                    setProject(response.data);
+                                                } catch (err) {
+                                                    alert('Failed to update status.');
+                                                }
+                                            }}>Set as In Progress</Dropdown.Item>
+                                            <Dropdown.Item onClick={async () => {
+                                                try {
+                                                    await axiosInstance.patch(`/projects/${id}/update-status/`, { status: 'completed' });
+                                                    const response = await axiosInstance.get(`/projects/${id}/`);
+                                                    setProject(response.data);
+                                                } catch (err) {
+                                                    alert('Failed to update status.');
+                                                }
+                                            }}>Mark as Completed</Dropdown.Item>
+                                        </Dropdown.Menu>
+                                    </Dropdown>
+                                )}
                             </Card.Subtitle>
                             <h5 className="mt-4">Description</h5>
                             <p style={{ whiteSpace: 'pre-wrap' }}>{project.description}</p>
@@ -848,24 +881,58 @@ const ProjectDetailPage = () => {
                                     </div>
                                 </ListGroup.Item>
                             </ListGroup>
-                            {/* Show Proposal button only if user is a freelancer and project is open */}
-                            {user?.user_type === 'freelancer' && project.status === 'open' && (
+                            {/* Show Proposal button only if user is a freelancer and project is active */}
+                            {user?.user_type === 'freelancer' && project.status === 'active' && (
                                 <Card.Body className="text-center">
-                                    <Button variant="primary" className="w-100" onClick={() => setShowProposalModal(true)}>
+                                    <Button variant="primary" className="w-100 mb-2" onClick={() => setShowProposalModal(true)}>
                                          <FileText size={16} className="me-1" /> Submit a Proposal
+                                    </Button>
+                                    <Button 
+                                        variant={project.is_saved ? "outline-danger" : "outline-primary"} 
+                                        className="w-100" 
+                                        onClick={async () => {
+                                            try {
+                                                if (project.is_saved) {
+                                                    const savedProjectsRes = await axiosInstance.get('/saved-projects/');
+                                                    const savedProjects = savedProjectsRes.data.results || savedProjectsRes.data;
+                                                    const saved = savedProjects.find(sp => {
+                                                        const projId = typeof sp.project === 'object' ? sp.project.id : sp.project;
+                                                        return projId === parseInt(id);
+                                                    });
+                                                    if (saved) {
+                                                        await axiosInstance.delete(`/saved-projects/${saved.id}/`);
+                                                    }
+                                                } else {
+                                                    await axiosInstance.post('/saved-projects/', { project_id: id });
+                                                }
+                                                // Refresh project data
+                                                const response = await axiosInstance.get(`/projects/${id}/`);
+                                                setProject(response.data);
+                                            } catch (err) {
+                                                alert('Failed to save/unsave project.');
+                                                console.error(err);
+                                            }
+                                        }}
+                                    >
+                                        {project.is_saved ? <><BookmarkCheck size={16} className="me-1" /> Unsave Project</> : <><Bookmark size={16} className="me-1" /> Save Project</>}
                                     </Button>
                                 </Card.Body>
                             )}
-                             {/* Link to Reviews */}
+                             {/* Link to Reviews and Milestones */}
                              <Card.Footer className="text-center">
-                                <Link to={`/review/${id}`}>View Reviews</Link>
+                                <div className="d-flex justify-content-center gap-3">
+                                    <Link to={`/review/${id}`}>View Reviews</Link>
+                                    {project.status === 'in_progress' && (
+                                        <Link to={`/project/${id}/milestones`}>View Milestones</Link>
+                                    )}
+                                </div>
                              </Card.Footer>
                         </Card>
                     </Col>
                 </Row>
             </Container>
             {/* Render modal only if needed */}
-            {user?.user_type === 'freelancer' && project.status === 'open' && (
+            {user?.user_type === 'freelancer' && project.status === 'active' && (
                  <SubmitProposalModal show={showProposalModal} handleClose={() => setShowProposalModal(false)} projectId={id} />
             )}
         </>
@@ -876,15 +943,24 @@ const ProjectDetailPage = () => {
 const ProjectCreatePage = () => {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
+    const [showForm, setShowForm] = useState(false);
     const [budget, setBudget] = useState('');
     const [duration, setDuration] = useState('');
     const [skills, setSkills] = useState([]); // Stores selected skill IDs
     const [availableSkills, setAvailableSkills] = useState([]);
     const [timeSlot, setTimeSlot] = useState('');
+    const [deadline, setDeadline] = useState('');
     const [loading, setLoading] = useState(false); // Loading state
     const [error, setError] = useState(''); // Error state
+    // New state for typed skill names
+    const [newSkillNames, setNewSkillNames] = useState([]);
+    const [newSkillInput, setNewSkillInput] = useState('');
+    // Image upload state
+    const [imageFile, setImageFile] = useState(null);
+    const [imagePreview, setImagePreview] = useState(null);
     const { axiosInstance } = useAuth();
     const navigate = useNavigate();
+
 
     useEffect(() => {
         const fetchSkills = async () => {
@@ -897,29 +973,33 @@ const ProjectCreatePage = () => {
             }
         };
         fetchSkills();
+        setTimeout(() => setShowForm(true), 100); // Animate form in
     }, [axiosInstance]);
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+    const handleCreateProject = async () => {
         setLoading(true);
-        setError('');
         try {
-            await axiosInstance.post('/projects/', {
-                title,
-                description,
-                budget,
-                duration: duration || null, // Send null if empty
-                skill_ids: skills, // Send selected skill IDs
-                time_slot: timeSlot,
-            });
+            const formData = new FormData();
+            formData.append('title', title);
+            formData.append('description', description);
+            formData.append('budget', budget);
+            formData.append('duration', duration || '');
+            skills.forEach(id => formData.append('skill_ids', id));
+            newSkillNames.forEach(name => formData.append('new_skill_names', name));
+            formData.append('time_slot', timeSlot);
+            formData.append('deadline', deadline || '');
+            if (imageFile) {
+                formData.append('image', imageFile);
+            }
+            await axiosInstance.post('/projects/', formData);
             alert('Project created successfully!');
-            navigate('/dashboard'); // Redirect after creation
+            navigate('/dashboard');
         } catch (error) {
             const errorData = error.response?.data;
-             let errorMsg = 'Failed to create project.';
-             if (errorData) {
-                 errorMsg += ` ${JSON.stringify(errorData)}`; // Basic error display
-             }
+            let errorMsg = 'Failed to create project.';
+            if (errorData) {
+                errorMsg += ` ${JSON.stringify(errorData)}`;
+            }
             console.error('Failed to create project:', errorData || error.message);
             setError(errorMsg);
         } finally {
@@ -927,49 +1007,127 @@ const ProjectCreatePage = () => {
         }
     };
 
-    const handleSkillChange = (e) => {
-        // Convert selected options NodeList to an array of values (IDs)
-        const selectedSkills = Array.from(e.target.selectedOptions, option => parseInt(option.value, 10));
-        setSkills(selectedSkills);
-    }
-
     return (
-        <Container className="py-5">
+        <Container className="py-5 animate-fade-in" style={{ minHeight: '80vh' }}>
             <Row className="justify-content-center">
-                 <Col md={8}>
-                     <h1>Create a New Project</h1>
-                     <Card className="p-4 shadow-sm">
-                        {error && <Alert variant="danger">{error}</Alert>}
-                        <Form onSubmit={handleSubmit}>
-                            <Form.Group className="mb-3"><Form.Label>Project Title</Form.Label><Form.Control type="text" value={title} onChange={e => setTitle(e.target.value)} required /></Form.Group>
-                            <Form.Group className="mb-3"><Form.Label>Description</Form.Label><Form.Control as="textarea" rows={5} value={description} onChange={e => setDescription(e.target.value)} required placeholder="Describe the project requirements, scope, and deliverables..." /></Form.Group>
-                            <Row>
-                                <Col md={6}><Form.Group className="mb-3"><Form.Label>Budget (₹)</Form.Label><Form.Control type="number" step="0.01" value={budget} onChange={e => setBudget(e.target.value)} required placeholder="e.g., 5000.00" /></Form.Group></Col>
-                                <Col md={6}><Form.Group className="mb-3"><Form.Label>Estimated Duration (days)</Form.Label><Form.Control type="number" value={duration} onChange={e => setDuration(e.target.value)} placeholder="Optional: e.g., 30" /></Form.Group></Col>
-                            </Row>
-                            <Form.Group className="mb-3">
-                                <Form.Label>Skills Required (Select multiple)</Form.Label>
-                                <Form.Control as="select" multiple value={skills.map(String)} onChange={handleSkillChange} style={{ height: '150px' }}>
-                                    {availableSkills.map(skill => (
-                                        <option key={skill.id} value={skill.id}>{skill.name}</option>
-                                    ))}
-                                </Form.Control>
-                                 <Form.Text muted>Hold Ctrl (or Cmd on Mac) to select multiple skills.</Form.Text>
-                            </Form.Group>
-                            <Form.Group className="mb-3">
-                                <Form.Label>Preferred Time Slot (Optional)</Form.Label>
-                                <Form.Control type="text" value={timeSlot} onChange={e => setTimeSlot(e.target.value)} placeholder="e.g., Weekdays 9am-5pm IST"/>
-                            </Form.Group>
-                            <Button type="submit" variant="primary" disabled={loading}>
-                                 {loading ? <Spinner as="span" size="sm" /> : <><PlusCircle size={16} className="me-1"/> Post Project</>}
-                            </Button>
-                        </Form>
-                     </Card>
+                <Col md={8} lg={7}>
+                    <Card className="shadow-lg border-0">
+                        <Card.Body>
+                            <h2 className="mb-4 text-center gradient-text">Post a New Project</h2>
+                            {error && <Alert variant="danger">{error}</Alert>}
+                            <Form onSubmit={e => { e.preventDefault(); handleCreateProject(); }}>
+                                <Form.Group className="mb-3">
+                                    <Form.Label>Title *</Form.Label>
+                                    <Form.Control type="text" value={title} onChange={e => setTitle(e.target.value)} required placeholder="Project Title" />
+                                </Form.Group>
+                                <Form.Group className="mb-3">
+                                    <Form.Label>Description *</Form.Label>
+                                    <Form.Control as="textarea" rows={5} value={description} onChange={e => setDescription(e.target.value)} required placeholder="Describe your project..." />
+                                </Form.Group>
+                                <Form.Group className="mb-3">
+                                    <Form.Label>Budget (9) *</Form.Label>
+                                    <Form.Control type="number" step="0.01" value={budget} onChange={e => setBudget(e.target.value)} required placeholder="e.g., 5000.00" />
+                                </Form.Group>
+                                <Form.Group className="mb-3">
+                                    <Form.Label>Duration (days)</Form.Label>
+                                    <Form.Control type="number" value={duration} onChange={e => setDuration(e.target.value)} placeholder="e.g., 30" />
+                                </Form.Group>
+                                <Form.Group className="mb-3">
+                                    <Form.Label>Time Slot (Optional)</Form.Label>
+                                    <Form.Control type="text" value={timeSlot} onChange={e => setTimeSlot(e.target.value)} placeholder="e.g., Mon-Fri, 10am-6pm" />
+                                </Form.Group>
+                                <Form.Group className="mb-3">
+                                    <Form.Label>Deadline (Optional)</Form.Label>
+                                    <Form.Control type="date" value={deadline} onChange={e => setDeadline(e.target.value)} />
+                                </Form.Group>
+                                <Form.Group className="mb-3">
+                                    <Form.Label>Skills Required</Form.Label>
+                                    <div className="d-flex flex-wrap gap-2 mb-2">
+                                        {availableSkills.map(skill => (
+                                            <Badge
+                                                key={skill.id}
+                                                pill
+                                                bg={skills.includes(skill.id) ? "primary" : "light"}
+                                                text={skills.includes(skill.id) ? "light" : "dark"}
+                                                style={{ cursor: "pointer", border: "1px solid #dee2e6" }}
+                                                onClick={() => setSkills(skills.includes(skill.id) ? skills.filter(id => id !== skill.id) : [...skills, skill.id])}
+                                            >
+                                                {skill.name}
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                    <Form.Text className="text-muted">Click to select/unselect skills.</Form.Text>
+                                </Form.Group>
+                                <Form.Group className="mb-3">
+                                    <Form.Label>Type New Skills</Form.Label>
+                                    <InputGroup>
+                                        <Form.Control
+                                            type="text"
+                                            value={newSkillInput}
+                                            onChange={e => setNewSkillInput(e.target.value)}
+                                            placeholder="Type a skill and press Enter"
+                                            onKeyDown={e => {
+                                                if (e.key === 'Enter' && newSkillInput.trim()) {
+                                                    setNewSkillNames([...newSkillNames, newSkillInput.trim()]);
+                                                    setNewSkillInput('');
+                                                    e.preventDefault();
+                                                }
+                                            }}
+                                        />
+                                        <Button
+                                            variant="outline-primary"
+                                            onClick={() => {
+                                                if (newSkillInput.trim()) {
+                                                    setNewSkillNames([...newSkillNames, newSkillInput.trim()]);
+                                                    setNewSkillInput('');
+                                                }
+                                            }}
+                                        >Add</Button>
+                                    </InputGroup>
+                                    <div className="mt-2">
+                                        {newSkillNames.map((skill, idx) => (
+                                            <Badge key={idx} pill bg="info" text="light" className="me-1 mb-1">
+                                                {skill}
+                                                <span
+                                                    style={{ cursor: 'pointer', marginLeft: 6 }}
+                                                    onClick={() => setNewSkillNames(newSkillNames.filter((_, i) => i !== idx))}
+                                                >
+                                                    &times;
+                                                </span>
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                    <Form.Text className="text-muted">You can add skills not listed above.</Form.Text>
+                                </Form.Group>
+                                {/* Project Image Upload */}
+                                <Form.Group className="mb-3">
+                                    <Form.Label>Project Image (Optional)</Form.Label>
+                                    <Form.Control type="file" accept="image/*" onChange={e => {
+                                        const file = e.target.files[0];
+                                        setImageFile(file);
+                                        if (file) {
+                                            const reader = new FileReader();
+                                            reader.onloadend = () => setImagePreview(reader.result);
+                                            reader.readAsDataURL(file);
+                                        } else {
+                                            setImagePreview(null);
+                                        }
+                                    }} />
+                                    {imagePreview && (
+                                        <div className="mt-2"><img src={imagePreview} alt="Preview" style={{ maxWidth: '200px', maxHeight: '150px' }} /></div>
+                                    )}
+                                </Form.Group>
+                                <Button variant="primary" type="submit" className="w-100" disabled={loading}>
+                                    {loading ? <Spinner as="span" animation="border" size="sm" /> : 'Post Project'}
+                                </Button>
+                            </Form>
+                        </Card.Body>
+                    </Card>
                 </Col>
             </Row>
         </Container>
     );
-};
+}
 
 
 const DashboardPage = () => {
@@ -1048,7 +1206,7 @@ const DashboardPage = () => {
                               errorData?.detail ||
                               (errorData && Object.values(errorData).flat().join(' ')) || // Flatten errors
                               'Failed to update proposal status.';
-            setUpdateError(`Error updating proposal #${id}: ${errorMsg}`); // Set specific error message
+            setUpdateError(`${errorMsg}`); // Set specific error message
             console.error('Failed to update proposal status:', errorMsg, error.response?.data || error.message);
             // Optionally: alert(`Failed to update status: ${errorMsg}`);
         }
@@ -1110,22 +1268,47 @@ const DashboardPage = () => {
             <Card className="mb-4 shadow-sm">
                 <Card.Header as="h5">Proposals Received</Card.Header>
                 {loadingProposals ? <Card.Body className="text-center"><Spinner size="sm"/></Card.Body> :
-                 error && !updateError ? <Card.Body><Alert variant="danger">{error}</Alert></Card.Body> : // Show general error only if no update error
+                 error && !updateError ? <Card.Body><Alert variant="danger">{error}</Alert></Card.Body> :
                  proposals.length > 0 ? (
                     <ListGroup variant="flush">
                         {proposals.map(p => (
                             <ListGroup.Item key={p.id} className="px-3 py-2">
-                                <Row className="align-items-center g-2"> {/* Use g-2 for smaller gap */}
+                                <Row className="align-items-center g-2">
                                     <Col md={7}>
                                          Proposal from <strong>{p.freelancer}</strong> for <Link to={`/project/${p.project}`} title={p.project_title}>"{p.project_title.length > 30 ? p.project_title.substring(0, 30)+'...' : p.project_title}"</Link>
                                          <br/><small className="text-muted">Rate: ₹{p.proposed_rate}</small>
+                                         {/* Rating UI */}
+                                         <div className="mt-2">
+                                             <Form.Label className="me-2 mb-0">Rating:</Form.Label>
+                                             <Form.Select
+                                                 size="sm"
+                                                 style={{ width: '120px', display: 'inline-block' }}
+                                                 value={p.rating || ''}
+                                                 onChange={async (e) => {
+                                                     const newRating = e.target.value ? parseInt(e.target.value) : null;
+                                                     try {
+                                                         await axiosInstance.patch(`/proposals/${p.id}/rate/`, { rating: newRating });
+                                                         fetchDashboardData();
+                                                         alert('Rating updated!');
+                                                     } catch (err) {
+                                                         alert('Failed to update rating.');
+                                                     }
+                                                 }}
+                                                 disabled={user.username !== p.project_client}
+                                             >
+                                                 <option value="">Not rated</option>
+                                                 {[1,2,3,4,5].map(val => (
+                                                     <option key={val} value={val}>{val} Star{val > 1 ? 's' : ''}</option>
+                                                 ))}
+                                             </Form.Select>
+                                         </div>
                                     </Col>
                                      <Col md={2} className="text-md-center">
                                           <Badge bg={p.status === 'pending' ? 'warning' : (p.status === 'accepted' ? 'success' : 'danger')}>{p.status}</Badge>
                                     </Col>
                                     <Col md={3} className="text-md-end">
                                          {p.status === 'pending' && (
-                                            <div className="d-flex justify-content-end justify-content-md-end gap-1"> {/* Flex layout for buttons */}
+                                            <div className="d-flex justify-content-end justify-content-md-end gap-1">
                                                 <Button variant="success" size="sm" onClick={() => handleUpdateStatus(p.id, 'accepted')} title="Accept Proposal">
                                                     <Check size={16} /> <span className="d-none d-lg-inline">Accept</span>
                                                 </Button>
@@ -1154,7 +1337,7 @@ const DashboardPage = () => {
                             <ListGroup.Item key={proj.id} className="px-3 py-2">
                                 <Row className="align-items-center g-2">
                                      <Col md={7}>
-                                        <Link to={`/project/${proj.id}`}>{proj.title}</Link> <Badge bg={proj.status === 'open' ? 'success' : (proj.status === 'in_progress' ? 'warning' : 'secondary')} className="ms-2">{proj.status.replace('_', ' ')}</Badge>
+                                        <Link to={`/project/${proj.id}`}>{proj.title}</Link> <Badge bg={proj.status === 'active' ? 'success' : (proj.status === 'in_progress' ? 'warning' : proj.status === 'completed' ? 'primary' : 'secondary')} className="ms-2">{proj.status.replace('_', ' ')}</Badge>
                                     </Col>
                                      <Col md={5} className="text-md-end">
                                         <div className="d-flex justify-content-end justify-content-md-end gap-1">
@@ -1246,6 +1429,11 @@ const DashboardPage = () => {
                              <ListGroup.Item action as={Link} to="/contracts"><FileText size={16} className="me-2"/> My Contracts</ListGroup.Item>
                              <ListGroup.Item action as={Link} to="/messages"><MessageSquare size={16} className="me-2"/> Messages</ListGroup.Item>
                              <ListGroup.Item action as={Link} to="/notifications"><Bell size={16} className="me-2"/> Notifications</ListGroup.Item>
+                             <ListGroup.Item action as={Link} to="/saved-projects"><Bookmark size={16} className="me-2"/> Saved Projects</ListGroup.Item>
+                             <ListGroup.Item action as={Link} to="/activities"><Activity size={16} className="me-2"/> Activity Feed</ListGroup.Item>
+                             <ListGroup.Item action as={Link} to="/wallet"><WalletIcon size={16} className="me-2"/> Wallet</ListGroup.Item>
+                             {user.user_type === 'client' && <ListGroup.Item action as={Link} to="/analytics"><BarChart3 size={16} className="me-2"/> Analytics</ListGroup.Item>}
+                             {user.user_type === 'freelancer' && <ListGroup.Item action as={Link} to="/invoices"><FileText size={16} className="me-2"/> Invoices</ListGroup.Item>}
                              {/* Add more links as needed */}
                         </ListGroup>
                     </Card>
@@ -1261,6 +1449,7 @@ const DashboardPage = () => {
                                 <div>
                                      <Card.Title className="fs-4 mb-0">Welcome back, {user.username}!</Card.Title>
                                      <Card.Text className="text-muted mb-0">Role: <Badge bg="info">{user.user_type}</Badge></Card.Text>
+                                     <BadgeDisplay />
                                 </div>
                             </div>
                             {/* Actions */}
@@ -1378,43 +1567,37 @@ const MessagingPage = () => {
         } finally {
             if (isInitialLoad) setLoading(false);
         }
-    }, [user, axiosInstance, activeConversationUser]); // Dependency array
+    }, [user, axiosInstance, activeConversationUser]); 
 
-    // --- Initial Fetch and Polling Setup ---
     useEffect(() => {
-        fetchAndGroupMessages(true); // Initial fetch
-
-        // Clear existing interval before setting a new one
+        fetchAndGroupMessages(true); 
         if (pollingIntervalRef.current) {
             clearInterval(pollingIntervalRef.current);
         }
 
-        // Setup polling
         pollingIntervalRef.current = setInterval(() => {
-            fetchAndGroupMessages(false); // Background fetch
-        }, 8000); // Poll every 8 seconds
+            fetchAndGroupMessages(false); 
+        }, 8000); 
 
-        // Cleanup interval on component unmount
         return () => {
             if (pollingIntervalRef.current) {
                 clearInterval(pollingIntervalRef.current);
             }
         };
-    }, [fetchAndGroupMessages]); // Rerun effect if fetch function changes
+    }, [fetchAndGroupMessages]); 
 
-    // --- Scroll Effect ---
+  
     useEffect(() => {
-        if (activeConversationUser) { // Only scroll when a chat is active
+        if (activeConversationUser) { 
             scrollToBottom();
         }
-    }, [activeConversationUser, conversations, scrollToBottom]); // Trigger scroll on chat switch or new messages
+    }, [activeConversationUser, conversations, scrollToBottom]); 
 
-    // --- Event Handlers ---
     const handleSelectConversation = (username) => {
         setActiveConversationUser(username);
-        setSendError(''); // Clear errors when switching
+        setSendError('');
         setNewChatError('');
-        setNewMessage(''); // Clear input field
+        setNewMessage(''); 
     };
 
     const handleSendMessage = async (e) => {
@@ -1425,40 +1608,34 @@ const MessagingPage = () => {
         setSendError('');
 
         try {
-            // POST to the /messages/ endpoint
             const response = await axiosInstance.post('/messages/', {
-                receiver_username: activeConversationUser, // Backend expects this field
+                receiver_username: activeConversationUser, 
                 content: newMessage.trim(),
             });
             const sentMessage = response.data;
-
-            // Update state: Add the new message to the correct conversation group
             setConversations(prev => {
                 const updatedConversations = { ...prev };
-                const partner = activeConversationUser; // Use the active user
+                const partner = activeConversationUser; 
 
                 if (!updatedConversations[partner]) {
                     updatedConversations[partner] = [];
                 }
 
-                // Add message if not already added by polling
                 if (!updatedConversations[partner].some(msg => msg.id === sentMessage.id)) {
                     updatedConversations[partner] = [...updatedConversations[partner], sentMessage];
-                     // Ensure sorting after adding
                      updatedConversations[partner].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
                 }
 
                 return updatedConversations;
             });
 
-            setNewMessage(''); // Clear input field
-            scrollToBottom(); // Scroll after successful send (or optimistic update)
+            setNewMessage(''); 
+            scrollToBottom(); 
 
         } catch (err) {
             const errorData = err.response?.data;
             let detailedError = "Failed to send message.";
             if (errorData) {
-                // Extract specific field errors or general detail from backend response
                 if (errorData.receiver_username) detailedError = `Receiver Error: ${errorData.receiver_username.join(', ')}`;
                 else if (errorData.content) detailedError = `Message Error: ${errorData.content.join(', ')}`;
                 else if (errorData.detail) detailedError = errorData.detail;
@@ -1486,48 +1663,38 @@ const MessagingPage = () => {
              return;
          }
 
-         // Activate the conversation locally - it will appear empty until a message is sent/received.
-         // Or, if it already exists from fetched messages, just switch to it.
          if (!conversations[targetUser]) {
-              setConversations(prev => ({ ...prev, [targetUser]: [] })); // Add empty array
+              setConversations(prev => ({ ...prev, [targetUser]: [] })); 
          }
          setActiveConversationUser(targetUser);
-         setNewChatUser(''); // Clear input
+         setNewChatUser('');
      };
 
-
-    // --- Render Logic ---
     if (loading) {
         return <Container className="text-center py-5"><Spinner animation="border" role="status"><span className="visually-hidden">Loading messages...</span></Spinner></Container>;
     }
-
-    // Sort partners for display based on the timestamp of the last message
     const conversationPartners = Object.entries(conversations)
         .sort(([, msgsA], [, msgsB]) => {
             const lastMsgTimeA = msgsA.length ? new Date(msgsA[msgsA.length - 1].timestamp).getTime() : 0;
             const lastMsgTimeB = msgsB.length ? new Date(msgsB[msgsB.length - 1].timestamp).getTime() : 0;
-            return lastMsgTimeB - lastMsgTimeA; // Most recent first
+            return lastMsgTimeB - lastMsgTimeA; 
         })
         .map(([username]) => username);
-
-    // Get messages for the currently active conversation
     const activeMessages = activeConversationUser ? conversations[activeConversationUser] || [] : [];
 
 
     return (
-        // Use Container fluid for full width, adjust main App layout if needed
         <Container fluid className="py-3 vh-100 d-flex flex-column">
             <h1 className="mb-3 h4"><MessageSquare size={20} className="me-2"/>Messages</h1>
 
             {fetchError && !loading && <Alert variant="warning" className="mb-2">{fetchError}</Alert>}
 
-            <Row className="flex-grow-1" style={{ minHeight: 0 }}> {/* Ensure row fills space */}
+            <Row className="flex-grow-1" style={{ minHeight: 0 }}>
 
-                {/* Sidebar */}
                 <Col md={4} lg={3} className="d-flex flex-column mb-3 mb-md-0 h-100">
                     <Card className="flex-grow-1 d-flex flex-column shadow-sm">
                         <Card.Header className="fw-bold">Conversations</Card.Header>
-                        {/* Input for new chat */}
+                       
                         <Card.Body className="p-2 border-bottom">
                             <InputGroup size="sm">
                                 <Form.Control
@@ -1541,7 +1708,7 @@ const MessagingPage = () => {
                             </InputGroup>
                             {newChatError && <small className="text-danger d-block mt-1 px-1">{newChatError}</small>}
                         </Card.Body>
-                        {/* Conversation List */}
+                       
                         <ListGroup variant="flush" className="flex-grow-1" style={{ overflowY: 'auto' }}>
                             {conversationPartners.length > 0 ? (
                                 conversationPartners.map(partner => (
@@ -1553,7 +1720,6 @@ const MessagingPage = () => {
                                         className="d-flex justify-content-between align-items-center text-break" // Allow long usernames to wrap
                                     >
                                          <span>{partner}</span>
-                                        {/* Optional: Add timestamp or unread indicator here */}
                                         {conversations[partner]?.length > 0 &&
                                             <small className="text-muted ms-2 text-nowrap">
                                                 {new Date(conversations[partner][conversations[partner].length - 1].timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
@@ -1568,7 +1734,6 @@ const MessagingPage = () => {
                     </Card>
                 </Col>
 
-                {/* Main Chat Area */}
                 <Col md={8} lg={9} className="d-flex flex-column h-100">
                     <Card className="flex-grow-1 d-flex flex-column shadow-sm">
                         <Card.Header>
@@ -1578,8 +1743,6 @@ const MessagingPage = () => {
                                 'Select or start a conversation'
                             )}
                         </Card.Header>
-
-                        {/* Message Display Area */}
                         <Card.Body className="d-flex flex-column" style={{ overflowY: 'auto', flexGrow: 1 }}>
                             {!activeConversationUser ? (
                                 <p className="text-muted text-center m-auto">Select a conversation from the list or start a new one.</p>
@@ -1589,7 +1752,7 @@ const MessagingPage = () => {
                                 <>
                                     {activeMessages.map((message, index) => (
                                         <div
-                                            key={message.id || `msg-${index}`} // Use index as fallback if id is missing temporarily
+                                            key={message.id || `msg-${index}`} 
                                             className={`mb-2 d-flex ${message.sender === user.username ? 'justify-content-end' : 'justify-content-start'}`}
                                         >
                                             <div
@@ -1603,13 +1766,11 @@ const MessagingPage = () => {
                                             </div>
                                         </div>
                                     ))}
-                                    {/* Scroll target */}
                                     <div ref={messagesEndRef} style={{ height: '1px' }} />
                                 </>
                             )}
                         </Card.Body>
 
-                        {/* Input Footer (only if conversation is active) */}
                         {activeConversationUser && (
                             <Card.Footer className="bg-light p-2 border-top">
                                 {sendError && <Alert variant="danger" className="mb-2 py-1 px-2 small" onClose={() => setSendError('')} dismissible>{sendError}</Alert>}
@@ -1617,18 +1778,18 @@ const MessagingPage = () => {
                                     <InputGroup>
                                         <Form.Control
                                             as="textarea"
-                                            rows={1} // Start with 1 row, might auto-expand slightly
+                                            rows={1}
                                             placeholder="Type your message..."
                                             value={newMessage}
                                             onChange={(e) => setNewMessage(e.target.value)}
                                             required
                                             disabled={isSending}
-                                            style={{ resize: 'none', overflowY: 'auto', minHeight: '40px' }} // Min height
+                                            style={{ resize: 'none', overflowY: 'auto', minHeight: '40px' }} 
                                              onKeyDown={(e) => {
                                                  if (e.key === 'Enter' && !e.shiftKey) {
-                                                     e.preventDefault(); // Prevent newline
+                                                     e.preventDefault(); 
                                                      if (!isSending && newMessage.trim()) {
-                                                         handleSendMessage(); // Call send handler
+                                                         handleSendMessage();
                                                      }
                                                  }
                                              }}
@@ -1647,23 +1808,356 @@ const MessagingPage = () => {
     );
 };
 
+// --- FEATURE 1: Saved Projects Page ---
+const SavedProjectsPage = () => {
+    const { user, axiosInstance } = useAuth();
+    const [savedProjects, setSavedProjects] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        const fetchSavedProjects = async () => {
+            if (!user) return;
+            setLoading(true);
+            try {
+                const response = await axiosInstance.get('/saved-projects/');
+                setSavedProjects(response.data.results || response.data);
+            } catch (err) {
+                setError('Failed to fetch saved projects.');
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchSavedProjects();
+    }, [user, axiosInstance]);
+
+    const handleUnsave = async (projectId) => {
+        try {
+            const savedProject = savedProjects.find(sp => sp.project.id === projectId);
+            if (savedProject) {
+                await axiosInstance.delete(`/saved-projects/${savedProject.id}/`);
+                setSavedProjects(prev => prev.filter(sp => sp.id !== savedProject.id));
+            }
+        } catch (err) {
+            alert('Failed to unsave project.');
+            console.error(err);
+        }
+    };
+
+    if (loading) return <Container className="text-center py-5"><Spinner animation="border" /></Container>;
+    if (error) return <Container><Alert variant="danger">{error}</Alert></Container>;
+
+    return (
+        <Container className="py-5 animate-fade-in">
+            <div className="d-flex justify-content-between align-items-center mb-4">
+                <h1 className="gradient-text"><Bookmark className="me-2" />Saved Projects</h1>
+            </div>
+            {savedProjects.length > 0 ? (
+                <Row xs={1} md={2} lg={3} className="g-4">
+                    {savedProjects.map(sp => (
+                        <Col key={sp.id}>
+                            <Card className="h-100 shadow-sm saved-project-card project-card">
+                                <Card.Body className="d-flex flex-column">
+                                    <Card.Title>
+                                        <Link to={`/project/${sp.project.id}`} className="text-decoration-none stretched-link">
+                                            {sp.project.title}
+                                        </Link>
+                                    </Card.Title>
+                                    <Card.Text className="flex-grow-1">
+                                        {sp.project.description.length > 100 ? sp.project.description.substring(0, 100) + '...' : sp.project.description}
+                                    </Card.Text>
+                                    <div className="d-flex justify-content-between align-items-center mt-auto pt-2 border-top">
+                                        <span className="fw-bold fs-5 text-success">₹{sp.project.budget}</span>
+                                        <Button variant="outline-danger" size="sm" onClick={() => handleUnsave(sp.project.id)}>
+                                            <BookmarkCheck size={16} className="me-1" /> Unsave
+                                        </Button>
+                                    </div>
+                                </Card.Body>
+                            </Card>
+                        </Col>
+                    ))}
+                </Row>
+            ) : (
+                <Alert variant="info">You haven't saved any projects yet. Start browsing and save projects you're interested in!</Alert>
+            )}
+        </Container>
+    );
+};
+
+// --- FEATURE 2: Activity Feed Page ---
+const ActivityFeedPage = () => {
+    const { user, axiosInstance } = useAuth();
+    const [activities, setActivities] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        const fetchActivities = async () => {
+            if (!user) return;
+            setLoading(true);
+            try {
+                const response = await axiosInstance.get('/activities/');
+                setActivities(response.data.results || response.data);
+            } catch (err) {
+                setError('Failed to fetch activities.');
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchActivities();
+        const interval = setInterval(fetchActivities, 30000); 
+        return () => clearInterval(interval);
+    }, [user, axiosInstance]);
+
+    const getActivityIcon = (action) => {
+        switch (action) {
+            case 'project_created': return <Briefcase size={20} />;
+            case 'proposal_submitted': return <FileText size={20} />;
+            case 'proposal_accepted': return <Check size={20} />;
+            case 'contract_created': return <Award size={20} />;
+            case 'review_submitted': return <Star size={20} />;
+            default: return <Activity size={20} />;
+        }
+    };
+
+    if (loading) return <Container className="text-center py-5"><Spinner animation="border" /></Container>;
+    if (error) return <Container><Alert variant="danger">{error}</Alert></Container>;
+
+    return (
+        <Container className="py-5 animate-fade-in">
+            <h1 className="mb-4 gradient-text"><Activity className="me-2" />Activity Feed</h1>
+            {activities.length > 0 ? (
+                <div>
+                    {activities.map(activity => (
+                        <div key={activity.id} className="activity-item animate-slide-in">
+                            <div className="d-flex align-items-start">
+                                <div className="me-3 mt-1 text-primary">{getActivityIcon(activity.action)}</div>
+                                <div className="flex-grow-1">
+                                    <div className="d-flex justify-content-between">
+                                        <strong>{activity.user}</strong>
+                                        <small className="text-muted">{new Date(activity.timestamp).toLocaleString()}</small>
+                                    </div>
+                                    <p className="mb-0 mt-1">{activity.description}</p>
+                                    {activity.related_project && (
+                                        <Link to={`/project/${typeof activity.related_project === 'object' ? activity.related_project.id : activity.related_project}`} className="text-decoration-none">
+                                            View Project →
+                                        </Link>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <Alert variant="info">No activities to display yet.</Alert>
+            )}
+        </Container>
+    );
+};
+
+// --- FEATURE : Analytics Dashboard Page ---
+const AnalyticsPage = () => {
+    const { user, axiosInstance } = useAuth();
+    const [analytics, setAnalytics] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        const fetchAnalytics = async () => {
+            if (!user) return;
+            setLoading(true);
+            try {
+                const response = await axiosInstance.get('/analytics/');
+                setAnalytics(response.data.results || response.data);
+            } catch (err) {
+                setError('Failed to fetch analytics.');
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchAnalytics();
+    }, [user, axiosInstance]);
+
+    if (loading) return <Container className="text-center py-5"><Spinner animation="border" /></Container>;
+    if (error) return <Container><Alert variant="danger">{error}</Alert></Container>;
+
+    return (
+        <Container className="py-5 animate-fade-in">
+            <h1 className="mb-4 gradient-text"><BarChart3 className="me-2" />Project Analytics</h1>
+            {analytics.length > 0 ? (
+                <Row xs={1} md={2} lg={3} className="g-4">
+                    {analytics.map(anal => (
+                        <Col key={anal.id}>
+                            <Card className="shadow-sm">
+                                <Card.Header>
+                                    <Link to={`/project/${typeof anal.project === 'object' ? anal.project : anal.project}`} className="text-white text-decoration-none">
+                                        Project Analytics
+                                    </Link>
+                                </Card.Header>
+                                <Card.Body>
+                                    <div className="analytics-card">
+                                        <h3>{anal.total_views}</h3>
+                                        <p>Total Views</p>
+                                    </div>
+                                    <Row className="mt-3">
+                                        <Col xs={6}>
+                                            <div className="text-center">
+                                                <h4 className="text-primary">{anal.unique_views}</h4>
+                                                <small className="text-muted">Unique Views</small>
+                                            </div>
+                                        </Col>
+                                        <Col xs={6}>
+                                            <div className="text-center">
+                                                <h4 className="text-success">{anal.proposals_count}</h4>
+                                                <small className="text-muted">Proposals</small>
+                                            </div>
+                                        </Col>
+                                        <Col xs={12} className="mt-2">
+                                            <div className="text-center">
+                                                <h4 className="text-warning">{anal.saved_count}</h4>
+                                                <small className="text-muted">Saved Count</small>
+                                            </div>
+                                        </Col> </Row>  </Card.Body></Card>
+                        </Col> ))}
+                </Row> ) : (
+                <Alert variant="info">No analytics data available yet.</Alert>
+            )}
+        </Container>
+    );};
+
+// --- Feature : Advanced Filters Component (used in ProjectListPage) ---
+const AdvancedFilters = ({ onFilterChange, availableSkills }) => {
+    const defaultFilters = {
+        minBudget: '',
+        maxBudget: '',
+        status: 'active',
+        sortBy: 'created_at'
+    };
+
+    // 2. The component now manages its own state
+    const [filters, setFilters] = useState(defaultFilters);
+    const handleFilterChange = (key, value) => {
+        const newFilters = { ...filters, [key]: value };
+        setFilters(newFilters);
+        onFilterChange(newFilters); 
+    };
+
+    const handleClear = () => {
+        setFilters(defaultFilters);    
+        onFilterChange(defaultFilters); 
+    };
+
+    return (
+        <Card className="filter-panel animate-slide-in">
+            <Card.Header className="d-flex justify-content-between align-items-center">
+                <span>
+                    <Filter className="me-2" /> Advanced Filters
+                </span>
+                <Button variant="outline-danger" size="sm" onClick={handleClear}>
+                    Clear Filters
+                </Button>
+            </Card.Header>
+            <Card.Body>
+                <Row>
+                    <Col md={6}>
+                        <Form.Group className="mb-3">
+                            <Form.Label>Min Budget (₹)</Form.Label>
+                            <Form.Control type="number" value={filters.minBudget} onChange={e => handleFilterChange('minBudget', e.target.value)} placeholder="0" />
+                        </Form.Group>
+                    </Col>
+                    <Col md={6}>
+                        <Form.Group className="mb-3">
+                            <Form.Label>Max Budget (₹)</Form.Label>
+                            <Form.Control type="number" value={filters.maxBudget} onChange={e => handleFilterChange('maxBudget', e.target.value)} placeholder="100000" />
+                        </Form.Group>
+                    </Col>
+                    <Col md={6}>
+                        <Form.Group className="mb-3">
+                            <Form.Label>Status</Form.Label>
+                            <Form.Select value={filters.status} onChange={e => handleFilterChange('status', e.target.value)}>
+                                <option value="active">Active</option>
+                                <option value="in_progress">In Progress</option>
+                                <option value="completed">Completed</option>
+                            </Form.Select>
+                        </Form.Group>
+                    </Col>
+                    <Col md={6}>
+                        <Form.Group className="mb-3">
+                            <Form.Label>Sort By</Form.Label>
+                            <Form.Select value={filters.sortBy} onChange={e => handleFilterChange('sortBy', e.target.value)}>
+                                <option value="created_at">Newest</option>
+                                <option value="-budget">Budget: High to Low</option>
+                                <option value="budget">Budget: Low to High</option>
+                                <option value="-view_count">Most Viewed</option>
+                            </Form.Select>
+                        </Form.Group>
+                    </Col>
+                </Row>
+            </Card.Body>
+        </Card>
+    );
+};
+
+// --- Feature:Badge Display Component ---
+export const BadgeDisplay = ({ userId }) => {
+    const { axiosInstance } = useAuth();
+    const [badges, setBadges] = useState([]);
+    const [loading, setLoading] = useState(false);
+
+    const getBadgeIcon = (badgeType) => {
+        switch (badgeType) {
+            case 'verified': return <Shield size={16} />;
+            case 'top_freelancer': case 'top_client': return <Trophy size={16} />;
+            case 'excellent_review': return <Star size={16} />;
+            default: return <Award size={16} />;
+        }
+    };
+
+    useEffect(() => {
+        const fetchBadges = async () => {
+            setLoading(true);
+            try {
+                const url = userId ? `/badges/?user_id=${userId}` : '/badges/';
+                const response = await axiosInstance.get(url);
+                setBadges(response.data.results || response.data);
+            } catch (err) {
+                console.error('Failed to fetch badges:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchBadges();
+    }, [userId, axiosInstance]);
+
+    if (loading) return <Spinner size="sm" />;
+    if (badges.length === 0) return null;
+
+    return (
+        <div className="badge-container">
+            {badges.map(badge => (
+                <span key={badge.id} className="user-badge" title={badge.description || badge.badge_type}>
+                    {getBadgeIcon(badge.badge_type)}
+                    {badge.get_badge_type_display || badge.badge_type.replace(/_/g, ' ')}
+                </span>
+            ))}
+        </div>
+    );
+};
 
 // --- Main App Component ---
 function App() {
     return (
-        // AuthProvider now wraps everything, providing context
         <AuthProvider>
-             {/* Removed max-width and padding from here, relies on CSS file now */}
             <div className="d-flex flex-column" style={{ minHeight: "100vh" }}>
                 <AppNavbar />
-                <main className="flex-grow-1"> {/* main content should grow */}
+                <main className="flex-grow-1"> 
                     <Routes>
-                        {/* Public Routes */}
                         <Route path="/" element={<HomePage />} />
                         <Route path="/login" element={<LoginPage />} />
                         <Route path="/register" element={<RegisterPage />} />
-
-                        {/* Protected/Semi-Protected Routes */}
                         <Route path="/notifications" element={<NotificationsPage />} />
                         <Route path="/dashboard" element={<DashboardPage />} />
                         <Route path="/profile" element={<ProfilePage />} />
@@ -1674,9 +2168,12 @@ function App() {
                         <Route path="/messages" element={<MessagingPage />} />
                         <Route path="/project/new" element={<ProjectCreatePage />} />
                         <Route path="/project/:id/edit" element={<ProjectEditPage />} />
-                        {/* <Route path="/proposal/:id/edit" element={<ProposalEditPage />} /> */}
-
-                        {/* 404 Not Found Route */}
+                        <Route path="/saved-projects" element={<SavedProjectsPage />} />
+                        <Route path="/activities" element={<ActivityFeedPage />} />
+                        <Route path="/analytics" element={<AnalyticsPage />} />
+                        <Route path="/wallet" element={<WalletPage />} />
+                        <Route path="/project/:id/milestones" element={<MilestonesPage />} />
+                        <Route path="/invoices" element={<InvoicesPage />} />
                         <Route path="*" element={
                             <Container className="py-5 text-center">
                                 <h2>404 Not Found</h2>
@@ -1686,7 +2183,6 @@ function App() {
                         } />
                     </Routes>
                 </main>
-                {/* Optional Footer */}
                 <footer className="bg-light text-center text-muted py-3 mt-auto border-top">
                     <Container>
                         &copy; {new Date().getFullYear()} TalentLink. All rights reserved.
@@ -1696,5 +2192,4 @@ function App() {
         </AuthProvider>
     );
 }
-
 export default App;

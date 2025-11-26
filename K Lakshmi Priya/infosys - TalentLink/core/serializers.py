@@ -45,7 +45,9 @@ class UserSerializer(serializers.ModelSerializer):
 class ProfileSerializer(serializers.ModelSerializer):
     # Read skills as nested objects for display
     skills = SkillSerializer(many=True, read_only=True)
-    
+
+    avg_rating = serializers.SerializerMethodField()
+
     # Write skills with IDs (many=True) for updates
     skill_ids = serializers.PrimaryKeyRelatedField(
         many=True,
@@ -58,9 +60,38 @@ class ProfileSerializer(serializers.ModelSerializer):
         model = Profile
         fields = [
             "id", "user", "full_name", "bio", "skills", "skill_ids",
-            "hourly_rate", "availability", "location"
+            "hourly_rate", "availability", "location", "avg_rating"
         ]
         read_only_fields = ['user']
+
+
+    def get_avg_rating(self, obj):
+            """Return average rating for this user's profile."""
+            user = obj.user
+
+            # If freelancer, show ratings given by clients to freelancer (reviewer's role is client)
+            if user.role == "freelancer":
+                reviews = Review.objects.filter(
+                    contract__proposal__freelancer=user,  # Freelancer is involved
+                    reviewer__role="client"               # Reviewer must be a client
+                )
+            
+            # If client, show ratings given by freelancers to client (reviewer's role is freelancer)
+            elif user.role == "client":
+                reviews = Review.objects.filter(
+                    contract__proposal__project__client=user,  # Client is involved
+                    reviewer__role="freelancer"                 # Reviewer must be a freelancer
+                )
+            
+            else:
+                return None  # If neither freelancer nor client, no average rating
+
+            # Calculate average rating, if any reviews exist
+            avg_rating = reviews.aggregate(Avg("rating"))["rating__avg"]
+            
+            # Round the average rating to 2 decimal places and return, if available
+            return round(avg_rating, 2) if avg_rating else None
+
 
     def update(self, instance, validated_data):
         skills = validated_data.pop('skills', None)  # 'skills' comes from 'skill_ids' source
@@ -75,6 +106,7 @@ class PortfolioItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = PortfolioItem
         fields = ["id", "title", "description", "url", "added_on"]
+        
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import Project, Skill
@@ -157,6 +189,7 @@ class ProposalSerializer(serializers.ModelSerializer):
 
         
 
+
 # serializers.py
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
@@ -238,4 +271,47 @@ class ReviewSerializer(serializers.ModelSerializer):
             "client_id", "freelancer_id", "created_at"
         ]
         read_only_fields = ["reviewer", "created_at"]
+
+from rest_framework import serializers
+from django.db.models import Avg
+from .models import Project, Proposal, Contract, Review
+
+
+class DashboardProjectSummarySerializer(serializers.ModelSerializer):
+    proposals_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Project
+        fields = ['id', 'title', 'status', 'budget', 'proposals_count', 'created_at']
+
+    def get_proposals_count(self, obj):
+        return obj.proposals.count()
+
+
+class DashboardContractSummarySerializer(serializers.ModelSerializer):
+    project_title = serializers.CharField(source='proposal.project.title', read_only=True)
+
+    class Meta:
+        model = Contract
+        fields = ['id', 'project_title', 'status', 'start_date', 'end_date']
+
+
+class ClientDashboardSerializer(serializers.Serializer):
+    user = serializers.CharField()
+    active_projects = serializers.IntegerField()
+    completed_projects = serializers.IntegerField()
+    new_proposals_received = serializers.IntegerField()
+    active_contracts = serializers.IntegerField()
+    total_contracts = serializers.IntegerField()
+    recent_projects = DashboardProjectSummarySerializer(many=True)
+
+
+class FreelancerDashboardSerializer(serializers.Serializer):
+    user = serializers.CharField()
+    proposals_submitted = serializers.IntegerField()
+    proposals_accepted = serializers.IntegerField()
+    active_contracts = serializers.IntegerField()
+    completed_contracts = serializers.IntegerField()
+    proposals_pending = serializers.IntegerField()
+    recent_contracts = DashboardContractSummarySerializer(many=True)
 
