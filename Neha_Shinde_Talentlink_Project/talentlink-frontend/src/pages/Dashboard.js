@@ -78,8 +78,7 @@ function Dashboard() {
   return (
     <DashboardLayout role={profile.role}>
       <div className="fade-in container py-4">
-        {/* Banner */}
-        {/* Banner */}
+        
 <div className="d-flex justify-content-between align-items-center flex-wrap mb-4">
   <div className="d-flex align-items-center">
     <div
@@ -96,7 +95,7 @@ function Dashboard() {
     </div>
   </div>
   <div className="d-flex align-items-center gap-3">
-    <NotificationBell /> {/* ✅ Added bell here */}
+    <NotificationBell /> 
     <button className="btn btn-light btn-sm me-2" onClick={() => window.location.reload()}>
       <i className="bi bi-arrow-clockwise me-1"></i> Refresh
     </button>
@@ -107,7 +106,7 @@ function Dashboard() {
 </div>
 
 
-        {/* Profile Info */}
+        
         <div className="row g-4">
           <div className="col-md-4">
             <div className="card p-3 text-center shadow-sm">
@@ -135,7 +134,7 @@ function Dashboard() {
           </div>
         </div>
 
-        {/* Freelancer Section */}
+        
         {profile.role === 'freelancer' && (
           <div className="mt-5">
             <h5 className="mb-3 text-white">Your Proposals</h5>
@@ -154,15 +153,20 @@ function Dashboard() {
                       <p><strong>Timeline:</strong> {p.timeline_weeks} weeks</p>
                       <p>
                         <strong>Status:</strong>{' '}
-                        {p.accepted ? (
-                          <span className="badge bg-success ms-2">
-                            <i className="bi bi-check-circle me-1"></i> Accepted
-                          </span>
-                        ) : (
-                          <span className="badge bg-warning text-dark ms-2">
-                            <i className="bi bi-hourglass-split me-1"></i> Pending
-                          </span>
-                        )}
+                        {p.status === 'accepted' ? (
+  <span className="badge bg-success ms-2">
+    <i className="bi bi-check-circle me-1"></i> Accepted
+  </span>
+) : p.status === 'rejected' ? (
+  <span className="badge bg-danger ms-2">
+    <i className="bi bi-x-circle me-1"></i> Rejected
+  </span>
+) : (
+  <span className="badge bg-warning text-dark ms-2">
+    <i className="bi bi-hourglass-split me-1"></i> Pending
+  </span>
+)}
+
                       </p>
                     </div>
                   </div>
@@ -178,7 +182,7 @@ function Dashboard() {
           </div>
         )}
 
-        {/* Client Section */}
+       
         {profile.role === 'client' && (
           <div className="mt-5">
             <h5 className="mb-3 text-white">Your Posted Projects</h5>
