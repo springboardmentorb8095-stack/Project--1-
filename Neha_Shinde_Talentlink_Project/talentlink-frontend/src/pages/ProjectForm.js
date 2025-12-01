@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 
 function ProjectForm() {
   const [title, setTitle] = useState('');
@@ -8,17 +9,30 @@ function ProjectForm() {
   const [durationWeeks, setDurationWeeks] = useState('');
   const [skillsRequired, setSkillsRequired] = useState('');
   const [status, setStatus] = useState('open');
+  const [token, setToken] = useState('');
 
-  const token = localStorage.getItem('access');
+  useEffect(() => {
+    const storedToken = localStorage.getItem('access');
+    const isJWT = /^ey[\w-]+\.[\w-]+\.[\w-]+$/.test(storedToken);
+    if (storedToken && isJWT) {
+      setToken(storedToken);
+    } else {
+      toast.error("Missing or invalid token. Please log in.");
+    }
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     const payload = {
-      title,
-      description,
+      title: title.trim(),
+      description: description.trim(),
       budget: parseFloat(budget),
       duration_weeks: parseInt(durationWeeks),
-      skills_required: skillsRequired.split(',').map(id => parseInt(id.trim())),
+      skills_required: skillsRequired
+        .split(',')
+        .map(id => parseInt(id.trim()))
+        .filter(n => !isNaN(n)),
       status,
     };
 
@@ -26,10 +40,16 @@ function ProjectForm() {
       await axios.post('http://127.0.0.1:8000/api/projects/', payload, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      alert('✅ Project created successfully!');
+      toast.success('✅ Project created successfully!');
+      setTitle('');
+      setDescription('');
+      setBudget('');
+      setDurationWeeks('');
+      setSkillsRequired('');
+      setStatus('open');
     } catch (err) {
-      console.error(err);
-      alert('❌ Error creating project');
+      console.error("Error creating project:", err.response?.data || err.message);
+      toast.error('❌ Failed to create project');
     }
   };
 
@@ -112,16 +132,16 @@ function ProjectForm() {
         <h2 style={styles.heading}>Create New Project</h2>
 
         <label style={styles.label}>Title</label>
-        <input style={styles.input} value={title} onChange={e => setTitle(e.target.value)} placeholder="Project Title" />
+        <input style={styles.input} value={title} onChange={e => setTitle(e.target.value)} placeholder="Project Title" required />
 
         <label style={styles.label}>Description</label>
-        <textarea style={styles.textarea} value={description} onChange={e => setDescription(e.target.value)} placeholder="Project Description" rows={4} />
+        <textarea style={styles.textarea} value={description} onChange={e => setDescription(e.target.value)} placeholder="Project Description" rows={4} required />
 
         <label style={styles.label}>Budget</label>
-        <input style={styles.input} value={budget} onChange={e => setBudget(e.target.value)} placeholder="Budget in ₹" type="number" />
+        <input style={styles.input} value={budget} onChange={e => setBudget(e.target.value)} placeholder="Budget in ₹" type="number" required />
 
         <label style={styles.label}>Duration (weeks)</label>
-        <input style={styles.input} value={durationWeeks} onChange={e => setDurationWeeks(e.target.value)} placeholder="Duration in weeks" type="number" />
+        <input style={styles.input} value={durationWeeks} onChange={e => setDurationWeeks(e.target.value)} placeholder="Duration in weeks" type="number" required />
 
         <label style={styles.label}>Skill IDs</label>
         <input style={styles.input} value={skillsRequired} onChange={e => setSkillsRequired(e.target.value)} placeholder="Comma-separated Skill IDs (e.g. 1,2)" />
@@ -139,6 +159,7 @@ function ProjectForm() {
 }
 
 export default ProjectForm;
+
 
 
 

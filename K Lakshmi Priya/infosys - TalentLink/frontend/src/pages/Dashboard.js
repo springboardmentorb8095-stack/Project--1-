@@ -1,148 +1,139 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { isLoggedIn, getToken } from "../utils/auth";
+import axios from "axios";
 import api from "../api/axios";
-import { isLoggedIn } from "../utils/auth";
-import ProjectList from "./ProjectList";
 
-function Dashboard() {
-  const [profile, setProfile] = useState(null);
-  const [error, setError] = useState(null);
-  const navigate = useNavigate();
-  const token = localStorage.getItem("access");
 
-  const fetchProfile = async () => {
-    try {
-      const res = await api.get("profile/", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setProfile(res.data);
-      setError(null);
-    } catch (err) {
-      if (err.response?.status === 401) {
-        // Do NOT redirect automatically
-        // Instead, clear token and reset profile to null
-        localStorage.removeItem("access");
-        localStorage.removeItem("refresh");
-        localStorage.removeItem("user");
-        setProfile(null);
-        setError("Session expired. Please login again.");
-      } else {
-        setError("Failed to load profile");
-      }
-    }
-  };
+export default function Dashboard() {
+  const [user, setUser] = useState(null);
+  const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (isLoggedIn()) {
-      fetchProfile();
-    } else {
-      // If not logged in, clear any previous profile or error
-      setProfile(null);
-      setError(null);
-    }
-  }, [token]);
+    const storedUser = JSON.parse(localStorage.getItem("user"));
+    setUser(storedUser);
 
-  const handleLogout = () => {
-    localStorage.removeItem("access");
-    localStorage.removeItem("refresh");
-    localStorage.removeItem("user");
-    setProfile(null);
-    navigate("/");
+    if (storedUser) {
+      
+      console.log(storedUser.role);
+      fetchDashboardData(storedUser.role);
+    }
+  }, []);
+
+  const fetchDashboardData = async (role) => {
+    try {
+      const token = getToken();
+      const url =
+        role === "client" ? "dashboard/client/" : "dashboard/freelancer/"
+
+const res = await api.get(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setDashboardData(res.data);
+    } catch (error) {
+      console.error("Error loading dashboard:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  return (
-    <div style={{ padding: "2rem" }}>
-      <h1>Welcome to FreelancerHub</h1>
-      <p>
-        This is a platform for freelancers to manage their profile, set
-        availability, and showcase their skills.
-      </p>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 3fr",
-          gap: "10px",
-        }}
-      >
-        <div>
-          {!isLoggedIn() ? (
-            <div>
-              <p>Please log in or register to get started:</p>
-              <button onClick={() => navigate("/login")}>Login</button>
-              <button
-                onClick={() => navigate("/register")}
-                style={{ marginLeft: "1rem" }}
-              >
-                Register
-              </button>
-            </div>
-          ) : (
-            <div style={{ marginTop: "2rem" }}>
-              <h2>Your Profile</h2>
-              {error && <p style={{ color: "red" }}>{error}</p>}
-
-              {profile ? (
-                <>
-                  <div
-                    style={{
-                      backgroundColor: "#f4f4f4",
-                      padding: "1rem",
-                      borderRadius: "5px",
-                      maxWidth: "400px",
-                      marginTop: "1rem",
-                    }}
-                  >
-                    <p>
-                      <strong>Full Name:</strong> {profile.full_name || "N/A"}
-                    </p>
-                    <p>
-                      <strong>Hourly Rate:</strong>{" "}
-                      {profile.hourly_rate || "N/A"}
-                    </p>
-                    <p>
-                      <strong>Availability:</strong>{" "}
-                      {profile.availability || "N/A"}
-                    </p>
-                    {profile.phone && <p><strong>Phone:</strong> {profile.phone}</p>}
-                    {profile.location && (
-                      <p>
-                        <strong>Location:</strong> {profile.location}
-                      </p>
-                    )}
-                    {Array.isArray(profile.skills) && profile.skills.length > 0 && (
-                      <p>
-                        <strong>Skills:</strong>{" "}
-                        {profile.skills.map((skill) => skill.name).join(", ")}
-                      </p>
-                    )}
-
-                    <div style={{ marginTop: "1rem" }}>
-                      <button onClick={() => navigate("/profile")}>
-                        Edit Profile
-                      </button>
-                      <button
-                        onClick={handleLogout}
-                        style={{ marginLeft: "1rem" }}
-                      >
-                        Logout
-                      </button>
-                    </div>
-                  </div>
-                </>
-              ) : !error ? (
-                <p>Loading profile...</p>
-              ) : null}
-            </div>
-          )}
-        </div>
-
-        <div>
-          {/* AVAILABLE PROJECTS */}
-          <ProjectList />
-        </div>
+  if (!isLoggedIn()) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-8">
+        <h1 className="text-3xl font-bold text-red-600 mb-4">
+          You are not logged in
+        </h1>
+        <p className="text-gray-700">
+          Please log in to access your dashboard.
+        </p>
       </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-full">
+        <p className="text-lg text-gray-600">Loading dashboard...</p>
+      </div>
+    );
+  }
+
+  const isClient = user?.role === "client";
+
+  return (
+    <div className="p-6 space-y-8">
+      {/* Hero Section */}
+      <section className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl p-8 text-white shadow-lg">
+        <h1 className="text-4xl font-extrabold mb-2">
+          Welcome back, {user?.username}!
+        </h1>
+        <p className="text-lg opacity-90">
+          {isClient
+            ? "Manage your projects, review proposals, and hire top freelancers."
+            : "Browse exciting projects, submit proposals, and manage your contracts."}
+        </p>
+      </section>
+
+      {/* Quick Stats */}
+{dashboardData ? (
+  <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+    {isClient ? (
+      <>
+        <StatCard color="blue" value={dashboardData.active_projects} label="Open Projects" />
+        <StatCard color="green" value={dashboardData.new_proposals_received} label="New Proposals" />
+        <StatCard color="yellow" value={dashboardData.total_contracts} label="Total Contracts" />
+        <StatCard color="purple" value={dashboardData.active_contracts} label="Active Contracts" />
+      </>
+    ) : (
+      <>
+        <StatCard color="blue" value={dashboardData.proposals_pending} label="Active Proposals" />
+        <StatCard color="blue" value={dashboardData.proposals_submitted} label="Proposals Submitted" />
+        <StatCard color="green" value={dashboardData.active_contracts} label="Active Contracts" />
+        <StatCard color="yellow" value={dashboardData.completed_contracts} label="Completed Contracts" />
+      </>
+    )}
+  </section>
+) : (
+  <div className="text-center text-gray-600">No dashboard data available.</div>
+)}
+
+
+      {/* Welcome Section */}
+      <section className="bg-gradient-to-r from-teal-400 to-green-500 text-white rounded-xl p-8 shadow-lg flex flex-col md:flex-row items-center justify-between gap-6">
+        <div>
+          <h2 className="text-2xl font-bold mb-2">Get Started Today</h2>
+          <p className="opacity-90">
+            {isClient
+              ? "Post new projects, review proposals, and hire skilled freelancers quickly."
+              : "Find projects that match your skills and grow your freelance career."}
+          </p>
+        </div>
+        <img
+          src="https://cdn-icons-png.flaticon.com/512/4305/4305493.png"
+          alt="Dashboard Illustration"
+          className="w-32 h-32"
+        />
+      </section>
     </div>
   );
 }
 
-export default Dashboard;
+/** Reusable stat card */
+function StatCard({ color, value, label }) {
+  const colorMap = {
+    blue: "text-blue-500",
+    green: "text-green-500",
+    yellow: "text-yellow-500",
+    purple: "text-purple-500",
+  };
+
+  return (
+    <div className="bg-white rounded-xl shadow-lg p-6 flex flex-col items-start hover:shadow-xl transition">
+      <span className={`${colorMap[color]} font-bold text-xl mb-2`}>
+        {value ?? 0}
+      </span>
+      <p className="text-gray-600 font-medium">{label}</p>
+    </div>
+  );
+}

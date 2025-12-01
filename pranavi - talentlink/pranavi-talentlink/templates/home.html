@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    .hero-section {
+        padding: 8rem 0;
+        background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url("{% static 'images/hero_bg.jpg' %}") no-repeat center center;
+        background-size: cover;
+        color: #fff;
+        text-align: center;
+    }
+    .hero-section h1 {
+        font-size: 3.5rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+    }
+    .hero-section p {
+        font-size: 1.25rem;
+        max-width: 600px;
+        margin: 0 auto 2rem;
+    }
+    .feature-card {
+        padding: 2rem;
+        border-radius: 10px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        transition: transform 0.3s ease;
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    .feature-card:hover {
+        transform: translateY(-10px);
+    }
+    .feature-card .icon {
+        font-size: 3rem;
+        color: #007bff; /* Primary color */
+        margin-bottom: 1rem;
+    }
+        .custom-pill-group .nav-item .nav-link {
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        color: rgba(255, 255, 255, 0.8);
+    }
+    .custom-pill-group .nav-item:first-child .nav-link {
+        border-right: none;
+        border-radius: 50px 0 0 50px;
+    }
+    .custom-pill-group .nav-item:last-child .nav-link {
+        border-left: none;
+        border-radius: 0 50px 50px 0;
+    }
+    .custom-pill-group .nav-item .nav-link.active {
+        background-color: #fff;
+        color: #000;
+        border-color: #fff;
+    }
+</style>
+
+<div class="hero-section">
+    <div class="container">
+        <h1>Find Your Next Great Freelancer or Project.</h1>
+        <p>Your professional journey starts here.</p>
+
+        <ul class="nav nav-pills custom-pill-group mb-3 d-inline-flex" id="home-tabs" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link active" id="talent-tab" data-bs-toggle="pill" data-bs-target="#talent-search" type="button" role="tab" aria-controls="talent-search" aria-selected="true">Find Talent</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="jobs-tab" data-bs-toggle="pill" data-bs-target="#jobs-search" type="button" role="tab" aria-controls="jobs-search" aria-selected="false">Browse Jobs</a>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="myTabContent">
+            <div class="tab-pane fade show active" id="talent-search" role="tabpanel" aria-labelledby="talent-tab">
+                <form action="{% url 'search' %}" method="GET" class="d-flex justify-content-center">
+                    <input type="hidden" name="search_type" value="talent">
+                    <div class="input-group" style="max-width: 600px;">
+                        <input type="text" class="form-control form-control-lg border-0 rounded-pill ps-4" name="q" placeholder="Search by skills, roles or keywords" aria-label="Search">
+                        <button type="submit" class="btn btn-primary rounded-pill ms-2 d-flex align-items-center">
+                            <span class="me-2">Search</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
+                                <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="tab-pane fade" id="jobs-search" role="tabpanel" aria-labelledby="jobs-tab">
+                <form action="{% url 'search' %}" method="GET" class="d-flex justify-content-center">
+                    <input type="hidden" name="search_type" value="jobs">
+                    <div class="input-group" style="max-width: 600px;">
+                        <input type="text" class="form-control form-control-lg border-0 rounded-pill ps-4" name="q" placeholder="Search for jobs..." aria-label="Search">
+                        <button type="submit" class="btn btn-primary rounded-pill ms-2 d-flex align-items-center">
+                            <span class="me-2">Search</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
+                                <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+---
+
+<div class="container py-5">
+    <h2 class="text-center mb-5">How It Works</h2>
+    <div class="row">
+        <div class="col-md-4">
+            <div class="feature-card">
+                <div class="icon">🚀</div>
+                <h4>Post a Project</h4>
+                <p>Clients can easily post their project requirements, budget, and skills needed. It's fast and free.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="feature-card">
+                <div class="icon">🤝</div>
+                <h4>Apply or Hire</h4>
+                <p>Freelancers submit proposals. Clients review them, chat with candidates, and hire the best fit.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="feature-card">
+                <div class="icon">💬</div>
+                <h4>Collaborate Seamlessly</h4>
+                <p>Our integrated messaging system allows for smooth communication throughout the project lifecycle.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+---
+
+<div class="bg-light py-5 text-center">
+    <div class="container">
+        <h2>Ready to Get Started?</h2>
+        <p class="lead">Join our growing community and find the perfect match for your next project.</p>
+        <a href="{% url 'signup' %}" class="btn btn-success btn-lg">Join for Free</a>
+    </div>
+</div>
+{% endblock %}

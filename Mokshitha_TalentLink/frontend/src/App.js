@@ -11,13 +11,19 @@ import FreelancerDashboard from "./pages-mokshi/FreelancerDashboard";
 import ProjectFeed from "./pages-mokshi/ProjectFeed";
 import ProjectDetails from "./pages-mokshi/ProjectDetails";
 import ProposalForm from "./pages-mokshi/ProposalForm";
+import ChatPage from "./pages-mokshi/ChatPage";
+import "./App.css";
+import "./pages-mokshi/DashTheme.css";
 
 function App() {
   const profileId = localStorage.getItem("profileId");
 
   return (
     <Router>
+      {/* ✅ Navbar always visible */}
+      
       <Routes>
+        
         {/* 🌟 Common Pages */}
         <Route path="/" element={<Home />} />
         <Route path="/register" element={<Register />} />
@@ -33,6 +39,8 @@ function App() {
         <Route path="/feed" element={<ProjectFeed />} />
         <Route path="/project/:id" element={<ProjectDetails />} />
         <Route path="/project/:id/propose" element={<ProposalForm />} />
+        <Route path="/chat/:contractId" element={<ChatPage />} />
+
       </Routes>
     </Router>
   );

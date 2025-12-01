@@ -1,14 +1,16 @@
 import os
 from pathlib import Path
 from datetime import timedelta
+import dj_database_url
+from decouple import config
 
 # === Base Directory ===
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # === Security ===
-SECRET_KEY = 'django-insecure-i@_ru$knizuwe=ugbhm63$&drf)!yalsa8*ham&xct9=&nhd^4'
-DEBUG = os.getenv('DEBUG', 'True') == 'True'
-ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost 127.0.0.1').split()
+SECRET_KEY = config('SECRET_KEY', default='django-insecure-placeholder')
+DEBUG = config('DEBUG', default=True, cast=bool)
+ALLOWED_HOSTS = config('DJANGO_ALLOWED_HOSTS', default='localhost 127.0.0.1').split()
 
 # === Installed Apps ===
 INSTALLED_APPS = [
@@ -22,24 +24,26 @@ INSTALLED_APPS = [
     # 3rd party
     'corsheaders',
     'rest_framework',
-    'rest_framework_simplejwt.token_blacklist',  # Optional, for blacklisting tokens
-
+    'rest_framework_simplejwt.token_blacklist',
     'django_filters',
-    # local
+
+    # local apps
     'core',
 ]
 
 # === Middleware ===
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',  # Must be high up
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
-
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',  # Optional — won't affect JWT
+    'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+
+    # Add Whitenoise for static files in production
+    'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 
 # === URL & WSGI ===
@@ -64,12 +68,25 @@ TEMPLATES = [
 ]
 
 # === Database ===
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# Automatically switch between local and Render PostgreSQL
+DATABASE_URL = config('DATABASE_URL', default=None)
+
+if DATABASE_URL:
+    DATABASES = {
+        'default': dj_database_url.parse(DATABASE_URL, conn_max_age=600, ssl_require=True)
     }
-}
+else:
+    # Local dev database
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': 'talentlink',
+            'USER': 'postgres',
+            'PASSWORD': 'klpriya',
+            'HOST': 'localhost',
+            'PORT': '5432',
+        }
+    }
 
 # === Password Validation ===
 AUTH_PASSWORD_VALIDATORS = [
@@ -86,8 +103,11 @@ USE_I18N = True
 USE_TZ = True
 
 # === Static Files ===
-STATIC_URL = 'static/'
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# Enable Whitenoise to serve static files efficiently
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # === Custom User ===
 AUTH_USER_MODEL = 'core.User'
@@ -108,7 +128,6 @@ SIMPLE_JWT = {
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'ROTATE_REFRESH_TOKENS': False,
     'BLACKLIST_AFTER_ROTATION': True,
-
     'AUTH_HEADER_TYPES': ('Bearer',),
     'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
 }
@@ -116,5 +135,6 @@ SIMPLE_JWT = {
 # === CORS ===
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
+    "https://your-frontend.onrender.com",  # replace with your actual frontend URL
 ]
 CORS_ALLOW_CREDENTIALS = False

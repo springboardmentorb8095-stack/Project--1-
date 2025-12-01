@@ -1,51 +1,99 @@
-.auth-container {
-  width: 350px;
-  margin: 50px auto;
-  padding: 30px;
-  background: #f5f5f5;
-  border-radius: 10px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+/* Background */
+.login-wrapper-light {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #eef5ff;
+  padding: 20px;
+  font-family: "Poppins", sans-serif;
+}
+
+/* Card */
+.login-card-light {
+  width: 380px;
+  padding: 35px 35px 45px;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #d7e6ff;
+  box-shadow: 0 8px 18px rgba(145, 165, 221, 0.2);
   text-align: center;
-  font-family: Arial, sans-serif;
+  transition: 0.3s ease;
+  animation: soft-float 3s infinite ease-in-out;
 }
 
-.auth-container h2 {
-  margin-bottom: 20px;
-  color: #333;
+@keyframes soft-float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-4px); }
+  100% { transform: translateY(0px); }
 }
 
-.auth-container input {
+.login-card-light h2 {
+  color: #1f3a6d;
+  margin-bottom: 22px;
+  font-size: 28px;
+  font-weight: 600;
+}
+
+/* Input Box */
+.input-box-light input {
   width: 100%;
   padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #cbd9ff;
   margin: 10px 0;
-  border-radius: 6px;
-  border: 1px solid #ccc;
+  font-size: 15px;
+  background: #f7faff;
+  color: #333;
+  outline: none;
+  transition: 0.2s;
 }
 
-.auth-container button {
+.input-box-light input:focus {
+  border-color: #3c7bff;
+  background: #ffffff;
+  box-shadow: 0 0 4px rgba(60, 123, 255, 0.4);
+}
+
+.input-box-light input::placeholder {
+  color: #999;
+}
+
+/* Button */
+.light-btn {
   width: 100%;
   padding: 12px;
   margin-top: 15px;
-  background: #007bff;
-  color: white;
+  background: linear-gradient(135deg, #3c7bff, #6fa6ff);
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
+  font-size: 17px;
+  font-weight: 600;
+  color: #fff;
   cursor: pointer;
-  font-size: 16px;
+  transition: 0.3s;
+  box-shadow: 0 4px 14px rgba(60, 123, 255, 0.3);
 }
 
-.auth-container button:hover {
-  background: #0056b3;
+.light-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 16px rgba(60, 123, 255, 0.4);
 }
 
-.auth-container .link {
-  margin-top: 10px;
-  display: block;
-  color: #007bff;
-  text-decoration: none;
+/* Switch text */
+.switch-link-light {
+  margin-top: 15px;
+  display: inline-block;
+  color: #5f6b85;
   font-size: 14px;
+  text-decoration: none;
 }
 
-.auth-container .link:hover {
+.switch-link-light span {
+  color: #3c7bff;
+  font-weight: 500;
+}
+
+.switch-link-light:hover span {
   text-decoration: underline;
 }

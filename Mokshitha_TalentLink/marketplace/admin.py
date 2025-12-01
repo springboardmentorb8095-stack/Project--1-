@@ -30,10 +30,9 @@ class ContractAdmin(admin.ModelAdmin):
     list_display = ('id', 'proposal', 'start_date', 'end_date', 'terms')
     list_filter = ('start_date',)
 
-
 @admin.register(Message)
 class MessageAdmin(admin.ModelAdmin):
-    list_display = ('id', 'sender', 'receiver', 'timestamp')
+    list_display = ('id', 'contract', 'sender', 'content', 'timestamp')
 
 
 @admin.register(Review)

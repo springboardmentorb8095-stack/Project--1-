@@ -1,173 +1,537 @@
-.client-dashboard {
-  max-width: 950px;
-  margin: auto;
-  padding: 30px;
-  font-family: "Poppins", sans-serif;
+/* ======================================
+ ✅ GLOBAL BASE
+====================================== */
+:root {
+  --primary: #007bff;
+  --primary-light: #eff5ff;
+  --primary-dark: #005fcc;
+
+  --purple: #6b21a8;
+  --warning: #ffa726;
+  --success: #28c76f;
+  --danger: #ff4d4f;
+
+  --text-dark: #0f172a;
+  --text-light: #6b7280;
+
+  --border: #d0d7f0;
+  --soft-bg: #f3f7ff;
+  --white: #ffffff;
+
+  --radius: 10px;
+  --radius-lg: 14px;
+
+  --shadow: 0px 3px 8px rgba(0,0,0,0.08);
+  --shadow-lg: 0 4px 14px rgba(0,0,0,0.12);
 }
 
-h1 {
-  color: #007bff;
-  text-align: center;
-  margin-bottom: 10px;
+html {
+  scroll-behavior: smooth;
 }
 
-p {
-  text-align: center;
-  color: #555;
+body {
+  background: var(--soft-bg);
+  font-family: "Inter", sans-serif;
 }
 
-.tab-buttons {
+.client-layout,
+.freelancer-layout {
+  min-height: 100vh;
+}
+
+/* ======================================
+ ✅ NAVIGATION BAR
+====================================== */
+.client-nav,
+.freelancer-nav {
+  width: 100%;
+  height: 70px;
+  background: var(--white);
+  border-bottom: 1px solid #e3e7f3;
   display: flex;
-  justify-content: center;
-  gap: 15px;
-  margin: 25px 0;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
 }
 
-.tab-buttons button {
-  background: #f0f0f0;
-  border: 1px solid #ccc;
-  padding: 10px 20px;
-  border-radius: 8px;
+.logo {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+/* NAV BUTTONS */
+.client-nav nav button,
+.freelancer-nav nav button {
+  background: none;
+  border: none;
+  margin: 0 6px;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  font-size: 15px;
+  font-weight: 500;
   cursor: pointer;
+  transition: 0.25s;
+  color: #333;
+}
+
+.client-nav nav button:hover,
+.freelancer-nav nav button:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.client-nav nav .active,
+.freelancer-nav nav .active {
+  background: var(--primary);
+  color: var(--white);
+}
+
+/* Right side buttons */
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Logout */
+.logout-btn {
+  background: var(--danger);
+  padding: 8px 15px;
+  border-radius: var(--radius);
+  border: none;
+  color: var(--white);
+  cursor: pointer;
+  transition: 0.25s;
+}
+
+.logout-btn:hover {
+  background: #d9363e;
+  transform: translateY(-1px);
+}
+
+/* ======================================
+ ✅ NOTIFICATION BELL
+====================================== */
+.notification-wrapper {
+  position: relative;
+}
+
+.bell-btn {
+  background: none;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
   transition: 0.2s;
 }
 
-.tab-buttons .active {
-  background-color: #007bff;
-  color: white;
+.bell-btn:hover {
+  background: var(--primary-light);
+  transform: scale(1.12);
 }
 
-.project-form {
-  background: #f8f9fa;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+/* Notification dropdown */
+.notification-box {
+  position: absolute;
+  top: 40px;
+  right: 0;
+  width: 280px;
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  border: 1px solid #e6e9f2;
+  box-shadow: var(--shadow-lg);
+  padding: 12px;
+  z-index: 30;
+  animation: fadeSlide 0.25s ease;
 }
 
-.project-form input,
-.project-form textarea {
-  width: 100%;
-  padding: 10px;
-  margin-bottom: 12px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
+@keyframes fadeSlide {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.project-form button {
-  background-color: #007bff;
-  color: white;
-  border: none;
-  padding: 12px 20px;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.project-card {
-  background: #ffffff;
-  border-radius: 12px;
-  padding: 20px;
-  margin-top: 20px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
-
-.actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 10px;
-}
-
-.actions button {
-  border: none;
-  padding: 8px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.actions button:first-child {
-  background: #ffc107;
-  color: white;
-}
-
-.actions button:last-child {
-  background: #dc3545;
-  color: white;
-}
-
-/* -------- Proposal Boxes -------- */
-.proposal-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
-  gap: 20px;
-  margin-top: 20px;
-}
-
-.proposal-box {
-  background: #f8faff;
-  border-radius: 12px;
-  padding: 18px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border-left: 5px solid #007bff;
-  transition: 0.2s ease-in-out;
-}
-
-.proposal-box:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.proposal-box h3 {
-  color: #007bff;
+.notification-box h3 {
+  font-size: 1.05rem;
   margin-bottom: 10px;
+  color: var(--primary);
 }
 
+/* Each notification */
+.note {
+  background: #f7f9ff;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  border-left: 4px solid var(--primary);
+  margin-bottom: 8px;
+  font-size: 0.92rem;
+  transition: 0.25s;
+}
+
+.note:hover {
+  background: #eaf2ff;
+  transform: translateX(3px);
+}
+
+.note.unread {
+  background: #e6f1ff;
+  font-weight: 600;
+}
+
+.note.read {
+  opacity: 0.7;
+}
+
+/* View button */
+.note .view-btn {
+  margin-top: 6px;
+  padding: 5px 10px;
+  background: var(--primary);
+  color: var(--white);
+  border-radius: 6px;
+  border: none;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.note .view-btn:hover {
+  background: var(--primary-dark);
+}
+
+/* ======================================
+ ✅ SECTION SCROLL + TABS
+====================================== */
+.tabs-row {
+  position: sticky;
+  top: 70px;
+  background: white;
+  padding: 10px 0;
+  border-bottom: 1px solid #eee;
+  z-index: 20;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.tab {
+  padding: 10px 16px;
+  border: none;
+  background: none;
+  font-size: 15px;
+  cursor: pointer;
+  border-radius: var(--radius);
+}
+
+.tab:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+/* ======================================
+ ✅ SECTION WRAPPER
+====================================== */
+section {
+  padding: 50px 0;
+}
+
+.tl-section-title {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 18px;
+}
+
+/* ======================================
+ ✅ COMMON CARD
+====================================== */
+.tl-card,
+.project-card,
+.contract-card,
+.proposal-card,
+.review-card {
+  background: var(--white);
+  padding: 20px;
+  border-radius: var(--radius-lg);
+  border-left: 6px solid var(--primary-light);
+  margin-bottom: 15px;
+  box-shadow: var(--shadow);
+}
+
+.tl-card:hover {
+  border-left-color: var(--primary);
+}
+
+/* ======================================
+ ✅ BUTTONS
+====================================== */
+button {
+  border: none;
+  cursor: pointer;
+  border-radius: var(--radius);
+}
+
+.tl-primary {
+  background: var(--primary);
+  color: var(--white);
+  padding: 10px 16px;
+  font-weight: 600;
+}
+
+.tl-primary:hover {
+  background: var(--primary-dark);
+}
+
+.tl-ghost {
+  background: #e6e9f2;
+  color: #000;
+  padding: 10px 16px;
+}
+
+/* ======================================
+ ✅ STATUS TAGS
+====================================== */
 .status {
   padding: 4px 8px;
   border-radius: 6px;
-  font-weight: bold;
+  font-size: 13px;
+  font-weight: 600;
 }
 
-.status.accepted {
-  background: #28a745;
-  color: #fff;
+.status.accepted { background:#28c76f22;color:#28c76f; }
+.status.rejected { background:#ff4d4f22;color:#ff4d4f; }
+.status.completed { background:#673ab722;color:#673ab7; }
+.status.pending  { background:#ffa72622;color:#ffa726; }
+
+/* ======================================
+ ✅ PROFILE CARD
+====================================== */
+.profile-pane {
+  max-width: 800px;
+  margin: 20px auto;
 }
 
-.status.rejected {
-  background: #dc3545;
-  color: #fff;
+.profile-display {
+  background: var(--white);
+  padding: 25px;
+  border-radius: var(--radius-lg);
+  border-left: 6px solid var(--primary);
+  box-shadow: var(--shadow);
 }
 
-.status.pending {
-  background: #ffc107;
-  color: #fff;
-}
-
-.proposal-buttons {
+.profile-header {
   display: flex;
-  gap: 10px;
-  margin-top: 10px;
+  gap: 20px;
 }
 
-.proposal-buttons button {
-  border: none;
-  border-radius: 6px;
-  padding: 8px 14px;
-  cursor: pointer;
+.profile-avatar {
+  width: 85px;
+  height: 85px;
+  background: var(--primary);
+  color: white;
+  font-size: 32px;
   font-weight: bold;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
 }
 
-.proposal-buttons button:first-child {
-  background: #28a745;
+/* ======================================
+ ✅ SKILL CHIPS
+====================================== */
+.skill-chip {
+  display: inline-block;
+  background: #e8f1ff;
+  padding: 6px 10px;
+  border-radius: var(--radius);
+  margin: 5px;
+  font-size: 14px;
+}
+
+/* ======================================
+ ✅ FORM STYLES
+====================================== */
+.tl-field {
+  width: 100%;
+  padding: 12px;
+  background: #f7f9ff;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  margin-bottom: 12px;
+}
+
+/* ======================================
+ ✅ GRID LAYERS
+====================================== */
+.tl-grid.two {
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(300px,1fr));
+  gap: 15px;
+}
+/* =============================
+ ✅ PROFILE SECTION — COMPACT
+============================= */
+.profile-pane {
+  max-width: 650px;       /* ✅ Reduced width */
+  margin: 30px auto;
+  padding: 10px;
+}
+
+/* CARD */
+.profile-display {
+  background: #ffffff;
+  padding: 26px;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+  border: 1px solid #e6e9f5;
+  transition: 0.25s;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;     /* ✅ Center content */
+  text-align: center;      /* ✅ Text center */
+}
+
+.profile-display:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.10);
+}
+
+/* HEADER */
+.profile-header {
+  display: flex;
+  flex-direction: column;   /* ✅ Avatar + name stacked */
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 16px;
+  width: 100%;
+}
+
+/* AVATAR */
+.profile-avatar {
+  width: 90px;
+  height: 90px;
+  border-radius: 18px;
+  background: linear-gradient(135deg,#007bff,#6b21a8);
   color: white;
+  font-size: 36px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.15);
 }
 
-.proposal-buttons button:last-child {
-  background: #dc3545;
+/* Name & email */
+.profile-header h2 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: #1e1b4b;
+}
+
+.profile-header .email {
+  color: #6b7280;
+  font-size: 14px;
+}
+
+/* CONTENT */
+.profile-content {
+  margin-top: 18px;
+  width: 100%;
+
+  display: flex;
+  flex-direction: column;   /* ✅ Single column */
+  gap: 15px;
+}
+
+/* INDIVIDUAL BOX */
+.section {
+  background: #fafbff;
+  padding: 15px 18px;
+  border-radius: 12px;
+  border: 1px solid #eceffc;
+  transition: 0.2s;
+  text-align: left;        /* ✅ Left inside section */
+}
+
+.section:hover {
+  border-color: #007bff;
+  background: #f3f7ff;
+}
+
+.section h3 {
+  margin-bottom: 8px;
+  font-size: 17px;
+  font-weight: 600;
+  color: #007bff;
+}
+
+/* EDIT BUTTON */
+.btn-edit {
+  margin-top: 22px;
+  padding: 10px 18px;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 10px;
+  background: #007bff;
   color: white;
+  border: none;
+  transition: 0.25s;
 }
 
-.no-proposals {
-  color: #888;
-  font-style: italic;
+.btn-edit:hover {
+  background: #005fcc;
+  transform: translateY(-2px);
+}
+/* ======================================
+ ✅ DASHBOARD HEADER SECTION
+====================================== */
+.client-header {
+  background: linear-gradient(135deg, #2563eb, #3b82f6, #0ea5e9);
+  color: white;
   text-align: center;
-  margin-top: 20px;
+  padding: 45px 20px;
+  border-radius: 0 0 30px 30px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
+
+.client-header h2 {
+  font-size: 26px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 10px;
+}
+
+.client-header p {
+  font-size: 15px;
+  color: #f0f9ff;
+}
+/* ======================================
+ ✅ DASHBOARD TABS (Rounded like Freelancer)
+====================================== */
+.client-nav nav button {
+  background: #f8faff;
+  border: 1px solid #d0d7f0;
+  border-radius: 12px;
+  padding: 10px 18px;
+  font-size: 15px;
+  transition: all 0.25s ease;
+}
+
+.client-nav nav button:hover {
+  background: #eaf2ff;
+  color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.client-nav nav .active {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  box-shadow: 0 2px 6px rgba(0, 123, 255, 0.25);
+}
+
