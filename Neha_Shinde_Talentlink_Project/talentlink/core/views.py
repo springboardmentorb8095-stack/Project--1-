@@ -7,6 +7,7 @@ from rest_framework import status, viewsets, serializers
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.db.models import Q
 from django.utils import timezone
+from rest_framework.exceptions import ValidationError
 
 from .models import Skill, Profile, Project, Proposal, Contract, Message, Review, Conversation, Notification
 from .serializers import (
@@ -30,10 +31,10 @@ class ProfileViewSet(viewsets.ModelViewSet):
         return Profile.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
-        user = self.request.user
-        if Profile.objects.filter(user=user).exists():
-            raise serializers.ValidationError("Profile already exists for this user.")
-        serializer.save(user=user)
+       user = self.request.user
+       if Profile.objects.filter(user=user).exists():
+         raise ValidationError("Profile already exists for this user.")
+       serializer.save(user=user)
 
     def create(self, request, *args, **kwargs):
         print("Incoming data:", request.data)
